@@ -7,11 +7,11 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
     "start:frontend": "cd frontend && npm start",
-    "dev:api": "cd api && npm run dev",
-    "start:api": "cd api && npm start",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:api\"",
+    "dev:backend": "cd backend && npm run dev",
+    "start:backend": "cd backend && npm start",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "build": "npm run build:frontend",
-    "start": "npm run start:api"
+    "start": "npm run start:backend"
   },
   "keywords": ["kanban", "task-management", "productivity", "fullstack"],
   "author": "Your Name",
@@ -21,6 +21,6 @@
   },
   "workspaces": [
     "frontend",
-    "api"
+    "backend"
   ]
 }
