@@ -1,0 +1,26 @@
+{
+  "name": "yourskanban-cloud",
+  "version": "1.0.0",
+  "description": "A full-stack Kanban board application with user authentication",
+  "main": "index.js",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "start:frontend": "cd frontend && npm start",
+    "dev:api": "cd api && npm run dev",
+    "start:api": "cd api && npm start",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:api\"",
+    "build": "npm run build:frontend",
+    "start": "npm run start:api"
+  },
+  "keywords": ["kanban", "task-management", "productivity", "fullstack"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "workspaces": [
+    "frontend",
+    "api"
+  ]
+}
