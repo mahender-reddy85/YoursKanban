@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-require('dotenv').config();
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import 'dotenv/config';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = '7d';
@@ -64,10 +64,20 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export {
   generateToken,
   verifyToken,
   hashPassword,
   comparePasswords,
-  protect
+  protect,
+  JWT_SECRET
+};
+
+export default {
+  generateToken,
+  verifyToken,
+  hashPassword,
+  comparePasswords,
+  protect,
+  JWT_SECRET
 };
