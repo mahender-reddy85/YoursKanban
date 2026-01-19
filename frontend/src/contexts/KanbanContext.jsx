@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 
-const KanbanContext = createContext();
+export const KanbanContext = createContext();
 
 // Initial state matching the original state object
 const initialState = {
@@ -54,7 +54,7 @@ function kanbanReducer(state, action) {
   }
 }
 
-export function KanbanProvider({ children }) {
+export const KanbanProvider = ({ children }) => {
   const [state, dispatch] = useReducer(kanbanReducer, initialState);
 
   // Load saved theme from localStorage on initial render
@@ -113,3 +113,5 @@ export function useKanban() {
   }
   return context;
 }
+
+export default KanbanContext;
