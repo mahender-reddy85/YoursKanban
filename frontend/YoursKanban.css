@@ -1040,9 +1040,14 @@ textarea.form-control {
 @media (max-width: 767px) {
     .navbar {
         padding: 0.5rem 1rem;
-        flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .navbar::-webkit-scrollbar {
+        display: none;
     }
     
     .brand .subtitle {
@@ -1052,54 +1057,50 @@ textarea.form-control {
     .brand h1 {
         font-size: 1.25rem;
         white-space: nowrap;
+        margin-right: 12px;
     }
     
     .nav-buttons {
-        margin-left: 8px;
         display: flex;
-        flex-direction: column;
         align-items: center;
         gap: 8px;
+        margin-left: 8px;
     }
     
     .filters {
         display: flex;
-        flex-direction: column;
-        gap: 8px;
         align-items: center;
+        gap: 8px;
+        margin: 0 8px;
     }
     
     .nav-actions {
         display: flex;
-        flex-direction: column;
+        align-items: center;
         gap: 8px;
         padding: 4px 0;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
     }
     
-    .nav-actions::-webkit-scrollbar {
-        display: none;
-    }
-    
-    /* Ensure all nav items stay in a single line */
-    .nav-actions > * {
-        flex-shrink: 0;
-    }
-    
-    /* Make buttons more compact on mobile */
+    /* Make buttons compact and equal size */
     .icon-btn, #authButton {
-        padding: 6px;
         min-width: 36px;
         height: 36px;
+        padding: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
     }
     
     /* Hide button text on mobile */
-    .btn-text {
+    .btn-text, .auth-btn-text {
         display: none;
+    }
+    
+    /* Ensure all items stay in a single row */
+    .nav-actions > * {
+        flex-shrink: 0;
     }
 }
 
