@@ -1,0 +1,111 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const { createServer } = require('http');
+const { Pool } = require('pg');
+
+// Import API routes
+const registerHandler = require('./api/register');
+const loginHandler = require('./api/login');
+const meHandler = require('./api/me');
+const tasksHandler = require('./api/tasks');
+
+// Initialize express app
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Database connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+// Test database connection
+pool.query('SELECT NOW()', (err) => {
+  if (err) {
+    console.error('Database connection error:', err);
+  } else {
+    console.log('Successfully connected to the database');
+  }
+});
+
+// Middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
+app.use(express.json());
+app.use(morgan('dev'));
+
+// Add db to request object
+app.use((req, res, next) => {
+  req.db = pool;
+  next();
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API Routes
+app.post('/api/register', registerHandler);
+app.post('/api/login', loginHandler);
+app.get('/api/me', meHandler);
+
+// Task routes (protected)
+app.all('/api/tasks*', (req, res, next) => {
+  // Apply auth middleware to all /tasks* routes
+  require('./lib/auth').protect(req, res, next);
+}, tasksHandler);
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Not Found' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Internal Server Error' 
+      : err.message
+  });
+});
+
+// Create HTTP server
+const server = createServer(app);
+
+// Start server
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  server.close(() => process.exit(1));
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  server.close(() => process.exit(1));
+});
+
+// Handle SIGTERM
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
+});
+
+module.exports = { app, server };
