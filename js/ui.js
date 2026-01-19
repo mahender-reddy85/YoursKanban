@@ -1,5 +1,5 @@
 import { state, showToast, showModal, hideModal } from './app.js';
-import { tasksAPI } from '../api.js';
+import { tasksAPI } from './api.js';
 
 // DOM Elements
 const DOM = {
