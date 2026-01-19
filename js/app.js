@@ -10,22 +10,26 @@ async function init() {
         // Initialize theme
         ThemeManager.init();
         
-        // Check authentication status
-        const isAuthenticated = await Auth.checkAuth();
+        // Check if we have a token before making the auth check
+        const token = localStorage.getItem('token');
         
-        if (isAuthenticated) {
-            // Load tasks if authenticated
-            await fetchTasks();
-        } else {
-            // Show login modal if not authenticated
-            showModal('loginModal');
+        if (token) {
+            try {
+                // Only check auth if we have a token
+                const isAuthenticated = await Auth.checkAuth();
+                if (isAuthenticated) {
+                    await fetchTasks();
+                }
+            } catch (error) {
+                console.log('Authentication check:', error.message);
+                // Don't show error to user for initial auth check
+            }
         }
         
-        // Set up event listeners
+        // Initialize UI components regardless of auth state
         setupEventListeners();
+        renderBoard(state.tasks);
         
-        // Initial render
-        renderBoard();
     } catch (error) {
         console.error('Initialization error:', error);
         showToast('Failed to initialize application', 'error');
