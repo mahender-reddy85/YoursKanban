@@ -178,31 +178,30 @@ const authAPI = {
      * @returns {Promise<Object>} - User data and token
      */
     async login(email, password) {
-        const response = await request('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password })
-        });
-        
-        if (response.token) {
-            localStorage.setItem('token', response.token);
-            // Check if there are guest tasks to sync
-            const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
-            if (guestTasks.length > 0) {
-                // Show sync dialog
-                const sync = confirm('Do you want to sync your guest tasks to your account?');
-                if (sync) {
+        try {
+            const response = await request('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+            
+            if (response.token) {
+                localStorage.setItem('token', response.token);
+                // Check if there are guest tasks to sync
+                const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
+                if (guestTasks.length > 0) {
                     try {
                         await tasksAPI.syncGuestTasks();
-                        alert('Your tasks have been synced successfully!');
-                    } catch (error) {
-                        console.error('Failed to sync tasks:', error);
-                        alert('Failed to sync tasks. Please try again later.');
+                    } catch (syncError) {
+                        console.error('Failed to sync guest tasks:', syncError);
                     }
                 }
+                return response.user || {};
             }
+            throw new Error('No token received from server');
+        } catch (error) {
+            console.error('Login error:', error);
+            throw new Error(error.message || 'Login failed. Please check your credentials.');
         }
-        
-        return response;
     },
 
     /**
@@ -211,35 +210,54 @@ const authAPI = {
      * @returns {Promise<Object>} - User data and token
      */
     async register(userData) {
-        const response = await request('/auth/register', {
-            method: 'POST',
-            body: JSON.stringify(userData)
-        });
-        
-        if (response.token) {
-            localStorage.setItem('token', response.token);
-            // No need to sync guest tasks on register as it's a new account
+        try {
+            const response = await request('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(userData)
+            });
+            
+            if (response.token) {
+                localStorage.setItem('token', response.token);
+                return response.user || {};
+            }
+            throw new Error('Registration failed. Please try again.');
+        } catch (error) {
+            console.error('Registration error:', error);
+            throw new Error(error.message || 'Registration failed. Please try again.');
         }
-        
-        return response;
     },
 
     /**
      * Logout user
+     * @returns {Promise<boolean>} - Whether logout was successful
      */
-    logout() {
-        localStorage.removeItem('token');
+    async logout() {
+        try {
+            localStorage.removeItem('token');
+            // Optionally, make a backend call to invalidate the token
+            // await request('/auth/logout', { method: 'POST' });
+            return true;
+        } catch (error) {
+            console.error('Logout error:', error);
+            return false;
+        }
     },
 
     /**
      * Get current user data
-     * @returns {Promise<Object>} - User data
+     * @returns {Promise<Object|null>} - User data or null if not authenticated
      */
     async getCurrentUser() {
-        if (!isLoggedIn()) {
+        try {
+            if (!isLoggedIn()) return null;
+            const user = await request('/auth/me');
+            return user || null;
+        } catch (error) {
+            console.error('Failed to fetch current user:', error);
+            // If there's an error getting the current user, clear the token
+            localStorage.removeItem('token');
             return null;
         }
-        return await request('/auth/me');
     }
 };
 
