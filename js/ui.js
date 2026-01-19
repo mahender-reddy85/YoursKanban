@@ -1,4 +1,5 @@
-import { state, showToast, showModal, hideModal } from './app.js';
+import { state } from './state.js';
+import { showToast, showModal, hideModal } from './app.js';
 import { tasksAPI } from './api.js';
 
 // DOM Elements

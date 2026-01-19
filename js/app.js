@@ -1,19 +1,8 @@
 // Import modules
-import { Auth } from './auth.js';
 import { ThemeManager } from './theme.js';
 import { setupEventListeners, renderBoard } from './ui.js';
-
-// Application state
-const state = {
-    tasks: [],
-    currentUser: null,
-    isAuthenticated: false,
-    theme: localStorage.getItem('kanbanflow_theme') || 'light',
-    filterQuery: '',
-    priorityFilter: 'all',
-    sortOrder: 'none',
-    lastDeletedTask: null
-};
+import { state } from './state.js';
+import { Auth } from './auth.js';
 
 // Initialize the application
 async function init() {
