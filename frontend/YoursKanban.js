@@ -1339,6 +1339,97 @@ async function fetchTasks() {
     }
 }
 
+// --- Authentication Modals ---
+function openAuthModal(type = 'login') {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('authModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'authModal';
+        modal.className = 'modal-overlay';
+        modal.style.display = 'none';
+        modal.innerHTML = `
+            <div class="modal" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h3>${type === 'login' ? 'Login' : 'Sign Up'}</h3>
+                    <button class="icon-btn" onclick="closeModal('authModal')" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="authForm">
+                        ${type === 'signup' ? `
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" class="form-control" required>
+                        </div>
+                        ` : ''}
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" required 
+                                minlength="6" placeholder="At least 6 characters">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                ${type === 'login' ? 'Login' : 'Create Account'}
+                            </button>
+                        </div>
+                        <div class="auth-footer">
+                            ${type === 'login' 
+                                ? "Don't have an account? <a href=\"#\" onclick=\"openAuthModal('signup')\">Sign up</a>"
+                                : 'Already have an account? <a href="#" onclick="openAuthModal(\'login\')">Login</a>'}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Show the modal
+    modal.style.display = 'flex';
+    
+    // Focus on first input
+    const firstInput = modal.querySelector('input');
+    if (firstInput) firstInput.focus();
+    
+    // Handle form submission
+    const form = modal.querySelector('form');
+    if (form) {
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                if (type === 'login') {
+                    await authAPI.login(data.email, data.password);
+                    showToast('Logged in successfully', 'success');
+                } else {
+                    await authAPI.register(data);
+                    showToast('Account created successfully', 'success');
+                }
+                closeModal('authModal');
+                location.reload(); // Refresh to update UI
+            } catch (error) {
+                showToast(error.message || 'Authentication failed', 'error');
+            }
+        };
+    }
+}
+
+// Close modal by ID
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
 // --- Initialization ---
 async function init() {
     try {
