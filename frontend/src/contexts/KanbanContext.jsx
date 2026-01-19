@@ -99,8 +99,14 @@ export const KanbanProvider = ({ children }) => {
     setError: (error) => dispatch({ type: 'SET_ERROR', payload: error }),
   };
 
+  const contextValue = {
+    state,
+    dispatch,
+    // You can add any other context values or methods here
+  };
+
   return (
-    <KanbanContext.Provider value={value}>
+    <KanbanContext.Provider value={contextValue}>
       {children}
     </KanbanContext.Provider>
   );
