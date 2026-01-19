@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { KanbanProvider } from './contexts';
 import App from './pages/App';
 import './styles/index.css';
 
@@ -13,7 +14,9 @@ const root = createRoot(container);
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <KanbanProvider>
+        <App />
+      </KanbanProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
