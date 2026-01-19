@@ -104,6 +104,11 @@
                     <line x1="14" x2="10" y1="11" y2="17" />
                 </svg>
             </button>
+
+            <button id="authButton" class="btn btn-primary" style="margin-left: 8px;">
+                <i class="fas fa-sign-in-alt"></i>
+                <span class="auth-btn-text">Login / Sign Up</span>
+            </button>
         </div>
     </nav>
 
@@ -362,16 +367,11 @@
             }
         });
         
-        // Add click handler for login/signup button in the navbar
+        // Set up auth button
         document.addEventListener('DOMContentLoaded', function() {
-            const loginBtn = document.createElement('button');
-            loginBtn.className = 'btn btn-primary';
-            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login / Sign Up';
-            loginBtn.onclick = showLogin;
-            
-            const navActions = document.querySelector('.nav-actions');
-            if (navActions) {
-                navActions.prepend(loginBtn);
+            const authButton = document.getElementById('authButton');
+            if (authButton) {
+                authButton.onclick = showLogin;
             }
             
             // Add form submission handlers
