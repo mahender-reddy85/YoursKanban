@@ -952,29 +952,30 @@ textarea.form-control {
     top: 50%;
     right: 0.75rem;
     transform: translateY(-50%);
-    color: var(--text-muted);
-    pointer-events: none;
-    font-size: 0.75rem;
-}
 
 /* Navbar */
 .navbar {
-    background: var(--bg-color);
+    background-color: var(--navbar-bg);
+    color: var(--text);
     padding: 0.75rem 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 100;
-    transition: all 0.3s ease;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .brand {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    margin-right: 1rem;
+    flex-shrink: 0;
 }
 
 .brand h1 {
@@ -985,6 +986,7 @@ textarea.form-control {
     font-size: 1.5rem;
     color: var(--text-main);
     margin: 0;
+    white-space: nowrap;
 }
 
 .brand .subtitle {
@@ -992,13 +994,126 @@ textarea.form-control {
     font-size: 0.9rem;
     margin: 0;
     font-weight: 400;
+    white-space: nowrap;
 }
 
 .nav-actions {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 12px;
+    padding: 4px 0;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    justify-content: flex-end;
+}
+
+.nav-actions::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+/* Ensure all direct children of nav-actions don't shrink */
+.nav-actions > * {
+    flex-shrink: 0;
+}
+
+.nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+#authButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    padding: 6px 12px;
+    height: 36px; /* Match the height of other buttons */
+    min-width: 36px; /* Ensure it has a minimum size on mobile */
+}
+
+@media (max-width: 767px) {
+    #authButton .auth-btn-text {
+        display: none;
+    }
+    
+    #authButton {
+        padding: 6px 10px;
+    }
+}
+
+@media (min-width: 768px) {
+    #authButton .auth-btn-text {
+        display: inline;
+    }
+    
+    /* Position the auth button next to clear board on desktop */
+    .nav-actions {
+        justify-content: flex-end;
+    }
+    
+    /* Ensure the buttons stay together on desktop */
+    .nav-buttons {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 12px;
+    }
+    
+    /* Add a visual separator between the filter controls and action buttons */
+    .filters {
+        position: relative;
+        padding-right: 12px;
+    }
+    
+    .filters::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 24px;
+        width: 1px;
+        background-color: var(--border-color);
+    }
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+    .nav-buttons {
+        margin-left: 4px;
+    }
+    /* Make the navbar more compact on mobile */
+    .navbar {
+        padding: 0.5rem 1rem;
+    }
+    
+    /* Hide the subtitle on mobile */
+    .brand .subtitle {
+        display: none;
+    }
+    
+    /* Make the brand more compact */
+    .brand h1 {
+        font-size: 1.25rem;
+    }
+    
+    /* Adjust spacing between nav items on mobile */
+    .nav-actions {
+        gap: 8px;
+    }
+}
+
+.auth-buttons {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
 }
 
 .filters {
