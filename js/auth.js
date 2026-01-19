@@ -4,29 +4,32 @@ import { state } from './state.js';
 export const Auth = {
     // Check if user is authenticated
     async checkAuth() {
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            // User not logged in - this is normal
+            updateAuthUI(false);
+            return false;
+        }
+
         try {
-            // Get the token from localStorage
-            const token = localStorage.getItem('token');
-            
-            if (!token) {
-                throw new Error('No authentication token found');
-            }
+            const response = await fetch('https://yourskanban.onrender.com/api/me', {
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
 
-            // Include the token in the request
-            const user = await authAPI.getCurrentUser();
-            
-            if (!user) {
-                throw new Error('Invalid user data');
-            }
+            if (!response.ok) throw new Error('Invalid token');
 
-            // Update the application state
+            const user = await response.json();
             state.currentUser = user;
             state.isAuthenticated = true;
             updateAuthUI(true);
             return true;
         } catch (error) {
-            console.error('Authentication check failed:', error);
-            // Clear invalid token
+            console.error('Authentication failed:', error);
             localStorage.removeItem('token');
             state.currentUser = null;
             state.isAuthenticated = false;
