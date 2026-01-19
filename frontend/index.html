@@ -32,6 +32,14 @@
 </head>
 
 <body>
+    <!-- Guest Mode Banner -->
+    <div id="guest-banner" class="guest-banner" style="display: none;">
+        <div class="guest-banner-content">
+            <span><i class="fas fa-user-clock"></i> You are in Guest Mode — <a href="#" onclick="showLogin()">Login</a> to save your tasks and access them from anywhere</span>
+            <button class="guest-banner-close" onclick="this.parentElement.parentElement.style.display='none';">&times;</button>
+        </div>
+    </div>
+    
     <nav class="navbar">
         <div class="brand">
             <h1><i class="fas fa-columns"></i> YoursKanban</h1>

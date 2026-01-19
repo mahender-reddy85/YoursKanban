@@ -1,4 +1,75 @@
 /* ==========================================================================
+   #GUEST BANNER
+   ========================================================================== */
+
+.guest-banner {
+    background-color: #f0f7ff;
+    color: #0369a1;
+    padding: 8px 0;
+    border-bottom: 1px solid #bae6fd;
+    font-size: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.guest-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.guest-banner a {
+    color: #0369a1;
+    font-weight: 600;
+    text-decoration: underline;
+    margin-left: 4px;
+}
+
+.guest-banner a:hover {
+    color: #075985;
+}
+
+.guest-banner-close {
+    background: none;
+    border: none;
+    color: #0369a1;
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 12px;
+    padding: 0 8px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.guest-banner-close:hover {
+    opacity: 1;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .guest-banner {
+    background-color: #1e3a8a;
+    color: #bfdbfe;
+    border-bottom-color: #1e40af;
+}
+
+[data-theme="dark"] .guest-banner a {
+    color: #bfdbfe;
+}
+
+[data-theme="dark"] .guest-banner a:hover {
+    color: #eff6ff;
+}
+
+[data-theme="dark"] .guest-banner-close {
+    color: #bfdbfe;
+}
+
+/* ==========================================================================
    #BASE STYLES
    ========================================================================== */
 

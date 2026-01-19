@@ -1,5 +1,5 @@
 // Import API services
-import { authAPI, tasksAPI, fileAPI } from './api.js';
+import { authAPI, tasksAPI, fileAPI, isLoggedIn } from './js/api.js';
 
 /**
  * Application State Management
@@ -1370,9 +1370,22 @@ async function init() {
     }
 }
 
+// Show guest mode banner if not logged in
+function updateGuestBanner() {
+    const guestBanner = document.getElementById('guest-banner');
+    if (!guestBanner) return;
+    
+    if (!isLoggedIn()) {
+        guestBanner.style.display = 'block';
+    } else {
+        guestBanner.style.display = 'none';
+    }
+}
+
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     init();
+    updateGuestBanner();
     
     // Set up delete confirmation
     const confirmDeleteBtn = document.getElementById('confirmDelete');
