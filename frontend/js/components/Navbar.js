@@ -10,9 +10,12 @@ export default class Navbar extends HTMLElement {
   async connectedCallback() {
     try {
       this.user = await authAPI.getMe();
+      console.log('User data:', this.user); // Debug log
       this.render();
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.log('User not authenticated, showing auth buttons'); // Debug log
+      this.user = null; // Ensure user is null if not authenticated
+      this.render();
     }
   }
 
@@ -21,6 +24,7 @@ export default class Navbar extends HTMLElement {
   }
 
   render() {
+    console.log('Rendering Navbar, user:', this.user); // Debug log
     const isAuthenticated = !!this.user;
     
     this.shadowRoot.innerHTML = `
