@@ -30,90 +30,85 @@
 
 <body>
     <nav class="navbar">
-        <div class="navbar-top">
-            <div class="brand">
-                <h1><i class="fas fa-columns"></i> YoursKanban</h1>
-                <p class="subtitle">A Trello-style task management board</p>
+        <div class="brand">
+            <h1><i class="fas fa-columns"></i> YoursKanban</h1>
+            <p class="subtitle">A Trello-style task management board</p>
+        </div>
+
+        <div class="filters">
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search tasks...">
             </div>
-
-            <div class="nav-actions">
-                <button class="theme-toggle icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
-                    <svg class="sun-and-moon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24">
-                        <!-- Sun -->
-                        <circle class="sun" cx="12" cy="12" r="6" fill="currentColor" />
-                        <g class="sun-beams" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <line x1="12" y1="1" x2="12" y2="3" />
-                            <line x1="12" y1="21" x2="12" y2="23" />
-                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                            <line x1="1" y1="12" x2="3" y2="12" />
-                            <line x1="21" y1="12" x2="23" y2="12" />
-                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                        </g>
-                        <!-- Moon with better design -->
-                        <mask class="moon" id="moon-mask">
-                            <rect x="0" y="0" width="100%" height="100%" fill="white" />
-                            <circle cx="17" cy="7" r="9" fill="black" />
-                        </mask>
-                        <circle class="moon" cx="12" cy="12" r="6" mask="url(#moon-mask)" fill="currentColor" />
-                    </svg>
-                </button>
-
-                <button id="exportBoard" class="icon-btn" aria-label="Export board" title="Export board"
-                    style="color: var(--success)">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                </button>
-
-                <button id="sortByDate" class="icon-btn" style="color: var(--warning)" aria-label="Sort by due date"
-                    title="Sort by due date">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
-                        <path d="M16 2v4" />
-                        <path d="M8 2v4" />
-                        <path d="M3 10h18" />
-                        <path d="M12 14v4" />
-                        <path d="M8 18h8" />
-                    </svg>
-                </button>
-
-                <div class="nav-buttons">
-                    <button id="clearBoard" class="icon-btn" style="color: var(--danger)" aria-label="Clear all tasks">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                            <line x1="10" x2="14" y1="11" y2="17" />
-                            <line x1="14" x2="10" y1="11" y2="17" />
-                        </svg>
-                    </button>
-
-                    <button id="authButton" class="btn btn-primary">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span class="auth-btn-text">Login / Sign Up</span>
-                    </button>
-                </div>
+            <div class="priority-filter">
+                <select id="priorityFilter" class="filter-select">
+                    <option value="all">All Priorities</option>
+                    <option value="high">High Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="low">Low Priority</option>
+                </select>
             </div>
         </div>
 
-        <div class="navbar-bottom">
-            <div class="filters">
-                <div class="search-container">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search tasks...">
-                </div>
-                <div class="priority-filter">
-                    <select id="priorityFilter" class="filter-select">
-                        <option value="all">All Priorities</option>
-                        <option value="high">High Priority</option>
-                        <option value="medium">Medium Priority</option>
-                        <option value="low">Low Priority</option>
-                    </select>
-                </div>
+        <div class="nav-actions">
+            <button class="theme-toggle icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+                <svg class="sun-and-moon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24">
+                    <!-- Sun -->
+                    <circle class="sun" cx="12" cy="12" r="6" fill="currentColor" />
+                    <g class="sun-beams" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="12" y1="1" x2="12" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="23" />
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                        <line x1="1" y1="12" x2="3" y2="12" />
+                        <line x1="21" y1="12" x2="23" y2="12" />
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </g>
+                    <!-- Moon with better design -->
+                    <mask class="moon" id="moon-mask">
+                        <rect x="0" y="0" width="100%" height="100%" fill="white" />
+                        <circle cx="17" cy="7" r="9" fill="black" />
+                    </mask>
+                    <circle class="moon" cx="12" cy="12" r="6" mask="url(#moon-mask)" fill="currentColor" />
+                </svg>
+            </button>
+
+            <button id="exportBoard" class="icon-btn" aria-label="Export board" title="Export board"
+                style="color: var(--success)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+            </button>
+
+            <button id="sortByDate" class="icon-btn" style="color: var(--warning)" aria-label="Sort by due date"
+                title="Sort by due date">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+                    <path d="M16 2v4" />
+                    <path d="M8 2v4" />
+                    <path d="M3 10h18" />
+                    <path d="M12 14v4" />
+                    <path d="M8 18h8" />
+                </svg>
+            </button>
+
+            <div class="nav-buttons">
+                <button id="clearBoard" class="icon-btn" style="color: var(--danger); margin-right: 0;" aria-label="Clear all tasks">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        <line x1="10" x2="14" y1="11" y2="17" />
+                        <line x1="14" x2="10" y1="11" y2="17" />
+                    </svg>
+                </button>
+                <button id="authButton" class="btn btn-primary" style="margin-left: 0;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span class="auth-btn-text">Login / Sign Up</span>
+                </button>
             </div>
         </div>
     </nav>
