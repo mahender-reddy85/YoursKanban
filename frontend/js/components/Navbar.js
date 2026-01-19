@@ -9,9 +9,12 @@ export default class Navbar extends HTMLElement {
 
   async connectedCallback() {
     try {
+      console.log('Fetching user data...');
       this.user = await authAPI.getMe();
+      console.log('User data:', this.user);
       this.render();
     } catch (error) {
+      console.log('User not authenticated, showing auth buttons');
       this.user = null;
       this.render();
     }
@@ -22,7 +25,9 @@ export default class Navbar extends HTMLElement {
   }
 
   render() {
-    const isAuthenticated = !!this.user;
+    console.log('Rendering Navbar, user:', this.user);
+    // Force show buttons for testing - remove this line after debugging
+    const isAuthenticated = false; // Temporarily force show auth buttons
     
     this.shadowRoot.innerHTML = `
       <style>
@@ -173,31 +178,29 @@ export default class Navbar extends HTMLElement {
         }
       </style>
       
-      <nav>
-        <a href="/" class="logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="3" y1="9" x2="21" y2="9"></line>
-            <line x1="9" y1="21" x2="9" y2="9"></line>
-          </svg>
-          <span>YoursKanban</span>
-        </a>
-      </nav>
-      ${!isAuthenticated ? `
-        <div class="auth-section">
-          <h3 style="margin: 0 0 1rem 0; color: var(--text-main);">Get Started</h3>
-          <div class="auth-buttons">
-            <a href="/login" class="btn-auth btn-login">
-              <i class="fas fa-sign-in-alt"></i>
-              Login
-            </a>
-            <a href="/register" class="btn-auth btn-signup">
-              <i class="fas fa-user-plus"></i>
-              Sign Up
-            </a>
-          </div>
+      <div style="background: #f8f9fa; padding: 1rem; border-bottom: 1px solid #e9ecef;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+          <a href="/" style="display: flex; align-items: center; text-decoration: none; color: #333; font-weight: bold; font-size: 1.25rem;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+            YoursKanban
+          </a>
         </div>
-      ` : ''}
+      </div>
+      <div style="background: #fff; padding: 2rem 1rem; text-align: center; border-bottom: 1px solid #e9ecef;">
+        <h3 style="margin: 0 0 1.5rem 0; color: #333; font-size: 1.5rem;">Get Started with YoursKanban</h3>
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+          <a href="/login" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #4CAF50; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: 500; transition: background 0.2s ease;">
+            <span>✅</span> Login
+          </a>
+          <a href="/register" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #2196F3; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: 500; transition: background 0.2s ease;">
+            <span>✅</span> Sign Up
+          </a>
+        </div>
+      </div>
     `;
 
     // Add event listeners
