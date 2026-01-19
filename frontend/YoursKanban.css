@@ -959,16 +959,16 @@ textarea.form-control {
 
 /* Navbar */
 .navbar {
-    background: var(--bg-secondary);
+    background: var(--bg-color);
     padding: 0.75rem 1.5rem;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
     z-index: 100;
-    border-bottom: 1px solid var(--border-color);
+    transition: all 0.3s ease;
 }
 
 .brand {
