@@ -972,7 +972,7 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
     e.preventDefault();
 
     const form = e.target;
@@ -1001,20 +1001,26 @@ function handleFormSubmit(e) {
         updatedAt: Date.now()
     };
 
-    if (existingTask) {
-        // Update existing task
-        Object.assign(existingTask, taskData);
-        showToast('Task updated', 'success');
-    } else {
-        // Add new task
-        taskData.createdAt = Date.now();
-        state.tasks.push(taskData);
-        showToast('Task created', 'success');
-    }
+    try {
+        if (existingTask) {
+            // Update existing task
+            await tasksAPI.updateTask(id, taskData);
+            showToast('Task updated', 'success');
+        } else {
+            // Add new task
+            taskData.createdAt = Date.now();
+            await tasksAPI.createTask(taskData);
+            showToast('Task created', 'success');
+        }
 
-    saveState();
-    renderBoard();
-    closeModal();
+        // Refresh tasks from the server
+        await fetchTasks();
+        renderBoard();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving task:', error);
+        showToast(error.message || 'Failed to save task', 'error');
+    }
 }
 
 // --- Inline Editing ---
