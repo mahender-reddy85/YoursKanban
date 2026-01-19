@@ -958,16 +958,32 @@ textarea.form-control {
 .navbar {
     background-color: var(--bg-secondary);
     color: var(--text-main);
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 1.5rem 0;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
     width: 100%;
     box-sizing: border-box;
+}
+
+.navbar-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    width: 100%;
+}
+
+.navbar-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border-color);
 }
 
 .brand {
@@ -1037,73 +1053,6 @@ textarea.form-control {
     min-width: 36px; /* Ensure it has a minimum size on mobile */
 }
 
-@media (max-width: 767px) {
-    .navbar {
-        padding: 0.5rem 1rem;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-    
-    .navbar::-webkit-scrollbar {
-        display: none;
-    }
-    
-    .brand .subtitle {
-        display: none;
-    }
-    
-    .brand h1 {
-        font-size: 1.25rem;
-        white-space: nowrap;
-        margin-right: 12px;
-    }
-    
-    .nav-buttons {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: 8px;
-    }
-    
-    .filters {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 0 8px;
-    }
-    
-    .nav-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 4px 0;
-        -webkit-overflow-scrolling: touch;
-    }
-    
-    /* Make buttons compact and equal size */
-    .icon-btn, #authButton {
-        min-width: 36px;
-        height: 36px;
-        padding: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    
-    /* Hide button text on mobile */
-    .btn-text, .auth-btn-text {
-        display: none;
-    }
-    
-    /* Ensure all items stay in a single row */
-    .nav-actions > * {
-        flex-shrink: 0;
-    }
-}
-
 .auth-buttons {
     margin-left: auto;
     display: flex;
@@ -1114,6 +1063,8 @@ textarea.form-control {
     display: flex;
     gap: 1rem;
     align-items: center;
+    width: 100%;
+    padding: 0 0.5rem;
 }
 
 .priority-filter {
