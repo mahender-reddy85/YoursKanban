@@ -24,7 +24,9 @@ async function request(endpoint, options = {}) {
     };
 
     try {
-        const response = await fetch(`/api${endpoint}`, config);
+        // Use absolute URL in production, relative in development
+        const baseUrl = window.location.hostname === 'localhost' ? '' : 'https://yourskanban.vercel.app';
+        const response = await fetch(`${baseUrl}/api${endpoint}`, config);
         return await handleResponse(response);
     } catch (error) {
         console.error('API request failed:', error);
