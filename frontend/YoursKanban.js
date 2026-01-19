@@ -1325,6 +1325,20 @@ function handleKeyboardShortcuts(e) {
     }
 }
 
+// --- Task Management ---
+async function fetchTasks() {
+    try {
+        const tasks = await tasksAPI.getTasks();
+        state.tasks = tasks || [];
+        return tasks;
+    } catch (error) {
+        console.error('Error fetching tasks:', error);
+        showToast('Failed to load tasks', 'error');
+        state.tasks = [];
+        return [];
+    }
+}
+
 // --- Initialization ---
 async function init() {
     try {
