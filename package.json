@@ -1,26 +1,36 @@
 {
-  "name": "yourskanban-cloud",
+  "name": "yours-kanban",
   "version": "1.0.0",
-  "description": "A full-stack Kanban board application with user authentication",
+  "description": "A Trello-style Kanban board application",
   "main": "index.js",
   "scripts": {
-    "dev:frontend": "cd frontend && npm run dev",
-    "build:frontend": "cd frontend && npm run build",
-    "start:frontend": "cd frontend && npm start",
-    "dev:backend": "cd backend && npm run dev",
-    "start:backend": "cd backend && npm start",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "build": "npm run build:frontend",
-    "start": "npm run start:backend"
+    "start": "node backend/index.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon backend/index.js",
+    "client": "npm run dev --prefix frontend",
+    "build": "cd frontend && npm install && npm run build",
+    "install-all": "npm install && cd frontend && npm install",
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix frontend && npm run build --prefix frontend"
   },
-  "keywords": ["kanban", "task-management", "productivity", "fullstack"],
-  "author": "Your Name",
+  "keywords": ["kanban", "trello", "task-management", "productivity"],
+  "author": "",
   "license": "MIT",
-  "devDependencies": {
-    "concurrently": "^8.2.2"
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "helmet": "^6.0.1",
+    "http-errors": "^2.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "morgan": "^1.10.0",
+    "pg": "^8.8.0"
   },
-  "workspaces": [
-    "frontend",
-    "backend"
-  ]
+  "devDependencies": {
+    "concurrently": "^8.0.1",
+    "nodemon": "^2.0.20"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }
