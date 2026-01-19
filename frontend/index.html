@@ -253,28 +253,28 @@
     </div>
 
     <!-- Login Modal -->
-    <div class="modal-overlay" id="loginModal" style="display: none;">
-        <div class="modal auth-modal">
+    <div class="modal-overlay" id="loginModal">
+        <div class="auth-modal">
+            <button class="close-btn" onclick="hideModal('loginModal')">&times;</button>
             <div class="modal-header">
-                <h3>Welcome Back</h3>
-                <p class="auth-subtitle">Sign in to your account</p>
-                <button class="close-btn" onclick="hideModal('loginModal')">&times;</button>
+                <h3>Sign In</h3>
+                <p>Sign in to your account</p>
             </div>
             <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" name="email" required>
+                    <input type="email" id="loginEmail" name="email" placeholder="Enter your email" required>
                 </div>
                 
                 <div class="form-group">
-                    <div class="form-header">
-                        <label for="loginPassword">Password</label>
-                        <a href="#" class="forgot-password">Forgot password?</a>
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" placeholder="••••••••" required>
+                    <div class="forgot-password">
+                        <a href="#" onclick="showForgotPassword()">Forgot password?</a>
                     </div>
-                    <input type="password" id="loginPassword" name="password" required>
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                <button type="submit" class="btn-primary">Sign In</button>
                 
                 <div class="auth-footer">
                     Don't have an account? <a href="#" onclick="showRegister()">Sign up</a>
@@ -285,36 +285,35 @@
     </div>
 
     <!-- Register Modal -->
-    <div class="modal-overlay" id="registerModal" style="display: none;">
-        <div class="modal auth-modal">
+    <div class="modal-overlay" id="registerModal">
+        <div class="auth-modal">
+            <button class="close-btn" onclick="hideModal('registerModal')">&times;</button>
             <div class="modal-header">
                 <h3>Create Account</h3>
-                <p class="auth-subtitle">Get started with your free account</p>
-                <button class="close-btn" onclick="hideModal('registerModal')">&times;</button>
+                <p>Get started with your free account</p>
             </div>
             <form id="registerForm" class="auth-form">
                 <div class="form-group">
                     <label for="name">Full Name</label>
-                    <input type="text" id="name" name="name" required>
+                    <input type="text" id="name" name="name" placeholder="Enter your full name" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="registerEmail">Email</label>
-                    <input type="email" id="registerEmail" name="email" required>
+                    <input type="email" id="registerEmail" name="email" placeholder="Enter your email" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="registerPassword">Password</label>
-                    <input type="password" id="registerPassword" name="password" minlength="6" required>
-                    <small class="hint">Minimum 6 characters</small>
+                    <input type="password" id="registerPassword" name="password" placeholder="••••••••" minlength="6" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="••••••••" required>
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                <button type="submit" class="btn-primary">Create Account</button>
                 
                 <div class="auth-footer">
                     Already have an account? <a href="#" onclick="showLogin()">Sign in</a>
@@ -335,19 +334,50 @@
         // Show login modal
         function showLogin() {
             hideModal('registerModal');
-            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('loginModal').classList.add('active');
+            document.body.classList.add('auth-modal-open');
         }
         
         // Show register modal
         function showRegister() {
             hideModal('loginModal');
-            document.getElementById('registerModal').style.display = 'flex';
+            document.getElementById('registerModal').classList.add('active');
+            document.body.classList.add('auth-modal-open');
+        }
+        
+        // Show forgot password modal
+        function showForgotPassword() {
+            hideModal('loginModal');
+            // You can implement forgot password functionality here
+            alert('Forgot password functionality will be implemented here');
+            return false;
         }
         
         // Hide modal by ID
         function hideModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.classList.remove('auth-modal-open');
+            }
         }
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                hideModal(e.target.id);
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const activeModal = document.querySelector('.modal-overlay.active');
+                if (activeModal) {
+                    hideModal(activeModal.id);
+                }
+            }
+        });
         
         // Add click handler for login/signup button in the navbar
         document.addEventListener('DOMContentLoaded', function() {
@@ -358,7 +388,7 @@
             
             const navActions = document.querySelector('.nav-actions');
             if (navActions) {
-                navActions.appendChild(loginBtn);
+                navActions.prepend(loginBtn);
             }
             
             // Add form submission handlers
@@ -369,7 +399,19 @@
                 loginForm.onsubmit = function(e) {
                     e.preventDefault();
                     // Add your login logic here
-                    console.log('Login form submitted');
+                    const email = document.getElementById('loginEmail').value;
+                    const password = document.getElementById('loginPassword').value;
+                    console.log('Login attempt with:', { email });
+                    // Simulate API call
+                    setTimeout(() => {
+                        // On success:
+                        // hideModal('loginModal');
+                        // showToast('Login successful!', 'success');
+                        
+                        // On error:
+                        const errorMessage = 'Incorrect email or password';
+                        document.getElementById('loginErrorMessage').textContent = errorMessage;
+                    }, 500);
                     return false;
                 };
             }
@@ -378,7 +420,29 @@
                 registerForm.onsubmit = function(e) {
                     e.preventDefault();
                     // Add your registration logic here
-                    console.log('Register form submitted');
+                    const name = document.getElementById('name').value;
+                    const email = document.getElementById('registerEmail').value;
+                    const password = document.getElementById('registerPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    
+                    // Simple validation
+                    if (password !== confirmPassword) {
+                        document.getElementById('registerErrorMessage').textContent = 'Passwords do not match';
+                        return false;
+                    }
+                    
+                    console.log('Registration attempt with:', { name, email });
+                    // Simulate API call
+                    setTimeout(() => {
+                        // On success:
+                        // hideModal('registerModal');
+                        // showToast('Registration successful! Please log in.', 'success');
+                        
+                        // On error:
+                        const errorMessage = 'Email already registered';
+                        document.getElementById('registerErrorMessage').textContent = errorMessage;
+                    }, 500);
+                    
                     return false;
                 };
             }
