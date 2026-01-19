@@ -21,6 +21,8 @@ export default class Navbar extends HTMLElement {
   }
 
   render() {
+    const isAuthenticated = !!this.user;
+    
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -89,11 +91,50 @@ export default class Navbar extends HTMLElement {
           font-size: 0.875rem;
         }
         
+        .auth-buttons {
+          display: flex;
+          gap: 0.75rem;
+        }
+        
+        .btn-auth {
+          padding: 0.5rem 1rem;
+          border-radius: var(--radius-sm);
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .btn-login {
+          background: none;
+          border: 1px solid var(--primary);
+          color: var(--primary);
+        }
+        
+        .btn-login:hover {
+          background-color: var(--primary-light);
+        }
+        
+        .btn-signup {
+          background-color: var(--primary);
+          border: 1px solid var(--primary);
+          color: white;
+        }
+        
+        .btn-signup:hover {
+          background-color: var(--primary-dark);
+          border-color: var(--primary-dark);
+        }
+        
         .btn-logout {
           background: none;
           border: 1px solid var(--border-color);
           color: var(--text-main);
-          padding: 0.375rem 0.75rem;
+          padding: 0.5rem 1rem;
           border-radius: var(--radius-sm);
           cursor: pointer;
           font-size: 0.875rem;
@@ -112,28 +153,27 @@ export default class Navbar extends HTMLElement {
             <line x1="3" y1="9" x2="21" y2="9"></line>
             <line x1="9" y1="21" x2="9" y2="9"></line>
           </svg>
-          YoursKanban
         </a>
         
-        ${this.user ? `
-          <div class="nav-links">
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/boards" class="nav-link">Boards</a>
-            <a href="/profile" class="nav-link">Profile</a>
-          </div>
-          
-          <div class="user-menu">
-            <div class="user-avatar">
-              ${this.user.name ? this.user.name.charAt(0).toUpperCase() : 'U'}
+        <div class="nav-links">
+          ${isAuthenticated ? `
+            <div class="user-menu">
+              <div class="user-avatar">${this.user.name ? this.user.name.charAt(0).toUpperCase() : 'U'}</div>
+              <button class="btn-logout" id="logoutBtn">
+                Logout
+              </button>
             </div>
-            <button class="btn-logout">Logout</button>
-          </div>
-        ` : `
-          <div class="nav-links">
-            <a href="/login.html" class="nav-link">Login</a>
-            <a href="/register.html" class="btn btn-primary">Sign Up</a>
-          </div>
-        `}
+          ` : `
+            <div class="auth-buttons">
+              <a href="/login" class="btn-auth btn-login">
+                Log In
+              </a>
+              <a href="/register" class="btn-auth btn-signup">
+                Sign Up
+              </a>
+            </div>
+          `}
+        </div>
       </nav>
     `;
 
