@@ -4,96 +4,48 @@
 
 .task-card {
     background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     padding: 16px;
-    margin-bottom: 12px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    border-left: 4px solid #4a90e2;
+    margin-bottom: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
 }
 
 .task-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.task-card.high {
-    border-left-color: #e74c3c;
-}
-
-.task-card.medium {
-    border-left-color: #f39c12;
-}
-
-.task-card.low {
-    border-left-color: #2ecc71;
-}
-
-.task-card .task-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .task-card .task-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
-    flex-grow: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a202c;
+    margin: 0 0 6px 0;
+    line-height: 1.4;
 }
 
 .task-card .task-description {
-    font-size: 14px;
-    color: #6c757d;
-    margin: 0 0 16px 0;
+    font-size: 12px;
+    color: #718096;
+    margin: 0 0 10px 0;
     line-height: 1.5;
 }
 
-.task-card .task-meta {
+.task-card .task-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid #f0f2f5;
+    padding-top: 8px;
+    border-top: 1px solid #edf2f7;
 }
 
-.task-card .task-priority {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.task-card .task-priority.high {
-    background-color: #fde8e8;
-    color: #e74c3c;
-}
-
-.task-card .task-priority.medium {
-    background-color: #fff3e0;
-    color: #f39c12;
-}
-
-.task-card .task-priority.low {
-    background-color: #e8f5e9;
-    color: #2ecc71;
-}
-
-.task-card .task-due-date {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
-    color: #6c757d;
-}
-
-.task-card .task-due-date i {
-    margin-right: 4px;
-    color: #6c757d;
+.task-card .task-status {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background-color: #ebf8ff;
+    color: #3182ce;
 }
 
 .task-card .task-actions {
@@ -104,61 +56,54 @@
 .task-card .icon-btn {
     background: none;
     border: none;
-    color: #95a5a6;
+    color: #a0aec0;
     cursor: pointer;
-    padding: 4px;
+    padding: 2px;
     border-radius: 4px;
     transition: all 0.2s;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 14px;
 }
 
 .task-card .icon-btn:hover {
-    background-color: #f8f9fa;
-    color: #4a90e2;
-}
-
-.task-card .icon-btn.delete-task:hover {
-    color: #e74c3c;
-}
-
-.task-card .icon-btn.pin-task.pinned {
-    color: #f1c40f;
-}
-
-.task-card .task-status {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    background-color: #e3f2fd;
-    color: #1976d2;
+    background-color: #f7fafc;
+    color: #4a5568;
 }
 
 /* Dark mode support */
 [data-theme="dark"] .task-card {
-    background: var(--bg-secondary);
-    border-left-color: #4a90e2;
+    background: #2d3748;
+    border-color: #4a5568;
 }
 
 [data-theme="dark"] .task-card .task-title {
-    color: var(--text-main);
+    color: #e2e8f0;
 }
 
 [data-theme="dark"] .task-card .task-description {
-    color: var(--text-muted);
+    color: #a0aec0;
 }
 
-[data-theme="dark"] .task-card .task-meta {
-    border-top-color: var(--border-color);
+[data-theme="dark"] .task-card .task-footer {
+    border-top-color: #4a5568;
+}
+
+[data-theme="dark"] .task-card .task-status {
+    background-color: #2b6cb0;
+    color: #ebf8ff;
+}
+
+[data-theme="dark"] .task-card .icon-btn {
+    color: #718096;
 }
 
 [data-theme="dark"] .task-card .icon-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: #4a5568;
+    color: #e2e8f0;
 }
 
 /* ==========================================================================
