@@ -79,9 +79,10 @@ export const KanbanProvider = ({ children }) => {
     }
   }, [state.theme]);
 
-  // Context value containing state and actions
-  const value = {
-    ...state,
+  // Create the context value with both state and actions
+  const contextValue = {
+    state,
+    dispatch,
     // Actions
     setTasks: (tasks) => dispatch({ type: 'SET_TASKS', payload: tasks }),
     addTask: (task) => dispatch({ type: 'ADD_TASK', payload: task }),
@@ -97,12 +98,6 @@ export const KanbanProvider = ({ children }) => {
     setCurrentUser: (user) => dispatch({ type: 'SET_CURRENT_USER', payload: user }),
     setLoading: (isLoading) => dispatch({ type: 'SET_LOADING', payload: isLoading }),
     setError: (error) => dispatch({ type: 'SET_ERROR', payload: error }),
-  };
-
-  const contextValue = {
-    state,
-    dispatch,
-    // You can add any other context values or methods here
   };
 
   return (
