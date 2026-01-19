@@ -5,18 +5,23 @@ export default class Navbar extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this.user = null;
+    this.mobileMenuOpen = false;
+    this.toggleMobileMenu = this.toggleMobileMenu.bind(this);
   }
 
   async connectedCallback() {
     try {
       this.user = await authAPI.getMe();
-      console.log('User data:', this.user); // Debug log
       this.render();
     } catch (error) {
-      console.log('User not authenticated, showing auth buttons'); // Debug log
-      this.user = null; // Ensure user is null if not authenticated
+      this.user = null;
       this.render();
     }
+  }
+  
+  toggleMobileMenu() {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+    this.render();
   }
 
   handleLogout() {
@@ -24,7 +29,6 @@ export default class Navbar extends HTMLElement {
   }
 
   render() {
-    console.log('Rendering Navbar, user:', this.user); // Debug log
     const isAuthenticated = !!this.user;
     
     this.shadowRoot.innerHTML = `
@@ -36,16 +40,18 @@ export default class Navbar extends HTMLElement {
           position: sticky;
           top: 0;
           z-index: 100;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
         
         nav {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 0.75rem 2rem;
+          padding: 0.75rem 1.5rem;
           max-width: 1200px;
           margin: 0 auto;
           width: 100%;
+          box-sizing: border-box;
         }
         
         .logo {
@@ -95,9 +101,61 @@ export default class Navbar extends HTMLElement {
           font-size: 0.875rem;
         }
         
+        /* Auth Buttons */
         .auth-buttons {
           display: flex;
           gap: 0.75rem;
+          align-items: center;
+        }
+        
+        /* Mobile Menu Button */
+        .mobile-menu-button {
+          display: none;
+          background: none;
+          border: none;
+          color: var(--text-main);
+          font-size: 1.5rem;
+          cursor: pointer;
+          padding: 0.5rem;
+          margin-left: 0.5rem;
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu {
+          display: none;
+          flex-direction: column;
+          gap: 1rem;
+          padding: 1rem 1.5rem;
+          background-color: var(--bg-secondary);
+          border-top: 1px solid var(--border-color);
+        }
+        
+        .mobile-menu.open {
+          display: flex;
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+          .mobile-menu-button {
+            display: block;
+          }
+          
+          .auth-buttons {
+            display: none;
+          }
+          
+          .auth-buttons.mobile-visible {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+          }
+          
+          .auth-buttons.mobile-visible .btn-auth {
+            width: 100%;
+            justify-content: center;
+          }
         }
         
         .btn-auth {
@@ -151,15 +209,18 @@ export default class Navbar extends HTMLElement {
       </style>
       
       <nav>
-        <a href="/" class="logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="3" y1="9" x2="21" y2="9"></line>
-            <line x1="9" y1="21" x2="9" y2="9"></line>
-          </svg>
-        </a>
+        <div class="nav-left">
+          <a href="/" class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+            <span>YoursKanban</span>
+          </a>
+        </div>
         
-        <div class="nav-links">
+        <div class="nav-right">
           ${isAuthenticated ? `
             <div class="user-menu">
               <div class="user-avatar">${this.user.name ? this.user.name.charAt(0).toUpperCase() : 'U'}</div>
@@ -176,15 +237,37 @@ export default class Navbar extends HTMLElement {
                 Sign Up
               </a>
             </div>
+            <button class="mobile-menu-button" id="mobileMenuButton">
+              <i class="fas fa-bars"></i>
+            </button>
           `}
         </div>
       </nav>
+      
+      ${!isAuthenticated ? `
+        <div class="mobile-menu ${this.mobileMenuOpen ? 'open' : ''}" id="mobileMenu">
+          <div class="auth-buttons mobile-visible">
+            <a href="/login" class="btn-auth btn-login">
+              Log In
+            </a>
+            <a href="/register" class="btn-auth btn-signup">
+              Sign Up
+            </a>
+          </div>
+        </div>
+      ` : ''}
     `;
 
     // Add event listeners
-    const logoutBtn = this.shadowRoot.querySelector('.btn-logout');
+    const logoutBtn = this.shadowRoot.getElementById('logoutBtn');
+    const mobileMenuButton = this.shadowRoot.getElementById('mobileMenuButton');
+    
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => this.handleLogout());
+    }
+    
+    if (mobileMenuButton) {
+      mobileMenuButton.addEventListener('click', this.toggleMobileMenu);
     }
   }
 }
