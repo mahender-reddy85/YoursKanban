@@ -1,5 +1,5 @@
 import { authAPI } from './api.js';
-import { state } from './js/app.js';
+import { state } from './app.js';
 
 export const Auth = {
     // Check if user is authenticated
