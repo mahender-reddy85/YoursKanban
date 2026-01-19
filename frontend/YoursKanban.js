@@ -1,5 +1,5 @@
 // Import API services
-import { authAPI, tasksAPI, fileAPI, isLoggedIn } from './js/api.js';
+import { authAPI, tasksAPI, isLoggedIn } from './js/api.js';
 
 /**
  * Application State Management
