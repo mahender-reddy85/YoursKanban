@@ -1407,11 +1407,7 @@ function openAuthModal(type = 'login') {
                             ${type === 'login' ? 'Login' : 'Create Account'}
                         </button>
                     </div>
-                    <div class="auth-footer">
-                        ${type === 'login' 
-                            ? 'Don\'t have an account? <a href="#" class="auth-toggle" data-type="signup">Sign up</a>'
-                            : 'Already have an account? <a href="#" class="auth-toggle" data-type="login">Login</a>'}
-                    </div>
+                    <div class="auth-footer"></div>
                 </form>
             </div>
         `;
