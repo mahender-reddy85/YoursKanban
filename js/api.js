@@ -20,7 +20,15 @@ export const authAPI = {
             body: JSON.stringify({ email, password }),
             credentials: 'include'
         });
-        return handleResponse(response);
+        
+        const data = await handleResponse(response);
+        
+        // Store the token in localStorage if it exists in the response
+        if (data.token) {
+            localStorage.setItem('token', data.token);
+        }
+        
+        return data;
     },
 
     async register(name, email, password) {
@@ -36,9 +44,23 @@ export const authAPI = {
     },
 
     async getCurrentUser() {
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
+        
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+
+        // Add Authorization header if token exists
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(`${API_BASE_URL}/me`, {
+            headers,
             credentials: 'include'
         });
+        
         return handleResponse(response);
     },
 
