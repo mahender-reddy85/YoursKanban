@@ -11,8 +11,11 @@ async function handleResponse(response) {
             errorMessage = 'Session expired. Please log in again.';
             // Clear invalid token
             localStorage.removeItem('token');
-            // Redirect to login or show login modal
-            window.location.href = '/login';
+            // Show login modal instead of redirecting
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal) {
+                loginModal.style.display = 'flex';
+            }
         } else if (response.status === 403) {
             errorMessage = 'You do not have permission to perform this action.';
         } else if (response.status === 404) {
