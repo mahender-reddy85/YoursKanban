@@ -1332,14 +1332,19 @@ async function init() {
         ThemeManager.init();
         
         // Check authentication status
-        const isAuthenticated = await Auth.checkAuth();
-        
-        if (isAuthenticated) {
-            // Load tasks if authenticated
-            await fetchTasks();
+        if (isLoggedIn()) {
+            try {
+                // Load current user data
+                await authAPI.getCurrentUser();
+                // Load tasks if authenticated
+                await fetchTasks();
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showToast('Error loading your data', 'error');
+            }
         } else {
-            // Show login modal if not authenticated
-            showModal('loginModal');
+            // Show guest mode banner
+            updateGuestBanner();
         }
         
         // Set up event listeners
