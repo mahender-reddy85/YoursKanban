@@ -2,11 +2,32 @@ const API_BASE_URL = 'https://yourskanban.onrender.com/api';
 
 // Helper function to handle API responses
 async function handleResponse(response) {
+    const data = await response.json().catch(() => ({}));
+    
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
+        let errorMessage = data.message || 'An error occurred';
+        
+        if (response.status === 401) {
+            errorMessage = 'Session expired. Please log in again.';
+            // Clear invalid token
+            localStorage.removeItem('token');
+            // Redirect to login or show login modal
+            window.location.href = '/login';
+        } else if (response.status === 403) {
+            errorMessage = 'You do not have permission to perform this action.';
+        } else if (response.status === 404) {
+            errorMessage = 'The requested resource was not found.';
+        } else if (response.status >= 500) {
+            errorMessage = 'A server error occurred. Please try again later.';
+        }
+        
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.data = data;
+        throw error;
     }
-    return response.json();
+    
+    return data;
 }
 
 // Auth API
@@ -72,10 +93,25 @@ export const authAPI = {
     }
 };
 
+// Helper function to get headers with auth token
+function getAuthHeaders() {
+    const token = localStorage.getItem('token');
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return headers;
+}
+
 // Tasks API
 export const tasksAPI = {
     async getAll() {
         const response = await fetch(`${API_BASE_URL}/tasks`, {
+            headers: getAuthHeaders(),
             credentials: 'include'
         });
         return handleResponse(response);
@@ -83,6 +119,7 @@ export const tasksAPI = {
 
     async getById(id) {
         const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+            headers: getAuthHeaders(),
             credentials: 'include'
         });
         return handleResponse(response);
@@ -91,9 +128,7 @@ export const tasksAPI = {
     async create(task) {
         const response = await fetch(`${API_BASE_URL}/tasks`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(task),
             credentials: 'include'
         });
@@ -103,9 +138,7 @@ export const tasksAPI = {
     async update(id, task) {
         const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(task),
             credentials: 'include'
         });
@@ -115,6 +148,7 @@ export const tasksAPI = {
     async delete(id) {
         const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
             method: 'DELETE',
+            headers: getAuthHeaders(),
             credentials: 'include'
         });
         return handleResponse(response);
@@ -123,9 +157,7 @@ export const tasksAPI = {
     async updateStatus(id, status) {
         const response = await fetch(`${API_BASE_URL}/tasks/${id}/status`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ status }),
             credentials: 'include'
         });
