@@ -1007,6 +1007,7 @@ textarea.form-control {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none; /* Firefox */
     padding: 0 8px;
+    -ms-overflow-style: none; /* IE and Edge */
 }
 
 .nav-actions::-webkit-scrollbar {
@@ -1037,49 +1038,11 @@ textarea.form-control {
 }
 
 @media (max-width: 767px) {
-    #authButton .auth-btn-text {
-        display: none;
-    }
-    
-    #authButton {
-        padding: 6px 10px;
-    }
-}
-
-@media (min-width: 768px) {
-    #authButton .auth-btn-text {
-        display: inline;
-    }
-    
-    .nav-actions {
-        justify-content: flex-end;
-    }
-    
-    .nav-buttons {
-        margin-left: 24px;
-    }
-    
-    .filters {
-        position: relative;
-        padding-right: 20px;
-    }
-    
-    .filters::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        height: 24px;
-        width: 1px;
-        background-color: var(--border-color);
-    }
-}
-
-/* Mobile styles */
-@media (max-width: 767px) {
     .navbar {
         padding: 0.5rem 1rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .brand .subtitle {
@@ -1088,24 +1051,55 @@ textarea.form-control {
     
     .brand h1 {
         font-size: 1.25rem;
+        white-space: nowrap;
     }
     
     .nav-buttons {
-        margin-left: 12px;
+        margin-left: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
     }
     
     .filters {
+        display: flex;
+        flex-direction: column;
         gap: 8px;
+        align-items: center;
     }
     
-    /* Make the brand more compact */
-    .brand h1 {
-        font-size: 1.25rem;
-    }
-    
-    /* Adjust spacing between nav items on mobile */
     .nav-actions {
+        display: flex;
+        flex-direction: column;
         gap: 8px;
+        padding: 4px 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    
+    .nav-actions::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Ensure all nav items stay in a single line */
+    .nav-actions > * {
+        flex-shrink: 0;
+    }
+    
+    /* Make buttons more compact on mobile */
+    .icon-btn, #authButton {
+        padding: 6px;
+        min-width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Hide button text on mobile */
+    .btn-text {
+        display: none;
     }
 }
 
