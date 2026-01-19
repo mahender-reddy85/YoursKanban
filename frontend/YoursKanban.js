@@ -143,29 +143,6 @@ const COLUMNS = [
     { id: 'done', title: '<i class="fas fa-check-circle"></i> Done' }
 ];
 
-// Initializes the application
-function init() {
-    try {
-        // Initialize theme manager first
-        ThemeManager.init();
-
-        // Then load application state
-        loadState();
-
-        // Initialize the rest of the application
-        renderBoard();
-        setupEventListeners();
-
-        // Add loaded class to body for CSS transitions
-        document.body.classList.add('loaded');
-
-        // Show welcome message
-        showToast('Welcome to YoursKanban!', 'success');
-    } catch (error) {
-        console.error('Initialization error:', error);
-        showToast('Failed to initialize the application', 'error');
-    }
-}
 
 // Saves the current application state to localStorage
 function saveState() {
