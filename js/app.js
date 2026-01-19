@@ -1,7 +1,7 @@
 // Import modules
-import { Auth } from './auth.js';
-import { ThemeManager } from './js/theme.js';
-import { setupEventListeners, renderBoard } from './js/ui.js';
+import { Auth } from '../frontend/auth.js';
+import { ThemeManager } from '../frontend/js/theme.js';
+import { setupEventListeners, renderBoard } from '../frontend/js/ui.js';
 
 // Application state
 const state = {
