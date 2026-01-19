@@ -62,7 +62,7 @@ async function handleResponse(response) {
  * Checks if user is logged in
  * @returns {boolean} - True if user is logged in
  */
-export function isLoggedIn() {
+function isLoggedIn() {
     return !!localStorage.getItem('token');
 }
 
