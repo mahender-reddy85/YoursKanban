@@ -48,21 +48,21 @@ const DOM = {
 // Task management functions
 async function createTask(taskData) {
     try {
-        const task = await tasksAPI.create(taskData);
+        const task = await tasksAPI.createTask(taskData);
         state.tasks.push(task);
         renderBoard();
         showToast('Task created successfully', 'success');
         return task;
     } catch (error) {
         console.error('Error creating task:', error);
-        showToast('Failed to create task', 'error');
+        showToast(error.message || 'Failed to create task', 'error');
         throw error;
     }
 }
 
 async function updateTask(id, updates) {
     try {
-        const updatedTask = await tasksAPI.update(id, updates);
+        const updatedTask = await tasksAPI.updateTask(id, updates);
         const index = state.tasks.findIndex(t => t.id === id);
         if (index !== -1) {
             state.tasks[index] = { ...state.tasks[index], ...updatedTask };
@@ -72,21 +72,21 @@ async function updateTask(id, updates) {
         return updatedTask;
     } catch (error) {
         console.error('Error updating task:', error);
-        showToast('Failed to update task', 'error');
+        showToast(error.message || 'Failed to update task', 'error');
         throw error;
     }
 }
 
 async function deleteTask(id) {
     try {
-        await tasksAPI.delete(id);
+        await tasksAPI.deleteTask(id);
         state.tasks = state.tasks.filter(task => task.id !== id);
         renderBoard();
         showToast('Task deleted', 'success');
         return true;
     } catch (error) {
         console.error('Error deleting task:', error);
-        showToast('Failed to delete task', 'error');
+        showToast(error.message || 'Failed to delete task', 'error');
         throw error;
     }
 }
