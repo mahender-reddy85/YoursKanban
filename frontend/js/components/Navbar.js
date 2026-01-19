@@ -94,20 +94,33 @@ export default class Navbar extends HTMLElement {
           font-size: 0.875rem;
         }
         
-        /* Auth Buttons */
+        /* Auth Section */
+        .auth-section {
+          background-color: var(--bg-primary);
+          padding: 1.5rem 1rem;
+          text-align: center;
+          border-bottom: 1px solid var(--border-color);
+        }
+        
         .auth-buttons {
           display: flex;
           justify-content: center;
           gap: 1rem;
-          padding: 1rem;
-          background-color: var(--bg-secondary);
-          border-top: 1px solid var(--border-color);
+          margin-top: 0.5rem;
         }
         
         .auth-buttons .btn-auth {
-          min-width: 120px;
+          min-width: 140px;
           text-align: center;
-          padding: 0.5rem 1rem;
+          padding: 0.75rem 1.5rem;
+          font-size: 1rem;
+          font-weight: 500;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
         
         .btn-auth {
@@ -171,13 +184,18 @@ export default class Navbar extends HTMLElement {
         </a>
       </nav>
       ${!isAuthenticated ? `
-        <div class="auth-buttons">
-          <a href="/login" class="btn-auth btn-login">
-            Log In
-          </a>
-          <a href="/register" class="btn-auth btn-signup">
-            Sign Up
-          </a>
+        <div class="auth-section">
+          <h3 style="margin: 0 0 1rem 0; color: var(--text-main);">Get Started</h3>
+          <div class="auth-buttons">
+            <a href="/login" class="btn-auth btn-login">
+              <i class="fas fa-sign-in-alt"></i>
+              Login
+            </a>
+            <a href="/register" class="btn-auth btn-signup">
+              <i class="fas fa-user-plus"></i>
+              Sign Up
+            </a>
+          </div>
         </div>
       ` : ''}
     `;
