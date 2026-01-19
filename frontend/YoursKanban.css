@@ -1355,3 +1355,157 @@ textarea.form-control {
         display: inline;
     }
 }
+
+/* ==========================================================================
+   #AUTHENTICATION STYLES
+   ========================================================================== */
+
+/* Auth Page */
+.auth-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-primary);
+    padding: 1rem;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.auth-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    width: 100%;
+}
+
+.auth-card h1 {
+    color: var(--text-main);
+    font-size: 1.75rem;
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+}
+
+.auth-subtitle {
+    color: var(--text-muted);
+    margin: 0 0 1.5rem;
+    font-size: 0.95rem;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1.25rem;
+}
+
+.auth-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.auth-form .btn-block {
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    font-weight: 600;
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.auth-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+.forgot-password {
+    font-size: 0.85rem;
+    color: var(--primary);
+    text-decoration: none;
+    float: right;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+.error-message {
+    color: var(--danger);
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.hint {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+/* Modal specific styles for auth */
+.auth-modal {
+    max-width: 400px;
+    width: 100%;
+    margin: 1rem;
+}
+
+.auth-modal .modal-header {
+    position: relative;
+    padding: 0;
+    margin-bottom: 1.5rem;
+    border: none;
+}
+
+.auth-modal .close-btn {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.auth-modal .close-btn:hover {
+    background: var(--bg-primary);
+    color: var(--text-main);
+}
