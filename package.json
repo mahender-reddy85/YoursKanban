@@ -8,6 +8,7 @@
     "start": "vercel dev",
     "dev": "vercel dev",
     "vercel-build": "npm install && npm run build",
+    "prebuild:css": "mkdir -p frontend/dist",
     "build:css": "postcss frontend/YoursKanban.css -o frontend/dist/styles.min.css",
     "build:js": "terser frontend/YoursKanban.js -o frontend/dist/script.min.js -c -m",
     "build": "npm run build:css && npm run build:js",
