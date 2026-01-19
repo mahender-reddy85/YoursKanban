@@ -944,54 +944,77 @@ function openModal(taskId = null, status = 'todo') {
     document.getElementById('taskTitle').focus();
 }
 
-function closeModal() {
-    DOM.modal.style.display = 'none';
-    document.body.style.overflow = '';
+function closeModal(modalId) {
+    if (modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    } else {
+        // For backward compatibility with existing code
+        if (DOM.modal) {
+            DOM.modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
 }
 
 async function handleFormSubmit(e) {
     e.preventDefault();
 
     const form = e.target;
-    const id = form.dataset.id || Date.now().toString();
-    const title = form.elements['title'].value.trim();
-    const description = form.elements['description'].value.trim();
-    const priority = form.elements['priority'].value;
-    const status = form.elements['status'].value;
-    const dueDate = form.elements['dueDate'].value;
+    const id = form.dataset.id || `task-${Date.now()}`; // Ensure consistent ID format
+    const title = form.elements['title']?.value.trim() || 'Untitled Task';
+    const description = form.elements['description']?.value.trim() || '';
+    const priority = form.elements['priority']?.value || 'medium';
+    const status = form.elements['status']?.value || 'todo';
+    const dueDate = form.elements['dueDate']?.value || null;
 
     // Get current subtasks from UI
     const currentSubtasks = getSubtasksFromUI();
     
     // Find existing task or create new one
-    const existingTask = state.tasks.find(t => t.id === id);
+    const existingTaskIndex = state.tasks.findIndex(t => t.id === id);
+    const existingTask = existingTaskIndex !== -1 ? state.tasks[existingTaskIndex] : null;
+    
+    // Prepare task data
     const taskData = {
         id,
-        title: title || 'Untitled Task',
-        description: description || '',
+        title,
+        description,
         priority,
         status,
         dueDate: dueDate ? new Date(dueDate).getTime() : null,
         pinned: existingTask?.pinned || false,
         subtasks: currentSubtasks.length > 0 ? currentSubtasks : (existingTask?.subtasks || []),
         files: existingTask?.files || [],
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
+        createdAt: existingTask?.createdAt || Date.now()
     };
 
     try {
+        let updatedTask;
         if (existingTask) {
             // Update existing task
-            await tasksAPI.updateTask(id, taskData);
+            updatedTask = await tasksAPI.updateTask(id, taskData);
             showToast('Task updated', 'success');
         } else {
             // Add new task
-            taskData.createdAt = Date.now();
-            await tasksAPI.createTask(taskData);
+            updatedTask = await tasksAPI.createTask(taskData);
             showToast('Task created', 'success');
         }
 
-        // Refresh tasks from the server
-        await fetchTasks();
+        // Update the tasks array
+        const updatedTasks = [...state.tasks];
+        if (existingTask) {
+            updatedTasks[existingTaskIndex] = updatedTask;
+        } else {
+            updatedTasks.push(updatedTask);
+        }
+        state.tasks = updatedTasks;
+        
+        // Save state and update UI
+        saveState();
         renderBoard();
         closeModal();
     } catch (error) {
@@ -1422,13 +1445,8 @@ function openAuthModal(type = 'login') {
     }
 }
 
-// Close modal by ID
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
+// Make openAuthModal globally available
+window.openAuthModal = openAuthModal;
 
 // --- Initialization ---
 async function init() {
