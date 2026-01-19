@@ -5,12 +5,29 @@ export const Auth = {
     // Check if user is authenticated
     async checkAuth() {
         try {
+            // Get the token from localStorage
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+
+            // Include the token in the request
             const user = await authAPI.getCurrentUser();
+            
+            if (!user) {
+                throw new Error('Invalid user data');
+            }
+
+            // Update the application state
             state.currentUser = user;
             state.isAuthenticated = true;
             updateAuthUI(true);
             return true;
         } catch (error) {
+            console.error('Authentication check failed:', error);
+            // Clear invalid token
+            localStorage.removeItem('token');
             state.currentUser = null;
             state.isAuthenticated = false;
             updateAuthUI(false);
@@ -21,16 +38,34 @@ export const Auth = {
     // Handle login
     async login(email, password) {
         try {
-            const user = await authAPI.login(email, password);
-            state.currentUser = user;
-            state.isAuthenticated = true;
-            updateAuthUI(true);
-            showToast('Login successful', 'success');
-            return true;
+            const response = await authAPI.login(email, password);
+            
+            // The backend returns the token and user data directly in the response
+            if (response.token) {
+                // Store the token in localStorage
+                localStorage.setItem('token', response.token);
+                
+                // Update the application state
+                state.currentUser = response.user;
+                state.isAuthenticated = true;
+                
+                // Update UI and show success message
+                updateAuthUI(true);
+                hideModal('loginModal');
+                showToast('Login successful!', 'success');
+                
+                // Reload the page to ensure all components are properly initialized
+                window.location.reload();
+                
+                return true;
+            } else {
+                showToast('Login failed. Please try again.', 'error');
+                return false;
+            }
         } catch (error) {
-            console.error('Login failed:', error);
-            showToast(error.message || 'Login failed', 'error');
-            throw error;
+            console.error('Login error:', error);
+            showToast(error.message || 'An error occurred during login.', 'error');
+            return false;
         }
     },
 
