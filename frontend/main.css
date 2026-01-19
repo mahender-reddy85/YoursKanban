@@ -1,0 +1,5 @@
+/* Main CSS file that imports all other CSS files */
+@import 'YoursKanban.css';
+@import 'auth.css';
+
+/* Additional global styles can be added here */

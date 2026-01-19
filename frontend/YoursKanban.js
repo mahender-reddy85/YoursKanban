@@ -1,3 +1,6 @@
+// Import API services
+import { authAPI, tasksAPI, fileAPI } from './api.js';
+
 /**
  * Application State Management
  * @namespace state
@@ -7,9 +10,11 @@
  * @property {string} priorityFilter - Priority filter ('all', 'high', 'medium', 'low')
  * @property {string} sortOrder - Sort order ('none', 'asc', 'desc')
  * @property {Object|null} lastDeletedTask - Last deleted task for undo functionality
+ * @property {Object|null} currentUser - Currently logged in user
  */
 const state = {
     tasks: [],
+    currentUser: null,
     theme: (() => {
         try {
             return localStorage.getItem('kanbanflow_theme') || 'light';
@@ -21,7 +26,8 @@ const state = {
     filterQuery: '',
     priorityFilter: 'all',
     sortOrder: 'none',
-    lastDeletedTask: null
+    lastDeletedTask: null,
+    isAuthenticated: false
 };
 
 // Toast Notification System
@@ -1336,9 +1342,36 @@ function handleKeyboardShortcuts(e) {
     }
 }
 
+// --- Initialization ---
+async function init() {
+    try {
+        // Initialize theme
+        ThemeManager.init();
+        
+        // Check authentication status
+        const isAuthenticated = await Auth.checkAuth();
+        
+        if (isAuthenticated) {
+            // Load tasks if authenticated
+            await fetchTasks();
+        } else {
+            // Show login modal if not authenticated
+            showModal('loginModal');
+        }
+        
+        // Set up event listeners
+        setupEventListeners();
+        
+        // Initial render
+        renderBoard();
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showToast('Failed to initialize application', 'error');
+    }
+}
+
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize the application first
     init();
     
     // Set up delete confirmation
@@ -1357,6 +1390,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelDeleteBtn) {
         cancelDeleteBtn.addEventListener('click', hideDeleteConfirmation);
     }
+    
+    // Set up subtask addition
     document.getElementById('addSubtaskBtn')?.addEventListener('click', () => {
         const input = document.getElementById('newSubtaskInput');
         if (input.value.trim()) {
