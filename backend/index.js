@@ -29,14 +29,21 @@ const pool = new Pool({
   }
 });
 
-// Test database connection
-pool.query('SELECT NOW()', (err) => {
-  if (err) {
-    console.error('Database connection error:', err);
-  } else {
-    console.log('Successfully connected to the database');
-  }
-});
+// Test database connection with detailed logging
+console.log('Testing database connection...');
+console.log('Database host:', process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).hostname : 'Not set');
+
+pool.query('SELECT NOW()')
+  .then(() => {
+    console.log('✅ Successfully connected to the database');
+  })
+  .catch(err => {
+    console.error('❌ Database connection failed:');
+    console.error('Error code:', err.code);
+    console.error('Error message:', err.message);
+    console.error('Connection string:', process.env.DATABASE_URL ? 
+      process.env.DATABASE_URL.replace(/:([^:]+)@/, ':***@') : 'Not set');
+  });
 
 // Configure CORS
 const allowedOrigins = [
