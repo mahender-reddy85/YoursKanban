@@ -23,20 +23,44 @@ const withAuth = (req, res, next) => {
 // Get all tasks (works for both authenticated and unauthenticated users)
 const getTasks = async (req, res) => {
   try {
+    console.log('getTasks called, user:', req.user ? 'authenticated' : 'unauthenticated');
+    
     if (!req.user) {
       // For unauthenticated users, return an empty array
+      console.log('Returning empty array for unauthenticated user');
       return res.status(200).json([]);
     }
     
-    // For authenticated users, return their tasks
-    const { rows } = await req.db.query(
-      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY order_index, created_at DESC',
-      [req.user.id]
-    );
-    res.status(200).json(rows);
+    try {
+      console.log('Querying tasks for user:', req.user.id);
+      const { rows } = await req.db.query(
+        'SELECT * FROM tasks WHERE user_id = $1 ORDER BY order_index, created_at DESC',
+        [req.user.id]
+      );
+      console.log(`Found ${rows.length} tasks for user ${req.user.id}`);
+      return res.status(200).json(rows);
+    } catch (dbError) {
+      console.error('Database query error in getTasks:', {
+        error: dbError.message,
+        query: 'SELECT * FROM tasks WHERE user_id = $1',
+        userId: req.user.id,
+        stack: dbError.stack
+      });
+      return res.status(500).json({ 
+        message: 'Database error while fetching tasks',
+        error: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+      });
+    }
   } catch (error) {
-    console.error('Get tasks error:', error);
-    res.status(500).json({ message: 'Error fetching tasks' });
+    console.error('Unexpected error in getTasks:', {
+      error: error.message,
+      stack: error.stack,
+      user: req.user || 'no user'
+    });
+    res.status(500).json({ 
+      message: 'Internal server error while fetching tasks',
+      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    });
   }
 };
 
