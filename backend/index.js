@@ -1,4 +1,9 @@
 require('dotenv').config();
+
+// Debug environment variables
+console.log("DATABASE_URL exists?", !!process.env.DATABASE_URL);
+console.log("DATABASE_URL preview:", process.env.DATABASE_URL?.slice(0, 30));
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
