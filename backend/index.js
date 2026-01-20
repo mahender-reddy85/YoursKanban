@@ -70,9 +70,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes
-app.post('/api/register', registerHandler);
-app.post('/api/login', loginHandler);
-app.get('/api/me', meHandler);
+app.post('/api/auth/register', registerHandler);
+app.post('/api/auth/login', loginHandler);
+app.get('/api/auth/me', meHandler);
 
 // Task routes (protected)
 app.all('/api/tasks*', (req, res, next) => {
