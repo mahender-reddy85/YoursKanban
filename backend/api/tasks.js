@@ -47,7 +47,12 @@ const getTasks = async (req, res) => {
     try {
       console.log('Querying tasks for user:', req.user.id);
       const { rows } = await req.db.query(
-        'SELECT * FROM tasks WHERE user_id = $1 ORDER BY order_index, created_at DESC',
+        `SELECT t.*, 
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
+                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.is_done = true) as completed_subtasks
+         FROM tasks t 
+         WHERE t.user_id = $1 
+         ORDER BY t.order_index, t.created_at DESC`,
         [req.user.id]
       );
       console.log(`Found ${rows.length} tasks for user ${req.user.id}`);

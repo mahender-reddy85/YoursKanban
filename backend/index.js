@@ -24,15 +24,14 @@ const PORT = process.env.PORT || 3000;
 // Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Test database connection with detailed logging
 console.log('Testing database connection...');
 console.log('Database host:', process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).hostname : 'Not set');
 
+// Test the connection
 pool.query('SELECT NOW()')
   .then(() => {
     console.log('✅ Successfully connected to the database');
@@ -44,6 +43,12 @@ pool.query('SELECT NOW()')
     console.error('Connection string:', process.env.DATABASE_URL ? 
       process.env.DATABASE_URL.replace(/:([^:]+)@/, ':***@') : 'Not set');
   });
+
+// Add database to request object
+app.use((req, res, next) => {
+  req.db = pool;
+  next();
+});
 
 // Configure CORS with more options
 const corsOptions = {
