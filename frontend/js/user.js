@@ -290,8 +290,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const user = await authAPI.getCurrentUser();
         if (user) {
             updateUserAvatar(user);
+            // Show the My Tasks button when user is logged in
+            const myTasksBtn = document.getElementById('myTasksNavBtn');
+            if (myTasksBtn) {
+                myTasksBtn.style.display = 'flex';
+            }
         }
     } catch (error) {
         console.error('Error checking user authentication:', error);
     }
+    
+    // Initialize user menu
+    initUserMenu();
+    
+    // Initialize My Tasks button
+    initMyTasksButton();
 });

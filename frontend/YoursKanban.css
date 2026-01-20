@@ -1,4 +1,53 @@
 /* ==========================================================================
+   #NAVIGATION BUTTONS
+   ========================================================================== */
+
+/* My Tasks Button */
+.my-tasks-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-right: 12px;
+}
+
+.my-tasks-btn:hover {
+    background-color: var(--primary-hover);
+}
+
+.my-tasks-btn:active {
+    transform: scale(0.98);
+}
+
+.my-tasks-btn i {
+    font-size: 16px;
+}
+
+/* Hide text on small screens */
+@media (max-width: 768px) {
+    .my-tasks-btn span {
+        display: none;
+    }
+    
+    .my-tasks-btn {
+        padding: 8px;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        margin-right: 8px;
+    }
+}
+
+/* ==========================================================================
    #AVATAR & USER MENU
    ========================================================================== */
 
