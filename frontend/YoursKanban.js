@@ -1,6 +1,6 @@
 // Import API services and modules
 import { authAPI, tasksAPI, isLoggedIn } from './js/api.js';
-import { updateUserAvatar, initUserMenu } from './js/user.js';
+import { updateUserAvatar } from './js/user.js';
 
 /**
  * Application State Management
@@ -1588,36 +1588,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Check if user is logged in
         const user = await authAPI.getCurrentUser().catch(() => null);
         
-        // Initialize user menu if the element exists
+        // Show user menu if the element exists and user is logged in
         const userMenu = document.getElementById('userMenu');
-        if (userMenu) {
-            if (user) {
-                // Show user menu if logged in
-                userMenu.style.display = 'flex';
-                updateUserAvatar(user);
-                initUserMenu();
-                
-                // Add click handler for the avatar
-                const avatar = document.querySelector('.avatar-container');
-                if (avatar) {
-                    avatar.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const dropdown = document.getElementById('userDropdown');
-                        const backdrop = document.querySelector('.dropdown-backdrop');
-                        if (dropdown && backdrop) {
-                            dropdown.classList.toggle('show');
-                            backdrop.classList.toggle('show');
-                            document.body.classList.toggle('dropdown-open', !dropdown.classList.contains('show'));
-                        }
-                    });
-                }
-            }
+        if (userMenu && user) {
+            userMenu.style.display = 'flex';
+            updateUserAvatar(user);
         }
+        
+        updateGuestBanner();
     } catch (error) {
         console.error('Error initializing app:', error);
     }
-    updateGuestBanner();
-    
     // Set up delete confirmation
     const confirmDeleteBtn = document.getElementById('confirmDelete');
     if (confirmDeleteBtn) {
