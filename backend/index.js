@@ -45,18 +45,37 @@ pool.query('SELECT NOW()')
       process.env.DATABASE_URL.replace(/:([^:]+)@/, ':***@') : 'Not set');
   });
 
-// Configure CORS
-app.use(cors({
-  origin: [
-    "https://yourskanban.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:3001"
-  ],
-  credentials: true
-}));
+// Configure CORS with more options
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://yourskanban.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ];
+    
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options("*", cors());
+app.options('*', cors(corsOptions));
 
 // Add db to request object
 app.use((req, res, next) => {
@@ -75,15 +94,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes
-app.post('/api/auth/register', registerHandler);
-app.post('/api/auth/login', loginHandler);
-app.get('/api/auth/me', meHandler);
+app.use('/api/auth/register', registerHandler);
+app.use('/api/auth/login', loginHandler);
+app.use('/api/auth/me', meHandler);
 
-// Task routes (protected)
-app.all('/api/tasks*', (req, res, next) => {
-  // Apply auth middleware to all /tasks* routes
-  require('./lib/auth').protect(req, res, next);
-}, tasksHandler);
+// Task routes
+app.use('/api/tasks', tasksHandler);
 
 // 404 handler
 app.use((req, res, next) => {

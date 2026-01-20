@@ -1,22 +1,23 @@
 const { protect } = require('../lib/auth');
 
-// Helper function to handle protected routes
-const withAuth = (handler) => {
-  return async (req, res) => {
-    try {
-      // Add user to request object if authenticated
-      await new Promise((resolve, reject) => {
-        protect(req, res, (result) => {
-          if (result instanceof Error) return reject(result);
-          resolve(result);
-        });
-      });
-      return handler(req, res);
-    } catch (error) {
-      console.error('Authentication error:', error);
-      return res.status(401).json({ message: 'Not authorized' });
+// Middleware to handle authentication
+const withAuth = (req, res, next) => {
+  // Skip auth for GET requests
+  if (req.method === 'GET') return next();
+  
+  // For other methods, require authentication
+  if (!req.headers.authorization) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  // Verify token for authenticated requests
+  protect(req, res, (err) => {
+    if (err) {
+      console.error('Auth error:', err);
+      return res.status(401).json({ message: 'Invalid or expired token' });
     }
-  };
+    next();
+  });
 };
 
 // Get all tasks (works for both authenticated and unauthenticated users)
@@ -161,35 +162,32 @@ const deleteTask = async (req, res) => {
   }
 };
 
-// Route handler with optional auth for GET requests
-const handler = async (req, res) => {
-  try {
-    // For GET requests, don't require authentication
-    if (req.method === 'GET') {
-      return await getTasks(req, res);
-    }
+const express = require('express');
+const router = express.Router();
 
-    // For other methods, require authentication
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
+// Apply auth middleware
+router.use(withAuth);
 
-    switch (req.method) {
-      case 'POST':
-        return await createTask(req, res);
-      case 'PUT':
-      case 'PATCH':
-        return await updateTask(req, res);
-      case 'DELETE':
-        return await deleteTask(req, res);
-      default:
-        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
-    }
-  } catch (error) {
-    console.error('Tasks API error:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
+// Define routes
+router.get('/', getTasks);
+router.post('/', createTask);
+router.put('/:id', updateTask);
+router.patch('/:id', updateTask);
+router.delete('/:id', deleteTask);
 
-module.exports = handler;
+// Handle unsupported methods
+router.all('*', (req, res) => {
+  res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+  res.status(405).json({ message: `Method ${req.method} Not Allowed` });
+});
+
+// Error handling middleware
+router.use((err, req, res, next) => {
+  console.error('Tasks API error:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { error: err.message })
+  });
+});
+
+module.exports = router;
