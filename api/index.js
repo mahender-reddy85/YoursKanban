@@ -86,6 +86,15 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Debug routes
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "YoursKanban backend running" });
+});
+
+app.get("/api", (req, res) => {
+  res.json({ ok: true, message: "API root working" });
+});
+
 // 404 handler
 app.use((req, res, next) => {
   next(createError(404, 'Not Found'));
