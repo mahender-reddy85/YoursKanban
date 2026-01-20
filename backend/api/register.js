@@ -32,14 +32,14 @@ module.exports = async (req, res) => {
     // Generate token
     const token = generateToken(newUser.rows[0].id);
 
-    // Return user data and token
+    // Return user data and token in the exact format expected by frontend
     res.status(201).json({
+      token,
       user: {
         id: newUser.rows[0].id,
         name: newUser.rows[0].name,
         email: newUser.rows[0].email
-      },
-      token
+      }
     });
 
   } catch (err) {
