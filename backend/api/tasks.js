@@ -79,13 +79,15 @@ const getTasks = async (req, res) => {
 
 // Create a new task
 const createTask = async (req, res) => {
+  console.log('createTask called with body:', JSON.stringify(req.body, null, 2));
+  
   try {
     const { title, description, status, priority, due_date, order_index, is_pinned } = req.body;
     
-    // Validate required fields
-    if (!title || !status || !priority) {
-      return res.status(400).json({ message: 'Title, status, and priority are required' });
-    }
+    // Validate required fields with more detailed error messages
+    if (!title) return res.status(400).json({ message: 'Title is required' });
+    if (!status) return res.status(400).json({ message: 'Status is required' });
+    if (!priority) return res.status(400).json({ message: 'Priority is required' });
 
     // Ensure user is authenticated for task creation
     if (!req.user || !req.user.id) {
@@ -93,28 +95,54 @@ const createTask = async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
+    console.log(`Creating task for user ${req.user.id}`, {
+      title,
+      status,
+      priority,
+      hasDescription: !!description,
+      dueDate: due_date || 'not set',
+      order_index: order_index !== undefined ? order_index : 'auto'
+    });
+
     // Get the highest order index if not provided
     let order = order_index;
     if (order === undefined) {
       try {
+        console.log('Getting next order index for user:', req.user.id);
         const result = await req.db.query(
           'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
           [req.user.id]
         );
         order = result.rows[0]?.next_order || 1;
+        console.log('Next order index:', order);
       } catch (error) {
-        console.error('Error getting next order index:', error);
+        console.error('Error getting next order index:', {
+          error: error.message,
+          stack: error.stack,
+          userId: req.user.id
+        });
         order = 1; // Default to 1 if there's an error
       }
     }
 
     try {
-      const { rows } = await req.db.query(
-        `INSERT INTO tasks 
-         (user_id, title, description, status, priority, due_date, order_index, is_pinned)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-         RETURNING *`,
-        [
+      console.log('Executing database query with params:', {
+        user_id: req.user.id,
+        title,
+        description: description || null,
+        status,
+        priority,
+        due_date: due_date || null,
+        order_index: order,
+        is_pinned: is_pinned || false
+      });
+
+      const query = {
+        text: `INSERT INTO tasks 
+               (user_id, title, description, status, priority, due_date, order_index, is_pinned)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+               RETURNING *`,
+        values: [
           req.user.id,
           title,
           description || null,
@@ -124,37 +152,58 @@ const createTask = async (req, res) => {
           order,
           is_pinned || false
         ]
-      );
+      };
 
-      console.log(`Created task for user ${req.user.id}:`, rows[0].id);
+      const { rows } = await req.db.query(query);
+      
+      console.log(`Successfully created task for user ${req.user.id}:`, rows[0].id);
       return res.status(201).json(rows[0]);
+      
     } catch (dbError) {
       console.error('Database error in createTask:', {
         error: dbError.message,
-        query: 'INSERT INTO tasks',
-        userId: req.user.id,
+        code: dbError.code,
+        detail: dbError.detail,
+        constraint: dbError.constraint,
+        table: dbError.table,
+        query: query?.text,
+        values: query?.values,
         stack: dbError.stack
       });
       
       // Handle specific database errors
       if (dbError.code === '23505') { // Unique violation
         return res.status(409).json({ 
-          message: 'A task with these details already exists' 
+          message: 'A task with these details already exists',
+          details: dbError.detail
         });
       }
       
-      throw dbError; // Re-throw for the outer catch
+      // Handle other common PostgreSQL errors
+      if (dbError.code === '22P02') { // Invalid text representation
+        return res.status(400).json({
+          message: 'Invalid data format',
+          details: dbError.message
+        });
+      }
+      
+      // If we get here, it's an unhandled database error
+      throw new Error(`Database error: ${dbError.message}`);
     }
   } catch (error) {
     console.error('Unexpected error in createTask:', {
       error: error.message,
       stack: error.stack,
-      user: req.user || 'no user'
+      user: req.user ? { id: req.user.id } : 'no user',
+      requestBody: req.body
     });
     
     res.status(500).json({ 
       message: 'Internal server error while creating task',
-      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message,
+        stack: error.stack
+      })
     });
   }
 };
