@@ -65,7 +65,9 @@ export function initUserMenu() {
             try {
                 await authAPI.logout();
                 updateUserAvatar(null);
-                window.location.href = '/login';
+                // Instead of redirecting to /login, just reload the page
+                // which will show the login form since the user is logged out
+                window.location.reload();
             } catch (error) {
                 console.error('Logout failed:', error);
             }
