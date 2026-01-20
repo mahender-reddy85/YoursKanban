@@ -52,6 +52,16 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root route
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "Backend running" });
+});
+
+// Ping route
+app.get("/api/ping", (req, res) => {
+  res.json({ ok: true, message: "pong" });
+});
+
 // Logging
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
