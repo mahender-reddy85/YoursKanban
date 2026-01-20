@@ -190,11 +190,16 @@ export function initUserMenu() {
     
     if (!userMenu || !userAvatar || !dropdownMenu) return;
     
-    // Toggle dropdown menu on avatar click
-    userAvatar.addEventListener('click', (e) => {
+    // Toggle dropdown menu on avatar click/tap
+    const toggleMenu = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         toggleDropdown(dropdownMenu, dropdownBackdrop);
-    });
+    };
+    
+    // Add both touch and click events for better mobile support
+    userAvatar.addEventListener('click', toggleMenu);
+    userAvatar.addEventListener('touchend', toggleMenu);
     
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
@@ -206,17 +211,23 @@ export function initUserMenu() {
     });
     
     // Close on backdrop click
-    dropdownBackdrop.addEventListener('click', () => {
-        dropdownMenu.classList.remove('show');
-        dropdownBackdrop.classList.remove('show');
-        document.body.classList.remove('dropdown-open');
+    dropdownBackdrop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeDropdown(dropdownMenu, dropdownBackdrop);
+    });
+    
+    // Prevent clicks inside dropdown from closing it
+    dropdownMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
     
     // Handle logout
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
+        const handleLogout = async (e) => {
             e.preventDefault();
+            e.stopPropagation();
             try {
+                closeDropdown(dropdownMenu, dropdownBackdrop);
                 await authAPI.logout();
                 updateUserAvatar(null);
                 // Instead of redirecting to /login, just reload the page
@@ -225,23 +236,29 @@ export function initUserMenu() {
             } catch (error) {
                 console.error('Logout failed:', error);
             }
-        });
+        };
+        
+        // Add both touch and click events for better mobile support
+        logoutBtn.addEventListener('click', handleLogout);
+        logoutBtn.addEventListener('touchend', handleLogout);
     }
     
     // Handle My Tasks click
     if (myTasksBtn) {
-        myTasksBtn.addEventListener('click', (e) => {
+        const handleMyTasks = (e) => {
             e.preventDefault();
-            // Close the dropdown
-            dropdownMenu.classList.remove('show');
-            dropdownBackdrop.classList.remove('show');
-            document.body.classList.remove('dropdown-open');
+            e.stopPropagation();
+            closeDropdown(dropdownMenu, dropdownBackdrop);
             
             // Filter tasks to show only user's tasks
             // This will depend on your task filtering implementation
             console.log('Show my tasks');
             // You can implement task filtering here
-        });
+        };
+        
+        // Add both touch and click events for better mobile support
+        myTasksBtn.addEventListener('click', handleMyTasks);
+        myTasksBtn.addEventListener('touchend', handleMyTasks);
     }
     
     // Handle window resize
