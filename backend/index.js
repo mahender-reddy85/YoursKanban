@@ -22,34 +22,57 @@ const { protect } = require('./lib/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database connection
+// Database connection and initialization
+const { initializeDatabase } = require('./lib/db-init');
+
+// Create database pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
-
-// Test database connection with detailed logging
-console.log('Testing database connection...');
-console.log('Database host:', process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).hostname : 'Not set');
-
-// Test the connection
-pool.query('SELECT NOW()')
-  .then(() => {
-    console.log('✅ Successfully connected to the database');
-  })
-  .catch(err => {
-    console.error('❌ Database connection failed:');
-    console.error('Error code:', err.code);
-    console.error('Error message:', err.message);
-    console.error('Connection string:', process.env.DATABASE_URL ? 
-      process.env.DATABASE_URL.replace(/:([^:]+)@/, ':***@') : 'Not set');
-  });
 
 // Add database to request object
 app.use((req, res, next) => {
   req.db = pool;
   next();
 });
+
+// Initialize database and start server
+async function startServer() {
+  try {
+    console.log('Testing database connection...');
+    
+    // Test the connection
+    await pool.query('SELECT NOW()');
+    console.log('✅ Successfully connected to the database');
+    
+    // Initialize database schema
+    await initializeDatabase();
+    
+    // Start the server
+    const server = app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+    
+    // Handle server errors
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+      } else {
+        console.error('Server error:', error);
+      }
+      process.exit(1);
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start server:');
+    console.error(error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
 
 // Configure CORS with more options
 const corsOptions = {

@@ -85,17 +85,11 @@ const getTasks = async (req, res) => {
     });
     return res.status(500).json({ 
       message: 'Database error while fetching tasks',
-      error: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+      error: process.env.NODE_ENV === 'development' ? dbError.message : undefined,
+      ...(process.env.NODE_ENV === 'development' && { stack: dbError.stack })
     });
   }
 }
-    });
-    res.status(500).json({ 
-      message: 'Internal server error while fetching tasks',
-      ...(process.env.NODE_ENV === 'development' && { error: error.message })
-    });
-  }
-};
 
 // Create a new task
 const createTask = async (req, res) => {
