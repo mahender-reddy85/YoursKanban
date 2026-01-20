@@ -22,6 +22,42 @@ const { protect } = require('./lib/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configure CORS with more options
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://yourskanban.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://yourskanban.onrender.com'
+    ];
+    
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      console.log('CORS blocked for origin:', origin);
+      return callback(new Error(msg), false);
+    }
+    
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 86400 // 24 hours
+};
+
+// Apply CORS middleware before any routes
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable preflight for all routes
+
+// Parse JSON bodies
+app.use(express.json());
+
 // Database connection and initialization
 const { initializeDatabase } = require('./lib/db-init');
 
@@ -52,6 +88,7 @@ async function startServer() {
     // Start the server
     const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`CORS enabled for origins: ${corsOptions.origin.toString()}`);
     });
     
     // Handle server errors
@@ -73,38 +110,6 @@ async function startServer() {
 
 // Start the server
 startServer();
-
-// Configure CORS with more options
-const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'https://yourskanban.vercel.app',
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ];
-    
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    
-    return callback(null, true);
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options('*', cors(corsOptions));
 
 // Add db to request object
 app.use((req, res, next) => {
