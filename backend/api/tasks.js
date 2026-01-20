@@ -64,10 +64,11 @@ const getTasks = async (req, res) => {
              (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.is_done = true) as completed_subtasks
       FROM tasks t 
       WHERE t.user_id = $1 
-      ORDER BY t.order_index, t.created_at DESC`;
+      ORDER BY t."order_index" ASC, t.created_at DESC`;
     
     console.log('Executing query:', queryText);
-    const result = await req.db.query(queryText, [req.user.id]);
+    const userId = req.user.id;
+    const result = await req.db.query(queryText, [userId]);
     
     console.log(`Found ${result.rows.length} tasks for user ${req.user.id}`);
     return res.status(200).json(result.rows);
@@ -265,9 +266,10 @@ const updateTask = async (req, res) => {
     const { title, description, status, priority, due_date, order_index, is_pinned } = req.body;
 
     // First, verify the task exists and belongs to the user
+    const userId = req.user.id;
     const taskResult = await req.db.query(
       'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
-      [taskId, req.user.id]
+      [taskId, userId]
     );
 
     if (taskResult.rows.length === 0) {
@@ -317,9 +319,10 @@ const deleteTask = async (req, res) => {
     const taskId = req.params.id;
 
     // First, verify the task exists and belongs to the user
+    const userId = req.user.id;
     const taskResult = await req.db.query(
       'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
-      [taskId, req.user.id]
+      [taskId, userId]
     );
 
     if (taskResult.rows.length === 0) {
