@@ -51,12 +51,6 @@
                 </div>
             </div>
 
-            <!-- My Tasks Button -->
-            <button class="my-tasks-btn" id="myTasksNavBtn">
-                <i class="fas fa-tasks"></i>
-                <span>My Tasks</span>
-            </button>
-
             <!-- User Avatar and Dropdown -->
             <div class="user-menu" id="userMenu" style="display: none;">
                 <div class="avatar-container" id="userAvatar">
@@ -65,16 +59,15 @@
                 <div class="dropdown-menu" id="userDropdown">
                     <div class="user-info">
                         <div class="user-name" id="userName">Guest User</div>
-                        <div class="user-email" id="userEmail">guest@example.com</div>
+                        <div class="user-actions">
+                            <a href="#" class="user-action-btn" id="myTasksBtn">
+                                <i class="fas fa-tasks"></i> My Tasks
+                            </a>
+                            <a href="#" class="user-action-btn" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
                     </div>
-                    <div class="divider"></div>
-                    <a href="#" class="dropdown-item" id="myTasksBtn">
-                        <i class="fas fa-tasks"></i> My Tasks
-                    </a>
-                    <div class="divider"></div>
-                    <a href="#" class="dropdown-item" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
                 </div>
             </div>
 
