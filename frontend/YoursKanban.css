@@ -83,21 +83,23 @@
 }
 
 .dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
+    position: fixed;
+    top: 70px; /* Position below navbar */
+    right: 20px;
     width: 280px;
-    background: white;
+    background: var(--bg-primary);
     border-radius: 12px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    padding: 0.5rem 0;
+    padding: 1rem;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(10px);
+    transform: translateY(-10px);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1100; /* Higher than navbar */
     border: 1px solid var(--border-color);
-    max-height: calc(100vh - 80px);
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    display: block !important; /* Ensure it can be shown/hidden */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     will-change: transform, opacity;

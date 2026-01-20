@@ -1582,21 +1582,39 @@ function updateGuestBanner() {
 
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
-    await init();
-    
-    // Initialize user menu if the element exists
-    const userMenu = document.getElementById('userMenu');
-    if (userMenu) {
-        // Wait for auth to complete
-        try {
-            const user = await authAPI.getCurrentUser();
+    try {
+        await init();
+        
+        // Check if user is logged in
+        const user = await authAPI.getCurrentUser().catch(() => null);
+        
+        // Initialize user menu if the element exists
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu) {
             if (user) {
+                // Show user menu if logged in
+                userMenu.style.display = 'flex';
                 updateUserAvatar(user);
                 initUserMenu();
+                
+                // Add click handler for the avatar
+                const avatar = document.querySelector('.avatar-container');
+                if (avatar) {
+                    avatar.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const dropdown = document.getElementById('userDropdown');
+                        const backdrop = document.querySelector('.dropdown-backdrop');
+                        if (dropdown && backdrop) {
+                            dropdown.classList.toggle('show');
+                            backdrop.classList.toggle('show');
+                            document.body.classList.toggle('dropdown-open', !dropdown.classList.contains('show'));
+                        }
+                    });
+                }
             }
-        } catch (error) {
-            console.error('Error initializing user menu:', error);
         }
+    } catch (error) {
+        console.error('Error initializing app:', error);
     }
     updateGuestBanner();
     

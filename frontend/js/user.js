@@ -7,7 +7,42 @@ if (!dropdownBackdrop) {
     dropdownBackdrop = document.createElement('div');
     dropdownBackdrop.className = 'dropdown-backdrop';
     document.body.appendChild(dropdownBackdrop);
+    
+    // Close dropdown when clicking on backdrop
+    dropdownBackdrop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown) {
+            dropdown.classList.remove('show');
+            dropdownBackdrop.classList.remove('show');
+            document.body.classList.remove('dropdown-open');
+        }
+    });
 }
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('userDropdown');
+    const userMenu = document.getElementById('userMenu');
+    
+    if (dropdown && userMenu && !userMenu.contains(e.target)) {
+        dropdown.classList.remove('show');
+        dropdownBackdrop.classList.remove('show');
+        document.body.classList.remove('dropdown-open');
+    }
+});
+
+// Close dropdown when pressing Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown && dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+            dropdownBackdrop.classList.remove('show');
+            document.body.classList.remove('dropdown-open');
+        }
+    }
+});
 
 // Check if device is mobile
 const isMobile = () => window.innerWidth <= 768;
@@ -182,24 +217,55 @@ function positionDropdown(dropdown) {
  * Initializes user menu functionality
  */
 export function initUserMenu() {
+    console.log('Initializing user menu...');
+    
     const userMenu = document.getElementById('userMenu');
     const userAvatar = document.querySelector('#userAvatar') || document.querySelector('.avatar-container');
     const dropdownMenu = document.getElementById('userDropdown');
     const logoutBtn = document.getElementById('logoutBtn');
     const myTasksBtn = document.getElementById('myTasksBtn');
     
-    if (!userMenu || !userAvatar || !dropdownMenu) return;
+    console.log('Elements:', { userMenu, userAvatar, dropdownMenu, logoutBtn, myTasksBtn });
+    
+    if (!userMenu || !userAvatar || !dropdownMenu) {
+        console.error('Required elements not found for user menu');
+        return;
+    }
+    
+    // Make sure dropdown is hidden initially
+    dropdownMenu.style.display = 'none';
     
     // Toggle dropdown menu on avatar click/tap
     const toggleMenu = (e) => {
+        console.log('Avatar clicked/tapped');
         e.preventDefault();
         e.stopPropagation();
-        toggleDropdown(dropdownMenu, dropdownBackdrop);
+        
+        // Toggle dropdown visibility
+        if (dropdownMenu.style.display === 'block') {
+            dropdownMenu.style.display = 'none';
+            dropdownBackdrop.style.display = 'none';
+        } else {
+            dropdownMenu.style.display = 'block';
+            dropdownBackdrop.style.display = 'block';
+            
+            // Position the dropdown
+            const rect = userAvatar.getBoundingClientRect();
+            dropdownMenu.style.position = 'absolute';
+            dropdownMenu.style.top = `${rect.bottom + window.scrollY}px`;
+            dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
+        }
     };
     
+    // Remove any existing event listeners to prevent duplicates
+    userAvatar.removeEventListener('click', toggleMenu);
+    userAvatar.removeEventListener('touchend', toggleMenu);
+    
     // Add both touch and click events for better mobile support
-    userAvatar.addEventListener('click', toggleMenu);
-    userAvatar.addEventListener('touchend', toggleMenu);
+    userAvatar.addEventListener('click', toggleMenu, { passive: false });
+    userAvatar.addEventListener('touchend', toggleMenu, { passive: false });
+    
+    console.log('Event listeners added to user avatar');
     
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
