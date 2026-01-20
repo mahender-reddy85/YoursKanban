@@ -23,18 +23,22 @@ app.use(compression());
 const allowedOrigins = [
   'http://localhost:3000',
   'https://yourskanban.vercel.app',
-  'https://www.yourskanban.vercel.app'
+  'https://www.yourskanban.vercel.app',
+  'https://yourskanban.onrender.com'
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
     // allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (allowedOrigins.some(allowedOrigin => 
+      origin === allowedOrigin || 
+      origin.startsWith(allowedOrigin.replace('https://', 'http://'))
+    )) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    const msg = `The CORS policy for this site does not allow access from ${origin}`;
+    return callback(new Error(msg), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

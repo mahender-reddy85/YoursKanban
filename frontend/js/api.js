@@ -24,9 +24,9 @@ async function request(endpoint, options = {}) {
     };
 
     try {
-        // Use absolute URL in production, relative in development
-        const baseUrl = window.location.hostname === 'localhost' ? '' : 'https://yourskanban.vercel.app';
-        const response = await fetch(`${baseUrl}/api${endpoint}`, config);
+        // Always use the production backend URL
+        const baseUrl = 'https://yourskanban.onrender.com';
+        const response = await fetch(`${baseUrl}${endpoint}`, config);
         return await handleResponse(response);
     } catch (error) {
         console.error('API request failed:', error);
