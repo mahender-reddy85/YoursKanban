@@ -43,6 +43,28 @@ const getTasks = async (req, res) => {
     return res.status(200).json([]);
   }
   
+  // First, check if the tasks table exists
+  try {
+    const tableCheck = await req.db.query(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'tasks'
+      )`
+    );
+    
+    if (!tableCheck.rows[0].exists) {
+      console.error('Tasks table does not exist in the database');
+      return res.status(200).json([]);
+    }
+  } catch (checkError) {
+    console.error('Error checking for tasks table:', checkError);
+    return res.status(500).json({ 
+      message: 'Error checking database schema',
+      ...(process.env.NODE_ENV === 'development' && { error: checkError.message })
+    });
+  }
+  
   try {
     console.log('Database pool state:', {
       totalCount: req.db.totalCount,
@@ -68,26 +90,62 @@ const getTasks = async (req, res) => {
     
     console.log('Executing query:', queryText);
     const userId = req.user.id;
-    const result = await req.db.query(queryText, [userId]);
+    
+    try {
+      const result = await req.db.query(queryText, [userId]);
+      return result;
+    } catch (queryError) {
+      console.error('Database query error details:', {
+        error: queryError,
+        query: queryText,
+        parameters: [userId],
+        stack: queryError.stack
+      });
+      throw queryError; // Re-throw to be caught by the outer catch block
+    }
     
     console.log(`Found ${result.rows.length} tasks for user ${req.user.id}`);
     return res.status(200).json(result.rows);
     
   } catch (dbError) {
     console.error('Database error in getTasks:', {
-      error: dbError.message,
+      message: dbError.message,
+      name: dbError.name,
       code: dbError.code,
       detail: dbError.detail,
       hint: dbError.hint,
-      query: dbError.query,
       position: dbError.position,
+      routine: dbError.routine,
+      severity: dbError.severity,
+      schema: dbError.schema,
+      table: dbError.table,
+      constraint: dbError.constraint,
+      column: dbError.column,
+      dataType: dbError.dataType,
+      where: dbError.where,
+      file: dbError.file,
+      line: dbError.line,
       stack: dbError.stack
     });
-    return res.status(500).json({ 
+    
+    // More detailed error response in development
+    const errorResponse = {
       message: 'Database error while fetching tasks',
-      error: process.env.NODE_ENV === 'development' ? dbError.message : undefined,
-      ...(process.env.NODE_ENV === 'development' && { stack: dbError.stack })
-    });
+      ...(process.env.NODE_ENV === 'development' && {
+        error: dbError.message,
+        details: {
+          code: dbError.code,
+          detail: dbError.detail,
+          hint: dbError.hint,
+          table: dbError.table,
+          constraint: dbError.constraint,
+          column: dbError.column,
+          stack: dbError.stack
+        }
+      })
+    };
+    
+    return res.status(500).json(errorResponse);
   }
 }
 
