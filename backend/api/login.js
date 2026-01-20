@@ -1,5 +1,4 @@
 const { comparePasswords, generateToken } = require('../lib/auth');
-const db = require('../lib/db');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -15,7 +14,7 @@ module.exports = async (req, res) => {
     }
 
     // Check if user exists
-    const userResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const userResult = await req.db.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = userResult.rows[0];
     
     if (!user) {

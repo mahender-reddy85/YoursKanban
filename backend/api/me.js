@@ -1,5 +1,4 @@
 const { protect } = require('../lib/auth');
-const db = require('../lib/db');
 
 module.exports = async (req, res) => {
   // Add protect middleware

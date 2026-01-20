@@ -1,5 +1,4 @@
 const { hashPassword } = require('../lib/auth');
-const db = require('../lib/db');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -15,7 +14,7 @@ module.exports = async (req, res) => {
     }
 
     // Check if user already exists
-    const userExists = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const userExists = await req.db.query('SELECT * FROM users WHERE email = $1', [email]);
     
     if (userExists.rows.length > 0) {
       return res.status(400).json({ message: 'User already exists' });
@@ -25,7 +24,7 @@ module.exports = async (req, res) => {
     const hashedPassword = await hashPassword(password);
 
     // Create user
-    const newUser = await db.query(
+    const newUser = await req.db.query(
       'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, created_at',
       [name, email, hashedPassword]
     );

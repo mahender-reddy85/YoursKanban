@@ -1,5 +1,4 @@
 const { protect } = require('../lib/auth');
-const db = require('../lib/db');
 
 // Helper function to handle protected routes
 const withAuth = (handler) => {
@@ -23,7 +22,7 @@ const withAuth = (handler) => {
 // Get all tasks for the authenticated user
 const getTasks = async (req, res) => {
   try {
-    const { rows } = await db.query(
+    const { rows } = await req.db.query(
       'SELECT * FROM tasks WHERE user_id = $1 ORDER BY order_index, created_at DESC',
       [req.user.id]
     );
@@ -47,14 +46,14 @@ const createTask = async (req, res) => {
     // Get the highest order index if not provided
     let order = order_index;
     if (order === undefined) {
-      const result = await db.query(
+      const result = await req.db.query(
         'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
         [req.user.id]
       );
       order = result.rows[0].next_order;
     }
 
-    const { rows } = await db.query(
+    const { rows } = await req.db.query(
       `INSERT INTO tasks 
        (user_id, title, description, status, priority, due_date, order_index, is_pinned)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
@@ -85,7 +84,7 @@ const updateTask = async (req, res) => {
     const { title, description, status, priority, due_date, order_index, is_pinned } = req.body;
 
     // First, verify the task exists and belongs to the user
-    const taskResult = await db.query(
+    const taskResult = await req.db.query(
       'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
       [taskId, req.user.id]
     );
@@ -95,7 +94,7 @@ const updateTask = async (req, res) => {
     }
 
     // Update the task
-    const { rows } = await db.query(
+    const { rows } = await req.db.query(
       `UPDATE tasks SET 
         title = COALESCE($1, title),
         description = COALESCE($2, description),
@@ -137,7 +136,7 @@ const deleteTask = async (req, res) => {
     const taskId = req.params.id;
 
     // First, verify the task exists and belongs to the user
-    const taskResult = await db.query(
+    const taskResult = await req.db.query(
       'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
       [taskId, req.user.id]
     );
@@ -147,7 +146,7 @@ const deleteTask = async (req, res) => {
     }
 
     // Delete the task (cascade will handle subtasks)
-    await db.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [taskId, req.user.id]);
+    await req.db.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [taskId, req.user.id]);
     
     res.status(200).json({ message: 'Task deleted successfully' });
   } catch (error) {
