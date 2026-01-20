@@ -102,10 +102,25 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Make sure the root route is the last route defined before the 404 handler
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "Backend running" });
+});
+
 // Start server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
+  console.log(`API Documentation: http://0.0.0.0:${PORT}/api-docs`);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.error(err);
+  server.close(() => {
+    process.exit(1);
+  });
 });
 
 export default app;
