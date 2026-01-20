@@ -84,25 +84,17 @@
 
 .dropdown-menu {
     position: fixed;
-    top: 70px; /* Position below navbar */
-    right: 20px;
-    width: 280px;
-    background: #ffffff; /* Solid white background */
+    width: 260px;
+    background: #ffffff;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    padding: 0;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.2s ease-out;
-    z-index: 10000; /* Very high z-index to ensure it's on top */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    z-index: 10002;
     border: 1px solid #e2e8f0;
-    max-height: calc(100vh - 100px);
-    overflow: hidden;
-    display: block !important;
+    display: none;
+    max-height: 80vh;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    will-change: transform, opacity;
-    color: #1a202c; /* Dark text color for better contrast */
 }
 
 .dropdown-menu.show {
