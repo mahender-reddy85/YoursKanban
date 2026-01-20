@@ -41,12 +41,13 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) {
-      return res.status(401).json({ message: 'Not authorized, no token' });
+      // For non-authenticated routes, just continue without setting req.user
+      return next();
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return res.status(401).json({ message: 'Not authorized, token failed' });
+      return res.status(401).json({ message: 'Not authorized, invalid token' });
     }
 
     // Get user from the token

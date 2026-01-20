@@ -19,9 +19,15 @@ const withAuth = (handler) => {
   };
 };
 
-// Get all tasks for the authenticated user
+// Get all tasks (works for both authenticated and unauthenticated users)
 const getTasks = async (req, res) => {
   try {
+    if (!req.user) {
+      // For unauthenticated users, return an empty array
+      return res.status(200).json([]);
+    }
+    
+    // For authenticated users, return their tasks
     const { rows } = await req.db.query(
       'SELECT * FROM tasks WHERE user_id = $1 ORDER BY order_index, created_at DESC',
       [req.user.id]
@@ -155,28 +161,34 @@ const deleteTask = async (req, res) => {
   }
 };
 
-// Route handler
+// Route handler with optional auth for GET requests
 const handler = async (req, res) => {
-  // Set db on request for use in withAuth
-  req.db = db;
-
   try {
+    // For GET requests, don't require authentication
+    if (req.method === 'GET') {
+      return await getTasks(req, res);
+    }
+
+    // For other methods, require authentication
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
     switch (req.method) {
-      case 'GET':
-        return await withAuth(getTasks)(req, res);
       case 'POST':
-        return await withAuth(createTask)(req, res);
+        return await createTask(req, res);
       case 'PUT':
-        return await withAuth(updateTask)(req, res);
+      case 'PATCH':
+        return await updateTask(req, res);
       case 'DELETE':
-        return await withAuth(deleteTask)(req, res);
+        return await deleteTask(req, res);
       default:
-        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-        return res.status(405).json({ message: `Method ${req.method} not allowed` });
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
-    console.error('Tasks route error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error('Tasks API error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
