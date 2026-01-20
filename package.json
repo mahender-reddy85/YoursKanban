@@ -5,8 +5,9 @@
   "type": "module",
   "main": "api/index.js",
   "scripts": {
-    "start": "vercel dev",
-    "dev": "vercel dev",
+    "start": "node server.js",
+    "dev": "node server.js",
+    "vercel": "vercel dev",
     "vercel-build": "npm install && npm run build",
     "prebuild:css": "mkdir -p frontend/dist",
     "build:css": "postcss frontend/YoursKanban.css -o frontend/dist/styles.min.css",
