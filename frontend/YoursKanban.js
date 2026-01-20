@@ -1,5 +1,6 @@
-// Import API services
+// Import API services and modules
 import { authAPI, tasksAPI, isLoggedIn } from './js/api.js';
+import { updateUserAvatar, initUserMenu } from './js/user.js';
 
 /**
  * Application State Management
@@ -1564,6 +1565,7 @@ function updateGuestBanner() {
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     init();
+    initUserMenu(); // Initialize user menu functionality
     updateGuestBanner();
     
     // Set up delete confirmation
