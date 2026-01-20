@@ -241,54 +241,31 @@ export function initUserMenu() {
         e.preventDefault();
         e.stopPropagation();
         
-        const isMobileView = window.innerWidth <= 768;
-        
         // Toggle dropdown visibility
         if (dropdownMenu.classList.contains('show')) {
             // Close menu
             dropdownMenu.classList.remove('show');
             dropdownBackdrop.classList.remove('show');
             document.body.classList.remove('dropdown-open');
-            
-            if (isMobileView) {
-                dropdownMenu.style.transform = 'translateY(100%)';
-                setTimeout(() => {
-                    dropdownMenu.style.display = 'none';
-                }, 300);
-            } else {
-                dropdownMenu.style.display = 'none';
-            }
+            dropdownMenu.style.display = 'none';
         } else {
-            // Open menu
-            if (isMobileView) {
-                // For mobile, position at bottom
-                dropdownMenu.style.display = 'block';
-                dropdownMenu.style.position = 'fixed';
-                dropdownMenu.style.bottom = '0';
-                dropdownMenu.style.top = 'auto';
-                dropdownMenu.style.left = '0';
-                dropdownMenu.style.right = '0';
-                dropdownMenu.style.width = '100%';
-                dropdownMenu.style.maxWidth = '100%';
-                dropdownMenu.style.borderRadius = '20px 20px 0 0';
-                dropdownMenu.style.transform = 'translateY(100%)';
-                
-                // Trigger reflow
-                void dropdownMenu.offsetHeight;
-                
-                // Animate in
-                requestAnimationFrame(() => {
-                    dropdownMenu.style.transform = 'translateY(0)';
-                });
-            } else {
-                // For desktop, position below avatar
-                dropdownMenu.style.display = 'block';
-                dropdownMenu.style.position = 'absolute';
-                const rect = userAvatar.getBoundingClientRect();
-                dropdownMenu.style.top = `${rect.bottom + window.scrollY}px`;
-                dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
-            }
+            // Position the dropdown next to the avatar
+            dropdownMenu.style.display = 'block';
+            dropdownMenu.style.position = 'absolute';
             
+            // Get avatar position
+            const rect = userAvatar.getBoundingClientRect();
+            
+            // Position below the avatar
+            dropdownMenu.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
+            dropdownMenu.style.transform = 'none';
+            dropdownMenu.style.width = '280px';
+            dropdownMenu.style.maxWidth = '90vw';
+            dropdownMenu.style.borderRadius = '8px';
+            dropdownMenu.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
+            
+            // Show the dropdown and backdrop
             dropdownMenu.classList.add('show');
             dropdownBackdrop.classList.add('show');
             document.body.classList.add('dropdown-open');

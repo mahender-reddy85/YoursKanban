@@ -276,64 +276,45 @@ body.user-logged-in .user-menu {
     }
     
     .dropdown-menu {
-        position: fixed;
-        bottom: 0;
-        left: 0;
+        position: absolute;
+        top: calc(100% + 10px);
         right: 0;
-        width: 100% !important;
-        max-width: 100% !important;
-        max-height: 85vh;
-        height: auto;
-        border-radius: 20px 20px 0 0 !important;
-        transform: translateY(100%);
-        margin: 0;
-        padding: 0 0 env(safe-area-inset-bottom) 0;
-        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-        box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.2);
-        border: none !important;
-        z-index: 10002 !important;
+        width: 280px;
+        max-width: 90vw;
         background: var(--bg-secondary);
-        display: none; /* Start hidden, will be shown with JS */
-    }
-    
-    /* Swipe handle */
-    .dropdown-menu::before {
-        content: '';
-        display: block;
-        width: 40px;
-        height: 5px;
-        background-color: var(--border-color);
-        margin: 12px auto 8px;
-        border-radius: 3px;
-        opacity: 0.8;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        padding: 8px 0;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+        z-index: 10002;
+        border: 1px solid var(--border-color);
+        display: none;
     }
     
     .dropdown-menu.show {
+        opacity: 1;
+        visibility: visible;
         transform: translateY(0);
-        opacity: 1 !important;
-        visibility: visible !important;
         display: block;
     }
     
     .dropdown-item {
-        padding: 16px 24px;
-        font-size: 16px;
-        border-bottom: 1px solid var(--border-color);
-        transition: background-color 0.2s;
-        display: flex;
-        align-items: center;
-        min-height: 56px;
+        padding: 12px 16px;
+        font-size: 15px;
         color: var(--text-main);
         text-decoration: none;
+        display: flex;
+        align-items: center;
+        transition: background-color 0.2s;
     }
     
     .dropdown-item i {
-        font-size: 20px;
-        margin-right: 16px;
-        width: 24px;
+        font-size: 18px;
+        margin-right: 12px;
+        width: 20px;
         text-align: center;
         color: var(--text-muted);
     }
@@ -342,37 +323,30 @@ body.user-logged-in .user-menu {
         background-color: var(--bg-primary);
     }
     
-    [data-theme="dark"] .dropdown-item:active {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
-    
     .user-info {
-        padding: 16px 24px;
+        padding: 12px 16px;
         border-bottom: 1px solid var(--border-color);
-        flex-direction: column;
-        align-items: flex-start;
-        background: var(--bg-secondary);
+        margin-bottom: 4px;
     }
     
     .user-name {
-        font-size: 18px;
+        font-size: 15px;
         font-weight: 600;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
         color: var(--text-main);
     }
     
     .user-email {
-        font-size: 14px;
+        font-size: 13px;
         color: var(--text-muted);
-        margin-bottom: 12px;
     }
     
     .user-actions {
-        margin-top: 8px;
-        width: 100%;
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
+        gap: 8px;
+        padding: 8px 16px 12px;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 4px;
     }
     
     .user-action-btn {
@@ -380,10 +354,10 @@ body.user-logged-in .user-menu {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 10px 12px;
-        font-size: 14px;
+        padding: 8px 12px;
+        font-size: 13px;
         font-weight: 500;
-        border-radius: 8px;
+        border-radius: 6px;
         background: var(--bg-primary);
         color: var(--text-main);
         border: 1px solid var(--border-color);
@@ -393,7 +367,7 @@ body.user-logged-in .user-menu {
     
     .user-action-btn i {
         margin-right: 6px;
-        font-size: 16px;
+        font-size: 14px;
     }
     
     .user-action-btn:active {
@@ -401,27 +375,19 @@ body.user-logged-in .user-menu {
         background: var(--border-color);
     }
     
-    /* Prevent scrolling on body when menu is open */
-    body.dropdown-open {
-        position: fixed;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-    }
-    
-    /* Enhanced backdrop for mobile */
+    /* Backdrop for mobile */
     .dropdown-backdrop {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.3);
         z-index: 10001;
         opacity: 0;
         visibility: hidden;
         transition: opacity 0.3s ease, visibility 0.3s ease;
+        backdrop-filter: blur(2px);
     }
     
     .dropdown-backdrop.show {
@@ -429,28 +395,15 @@ body.user-logged-in .user-menu {
         visibility: visible;
     }
     
-    /* Make sure dropdown is above other content */
-    .dropdown-menu {
-        z-index: 10002 !important;
-    }
-    
-    /* Adjust for dark mode */
+    /* Dark mode adjustments */
     [data-theme="dark"] .dropdown-menu {
         background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
+        border-color: var(--border-color);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
     
-    [data-theme="dark"] .dropdown-item {
-        color: var(--text-main);
-    }
-    
-    [data-theme="dark"] .dropdown-item i {
-        color: var(--text-muted);
-    }
-    
-    /* Add some space at the bottom of the menu */
-    .dropdown-menu {
-        padding-bottom: 20px;
+    [data-theme="dark"] .dropdown-item:active {
+        background-color: rgba(255, 255, 255, 0.05);
     }
 }
 
