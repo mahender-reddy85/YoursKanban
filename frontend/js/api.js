@@ -25,7 +25,7 @@ async function request(endpoint, options = {}) {
 
     try {
         // Hardcoded base URL with debug logging
-        const API_BASE = "https://yourskanban.onrender.com";
+        const API_BASE = "https://yourskanban.onrender.com/api";
         console.log("API_BASE:", JSON.stringify(API_BASE));
         
         const response = await fetch(`${API_BASE}${endpoint}`, config);
