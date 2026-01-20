@@ -1581,9 +1581,23 @@ function updateGuestBanner() {
 }
 
 // Initialize the app when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    init();
-    initUserMenu(); // Initialize user menu functionality
+document.addEventListener('DOMContentLoaded', async () => {
+    await init();
+    
+    // Initialize user menu if the element exists
+    const userMenu = document.getElementById('userMenu');
+    if (userMenu) {
+        // Wait for auth to complete
+        try {
+            const user = await authAPI.getCurrentUser();
+            if (user) {
+                updateUserAvatar(user);
+                initUserMenu();
+            }
+        } catch (error) {
+            console.error('Error initializing user menu:', error);
+        }
+    }
     updateGuestBanner();
     
     // Set up delete confirmation
