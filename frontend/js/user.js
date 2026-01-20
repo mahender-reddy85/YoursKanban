@@ -241,19 +241,57 @@ export function initUserMenu() {
         e.preventDefault();
         e.stopPropagation();
         
+        const isMobileView = window.innerWidth <= 768;
+        
         // Toggle dropdown visibility
-        if (dropdownMenu.style.display === 'block') {
-            dropdownMenu.style.display = 'none';
-            dropdownBackdrop.style.display = 'none';
-        } else {
-            dropdownMenu.style.display = 'block';
-            dropdownBackdrop.style.display = 'block';
+        if (dropdownMenu.classList.contains('show')) {
+            // Close menu
+            dropdownMenu.classList.remove('show');
+            dropdownBackdrop.classList.remove('show');
+            document.body.classList.remove('dropdown-open');
             
-            // Position the dropdown
-            const rect = userAvatar.getBoundingClientRect();
-            dropdownMenu.style.position = 'absolute';
-            dropdownMenu.style.top = `${rect.bottom + window.scrollY}px`;
-            dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
+            if (isMobileView) {
+                dropdownMenu.style.transform = 'translateY(100%)';
+                setTimeout(() => {
+                    dropdownMenu.style.display = 'none';
+                }, 300);
+            } else {
+                dropdownMenu.style.display = 'none';
+            }
+        } else {
+            // Open menu
+            if (isMobileView) {
+                // For mobile, position at bottom
+                dropdownMenu.style.display = 'block';
+                dropdownMenu.style.position = 'fixed';
+                dropdownMenu.style.bottom = '0';
+                dropdownMenu.style.top = 'auto';
+                dropdownMenu.style.left = '0';
+                dropdownMenu.style.right = '0';
+                dropdownMenu.style.width = '100%';
+                dropdownMenu.style.maxWidth = '100%';
+                dropdownMenu.style.borderRadius = '20px 20px 0 0';
+                dropdownMenu.style.transform = 'translateY(100%)';
+                
+                // Trigger reflow
+                void dropdownMenu.offsetHeight;
+                
+                // Animate in
+                requestAnimationFrame(() => {
+                    dropdownMenu.style.transform = 'translateY(0)';
+                });
+            } else {
+                // For desktop, position below avatar
+                dropdownMenu.style.display = 'block';
+                dropdownMenu.style.position = 'absolute';
+                const rect = userAvatar.getBoundingClientRect();
+                dropdownMenu.style.top = `${rect.bottom + window.scrollY}px`;
+                dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
+            }
+            
+            dropdownMenu.classList.add('show');
+            dropdownBackdrop.classList.add('show');
+            document.body.classList.add('dropdown-open');
         }
     };
     
