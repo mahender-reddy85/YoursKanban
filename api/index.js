@@ -87,6 +87,14 @@ app.get('/health', (req, res) => {
 });
 
 // Debug routes
+app.get("/__routes", (req, res) => {
+  res.json({
+    ok: true,
+    message: "Server running",
+    hint: "If auth is mounted, POST /api/auth/register should exist"
+  });
+});
+
 app.get("/", (req, res) => {
   res.json({ ok: true, message: "YoursKanban backend running" });
 });
