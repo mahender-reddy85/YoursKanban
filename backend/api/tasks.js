@@ -1,9 +1,15 @@
 const { protect } = require('../lib/auth');
 
 // Middleware to handle authentication
-const withAuth = (req, res, next) => {
-  // Skip auth for GET requests
-  if (req.method === 'GET') return next();
+const withAuth = async (req, res, next) => {
+  // For GET requests, allow unauthenticated access but try to set user if token exists
+  if (req.method === 'GET') {
+    if (req.headers.authorization) {
+      // If there's a token, try to authenticate but don't fail if it's invalid
+      return protect(req, res, () => next());
+    }
+    return next();
+  }
   
   // For other methods, require authentication
   if (!req.headers.authorization) {
@@ -11,11 +17,18 @@ const withAuth = (req, res, next) => {
   }
   
   // Verify token for authenticated requests
-  protect(req, res, (err) => {
+  return protect(req, res, (err) => {
     if (err) {
       console.error('Auth error:', err);
       return res.status(401).json({ message: 'Invalid or expired token' });
     }
+    
+    // Ensure user is set on the request
+    if (!req.user || !req.user.id) {
+      console.error('No user ID found in request');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
     next();
   });
 };
@@ -74,37 +87,75 @@ const createTask = async (req, res) => {
       return res.status(400).json({ message: 'Title, status, and priority are required' });
     }
 
+    // Ensure user is authenticated for task creation
+    if (!req.user || !req.user.id) {
+      console.error('No user ID found in createTask');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
     // Get the highest order index if not provided
     let order = order_index;
     if (order === undefined) {
-      const result = await req.db.query(
-        'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
-        [req.user.id]
-      );
-      order = result.rows[0].next_order;
+      try {
+        const result = await req.db.query(
+          'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
+          [req.user.id]
+        );
+        order = result.rows[0]?.next_order || 1;
+      } catch (error) {
+        console.error('Error getting next order index:', error);
+        order = 1; // Default to 1 if there's an error
+      }
     }
 
-    const { rows } = await req.db.query(
-      `INSERT INTO tasks 
-       (user_id, title, description, status, priority, due_date, order_index, is_pinned)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-       RETURNING *`,
-      [
-        req.user.id,
-        title,
-        description || null,
-        status,
-        priority,
-        due_date || null,
-        order,
-        is_pinned || false
-      ]
-    );
+    try {
+      const { rows } = await req.db.query(
+        `INSERT INTO tasks 
+         (user_id, title, description, status, priority, due_date, order_index, is_pinned)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         RETURNING *`,
+        [
+          req.user.id,
+          title,
+          description || null,
+          status,
+          priority,
+          due_date || null,
+          order,
+          is_pinned || false
+        ]
+      );
 
-    res.status(201).json(rows[0]);
+      console.log(`Created task for user ${req.user.id}:`, rows[0].id);
+      return res.status(201).json(rows[0]);
+    } catch (dbError) {
+      console.error('Database error in createTask:', {
+        error: dbError.message,
+        query: 'INSERT INTO tasks',
+        userId: req.user.id,
+        stack: dbError.stack
+      });
+      
+      // Handle specific database errors
+      if (dbError.code === '23505') { // Unique violation
+        return res.status(409).json({ 
+          message: 'A task with these details already exists' 
+        });
+      }
+      
+      throw dbError; // Re-throw for the outer catch
+    }
   } catch (error) {
-    console.error('Create task error:', error);
-    res.status(500).json({ message: 'Error creating task' });
+    console.error('Unexpected error in createTask:', {
+      error: error.message,
+      stack: error.stack,
+      user: req.user || 'no user'
+    });
+    
+    res.status(500).json({ 
+      message: 'Internal server error while creating task',
+      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    });
   }
 };
 
