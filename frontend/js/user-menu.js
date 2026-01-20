@@ -3,7 +3,11 @@
  * Handles the user avatar dropdown menu with user info and actions
  */
 
+console.log('User menu script loaded');
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded');
+    
     const userMenu = document.getElementById('userMenu');
     const userAvatar = document.getElementById('userAvatar');
     const dropdownMenu = document.getElementById('userDropdown');
@@ -13,6 +17,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const userNameEl = document.getElementById('userName');
     const userEmailEl = document.getElementById('userEmail');
     const avatarInitials = document.getElementById('avatarInitials');
+    
+    // Debug log to check if elements are found
+    console.log('Elements:', {
+        userMenu,
+        userAvatar,
+        dropdownMenu,
+        dropdownBackdrop,
+        myTasksBtn,
+        logoutBtn,
+        userNameEl,
+        userEmailEl,
+        avatarInitials
+    });
+    
+    // Initialize dropdown state
+    let isDropdownOpen = false;
 
     // Check if user is logged in
     function checkAuth() {
@@ -78,21 +98,15 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         e.stopPropagation();
         
-        const isOpen = dropdownMenu.classList.contains('show');
+        console.log('Toggle dropdown called');
         
-        // Close all other dropdowns
-        document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
-            if (menu !== dropdownMenu) {
-                menu.classList.remove('show');
-                menu.previousElementSibling?.setAttribute('aria-expanded', 'false');
-            }
-        });
+        // Toggle the dropdown state
+        isDropdownOpen = !isDropdownOpen;
         
-        // Toggle current dropdown
-        if (isOpen) {
-            closeDropdown();
-        } else {
+        if (isDropdownOpen) {
             openDropdown();
+        } else {
+            closeDropdown();
         }
     }
     
