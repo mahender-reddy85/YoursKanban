@@ -242,32 +242,19 @@ export function initUserMenu() {
         e.stopPropagation();
         
         // Toggle dropdown visibility
-        if (dropdownMenu.classList.contains('show')) {
+        if (dropdownMenu.style.display === 'block') {
             // Close menu
-            dropdownMenu.classList.remove('show');
-            dropdownBackdrop.classList.remove('show');
-            document.body.classList.remove('dropdown-open');
             dropdownMenu.style.display = 'none';
+            dropdownBackdrop.style.display = 'none';
+            document.body.classList.remove('dropdown-open');
         } else {
-            // Position the dropdown next to the avatar
-            dropdownMenu.style.display = 'block';
-            dropdownMenu.style.position = 'absolute';
-            
-            // Get avatar position
+            // Show menu below avatar
             const rect = userAvatar.getBoundingClientRect();
-            
-            // Position below the avatar
+            dropdownMenu.style.display = 'block';
+            dropdownMenu.style.position = 'fixed';
             dropdownMenu.style.top = `${rect.bottom + window.scrollY + 5}px`;
             dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
-            dropdownMenu.style.transform = 'none';
-            dropdownMenu.style.width = '280px';
-            dropdownMenu.style.maxWidth = '90vw';
-            dropdownMenu.style.borderRadius = '8px';
-            dropdownMenu.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
-            
-            // Show the dropdown and backdrop
-            dropdownMenu.classList.add('show');
-            dropdownBackdrop.classList.add('show');
+            dropdownBackdrop.style.display = 'block';
             document.body.classList.add('dropdown-open');
         }
     };
