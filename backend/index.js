@@ -11,11 +11,12 @@ const morgan = require('morgan');
 const { createServer } = require('http');
 const { Pool } = require('pg');
 
-// Import API routes
+// Import API routes and middleware
 const registerHandler = require('./api/register');
 const loginHandler = require('./api/login');
 const meHandler = require('./api/me');
 const tasksHandler = require('./api/tasks');
+const { protect } = require('./lib/auth');
 
 // Initialize express app
 const app = express();
@@ -128,8 +129,8 @@ app.use('/api/auth/register', registerHandler);
 app.use('/api/auth/login', loginHandler);
 app.use('/api/auth/me', meHandler);
 
-// Task routes
-app.use('/api/tasks', tasksHandler);
+// Task routes (protected)
+app.use('/api/tasks', protect, tasksHandler);
 
 // 404 handler
 app.use((req, res, next) => {
