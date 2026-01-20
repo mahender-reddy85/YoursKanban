@@ -24,9 +24,11 @@ async function request(endpoint, options = {}) {
     };
 
     try {
-        // Always use the production backend URL
-        const baseUrl = 'https://yourskanban.onrender.com';
-        const response = await fetch(`${baseUrl}${endpoint}`, config);
+        // Hardcoded base URL with debug logging
+        const API_BASE = "https://yourskanban.onrender.com";
+        console.log("API_BASE:", JSON.stringify(API_BASE));
+        
+        const response = await fetch(`${API_BASE}${endpoint}`, config);
         return await handleResponse(response);
     } catch (error) {
         console.error('API request failed:', error);
