@@ -3,11 +3,8 @@
  * Handles the user avatar dropdown menu with user info and actions
  */
 
-console.log('User menu script loaded');
-
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded');
-    
+    // DOM Elements
     const userMenu = document.getElementById('userMenu');
     const userAvatar = document.getElementById('userAvatar');
     const dropdownMenu = document.getElementById('userDropdown');
@@ -17,273 +14,445 @@ document.addEventListener('DOMContentLoaded', () => {
     const userNameEl = document.getElementById('userName');
     const userEmailEl = document.getElementById('userEmail');
     const avatarInitials = document.getElementById('avatarInitials');
+    const avatarInitialsLarge = document.getElementById('avatarInitialsLarge');
     
-    // Debug log to check if elements are found
-    console.log('Elements:', {
-        userMenu,
-        userAvatar,
-        dropdownMenu,
-        dropdownBackdrop,
-        myTasksBtn,
-        logoutBtn,
-        userNameEl,
-        userEmailEl,
-        avatarInitials
-    });
-    
-    // Initialize dropdown state
+    // State
     let isDropdownOpen = false;
+    let touchStartY = 0;
+    let isMobile = window.innerWidth <= 768;
 
-    // Check if user is logged in
+    /**
+     * Check if user is authenticated and update UI accordingly
+     * @returns {boolean} True if user is logged in, false otherwise
+     */
     function checkAuth() {
-        const userData = localStorage.getItem('user') || localStorage.getItem('username');
-        
-        if (userData) {
-            try {
+        try {
+            const userData = localStorage.getItem('user') || localStorage.getItem('username');
+            
+            if (userData) {
                 const user = typeof userData === 'string' && userData.startsWith('{') 
                     ? JSON.parse(userData) 
                     : { name: userData, email: '' };
                 
-                // Update UI with user data
                 updateUserInfo(user);
-                
-                // Show user menu and hide auth buttons
                 userMenu.style.display = 'flex';
                 document.body.classList.add('user-logged-in');
                 
-                // Show logout button if user is logged in
                 if (logoutBtn) {
                     logoutBtn.style.display = 'flex';
+                    logoutBtn.setAttribute('aria-hidden', 'false');
                 }
                 
                 return true;
-            } catch (e) {
-                console.error('Error parsing user data:', e);
             }
+        } catch (e) {
+            console.error('Error parsing user data:', e);
         }
         
-        // Default guest state
+        // Guest state
         userMenu.style.display = 'flex';
         updateUserInfo({ name: 'Guest User', email: 'guest@example.com' });
-        if (logoutBtn) logoutBtn.style.display = 'none';
+        
+        if (logoutBtn) {
+            logoutBtn.style.display = 'none';
+            logoutBtn.setAttribute('aria-hidden', 'true');
+        }
+        
         return false;
     }
 
-    // Update user info in the UI
+    /**
+     * Update user information in the UI
+     * @param {Object} user - User object containing name and email
+     */
     function updateUserInfo(user) {
         if (!user) return;
         
-        // Set user name
+        const displayName = user.name || 'Guest User';
+        const displayEmail = user.email || '';
+        const initials = displayName
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+        
+        // Update name
         if (userNameEl) {
-            userNameEl.textContent = user.name || 'Guest User';
+            userNameEl.textContent = displayName;
+            userNameEl.setAttribute('aria-label', `Logged in as ${displayName}`);
         }
         
-        // Set user email if available
+        // Update email
         if (userEmailEl) {
-            userEmailEl.textContent = user.email || 'guest@example.com';
-            userEmailEl.style.display = user.email ? 'block' : 'none';
+            const hasEmail = !!displayEmail;
+            userEmailEl.textContent = displayEmail || 'No email provided';
+            userEmailEl.style.display = hasEmail ? 'block' : 'none';
+            userEmailEl.setAttribute('aria-hidden', !hasEmail);
         }
         
-        // Set avatar initials
-        if (avatarInitials) {
-            const initials = user.name 
-                ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-                : 'GU';
-            avatarInitials.textContent = initials;
+        // Update avatar initials
+        [avatarInitials, avatarInitialsLarge].forEach(el => {
+            if (el) el.textContent = initials;
+        });
+    }
+
+    /**
+     * Toggle the dropdown menu
+     * @param {Event} e - The event object
+     */
+    function toggleDropdown(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Handle touch events
+            if (e.type === 'touchstart') {
+                touchStartY = e.touches[0].clientY;
+                return;
+            }
+            
+            if (e.type === 'touchend') {
+                const touchEndY = e.changedTouches[0].clientY;
+                // Only toggle if it's a tap (not a swipe)
+                if (Math.abs(touchEndY - touchStartY) < 10) {
+                    if (isDropdownOpen) {
+                        closeDropdown();
+                    } else {
+                        openDropdown();
+                    }
+                }
+                return;
+            }
+        }
+        
+        // Toggle for click events
+        if (isDropdownOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
         }
     }
 
-    // Toggle dropdown menu
-    function toggleDropdown(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('Toggle dropdown called');
-        
-        // Toggle the dropdown state
-        isDropdownOpen = !isDropdownOpen;
-        
-        if (isDropdownOpen) {
-            openDropdown();
-        } else {
-            closeDropdown();
-        }
-    }
-    
-    // Open dropdown
+    /**
+     * Open the dropdown menu
+     */
     function openDropdown() {
-        // Position the dropdown
-        const rect = userAvatar.getBoundingClientRect();
-        const isMobile = window.innerWidth <= 768;
+        if (isDropdownOpen) return;
         
-        if (isMobile) {
-            // Mobile: Show as bottom sheet
+        // Position the dropdown
+        if (!isMobile) {
+            const rect = userAvatar.getBoundingClientRect();
+            dropdownMenu.style.top = `${rect.bottom + window.scrollY + 8}px`;
+            dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
+        } else {
+            // For mobile, position at bottom of screen
             dropdownMenu.style.top = 'auto';
             dropdownMenu.style.bottom = '0';
             dropdownMenu.style.left = '0';
             dropdownMenu.style.right = '0';
             dropdownMenu.style.width = '100%';
-            dropdownMenu.style.borderRadius = '12px 12px 0 0';
-        } else {
-            // Desktop: Show below avatar
-            dropdownMenu.style.position = 'absolute';
-            dropdownMenu.style.top = `${rect.bottom + window.scrollY + 8}px`;
-            dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
-            dropdownMenu.style.bottom = 'auto';
-            dropdownMenu.style.left = 'auto';
-            dropdownMenu.style.width = '260px';
-            dropdownMenu.style.borderRadius = '8px';
+            dropdownMenu.style.maxHeight = '85vh';
+            dropdownMenu.style.borderRadius = '16px 16px 0 0';
         }
         
-        // Show dropdown and backdrop
+        // Trigger reflow to ensure transition works
+        dropdownMenu.offsetHeight;
+        
+        // Show the dropdown and backdrop
+        document.body.style.overflow = 'hidden';
         dropdownMenu.classList.add('show');
         dropdownBackdrop.classList.add('show');
-        userAvatar.setAttribute('aria-expanded', 'true');
-        document.body.classList.add('dropdown-open');
         
-        // Focus first interactive element for keyboard navigation
+        // Update state and ARIA
+        isDropdownOpen = true;
+        userAvatar.setAttribute('aria-expanded', 'true');
+        
+        // Focus management
         setTimeout(() => {
-            const firstFocusable = dropdownMenu.querySelector('a[href], button, [tabindex]');
+            const firstFocusable = dropdownMenu.querySelector('button, a, [tabindex]:not([tabindex="-1"])');
             if (firstFocusable) firstFocusable.focus();
-        }, 10);
+        }, 50);
+        
+        // Add event listeners
+        document.addEventListener('click', handleClickOutside, { passive: true });
+        document.addEventListener('keydown', handleKeyDown, { passive: true });
+        window.addEventListener('resize', handleResize, { passive: true });
+        
+        // Close on backdrop click
+        dropdownBackdrop.addEventListener('click', closeDropdown, { passive: true });
+        
+        // Prevent body scroll when dropdown is open on mobile
+        if (isMobile) {
+            document.body.style.overflow = 'hidden';
+        }
     }
-    
-    // Close dropdown
+
+    /**
+     * Close the dropdown menu
+     */
     function closeDropdown() {
         dropdownMenu.classList.remove('show');
         dropdownBackdrop.classList.remove('show');
         userAvatar.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('dropdown-open');
-        
-        // Return focus to the avatar button
-        setTimeout(() => userAvatar.focus(), 10);
+        document.body.style.overflow = '';
+        isDropdownOpen = false;
     }
 
-    // Handle click outside
+    /**
+     * Handle window resize events
+     */
+    function handleResize() {
+        isMobile = window.innerWidth <= 768;
+        if (isDropdownOpen && !isMobile) {
+            const rect = userAvatar.getBoundingClientRect();
+            dropdownMenu.style.top = `${rect.bottom + window.scrollY + 8}px`;
+            dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
+        }
+    }
+    
+    /**
+     * Handle clicks outside the dropdown
+     * @param {Event} e - The click event
+     */
     function handleClickOutside(e) {
-        if (dropdownMenu.classList.contains('show') && 
+        if (isDropdownOpen && 
             !dropdownMenu.contains(e.target) && 
             !userAvatar.contains(e.target)) {
             closeDropdown();
         }
     }
 
-    // Handle keyboard navigation
+    /**
+     * Handle keyboard navigation
+     * @param {KeyboardEvent} e - The keydown event
+     */
     function handleKeyDown(e) {
-        // Close on Escape key
-        if (e.key === 'Escape' && dropdownMenu.classList.contains('show')) {
-            e.preventDefault();
-            closeDropdown();
-        }
+        if (!isDropdownOpen) return;
         
-        // Trap focus within dropdown when open
-        if (e.key === 'Tab' && dropdownMenu.classList.contains('show')) {
-            const focusableElements = Array.from(dropdownMenu.querySelectorAll(
-                'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-            ));
-            
-            if (focusableElements.length === 0) return;
-            
-            const firstElement = focusableElements[0];
-            const lastElement = focusableElements[focusableElements.length - 1];
-            
-            if (e.shiftKey) {
+        const focusableElements = Array.from(
+            dropdownMenu.querySelectorAll('button, a, [tabindex]:not([tabindex="-1"])')
+        ).filter(el => {
+            return !el.disabled && el.offsetParent !== null;
+        });
+        
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        
+        switch (e.key) {
+            case 'Escape':
+                e.preventDefault();
+                closeDropdown();
+                break;
+                
+            case 'Tab':
+                if (focusableElements.length === 0) return;
+                
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        e.preventDefault();
+                        lastElement.focus();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        e.preventDefault();
+                        firstElement.focus();
+                    }
+                }
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
                 if (document.activeElement === firstElement) {
-                    e.preventDefault();
                     lastElement.focus();
+                } else {
+                    const currentIndex = focusableElements.indexOf(document.activeElement);
+                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : focusableElements.length - 1;
+                    focusableElements[prevIndex].focus();
                 }
-            } else {
+                break;
+                
+            case 'ArrowDown':
+                e.preventDefault();
                 if (document.activeElement === lastElement) {
-                    e.preventDefault();
                     firstElement.focus();
+                } else {
+                    const currentIndex = focusableElements.indexOf(document.activeElement);
+                    const nextIndex = currentIndex < focusableElements.length - 1 ? currentIndex + 1 : 0;
+                    focusableElements[nextIndex].focus();
                 }
-            }
+                break;
+                
+            case 'Home':
+                e.preventDefault();
+                firstElement.focus();
+                break;
+                
+            case 'End':
+                e.preventDefault();
+                lastElement.focus();
+                break;
         }
     }
 
-    // Handle logout
+    /**
+     * Handle logout action
+     */
     function handleLogout() {
-        // Clear auth data
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        
-        // Reset UI to guest state
-        updateUserInfo({ name: 'Guest User', email: 'guest@example.com' });
-        document.body.classList.remove('user-logged-in');
-        
-        // Hide logout button
-        if (logoutBtn) logoutBtn.style.display = 'none';
-        
-        // Close dropdown
-        closeDropdown();
-        
-        // Show auth buttons
-        const authButtons = document.querySelector('.auth-buttons');
-        if (authButtons) authButtons.style.display = 'flex';
-        
-        // Notify other parts of the app
-        document.dispatchEvent(new Event('userLoggedOut'));
+        try {
+            // Clear authentication data
+            ['token', 'user', 'username', 'refreshToken'].forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            // Update UI
+            updateUserInfo({ name: 'Guest User', email: 'guest@example.com' });
+            document.body.classList.remove('user-logged-in');
+            
+            // Show auth buttons
+            const authButtons = document.querySelector('.auth-buttons');
+            if (authButtons) {
+                authButtons.style.display = 'flex';
+                authButtons.setAttribute('aria-hidden', 'false');
+            }
+            
+            // Show guest banner if function exists
+            if (typeof updateGuestBanner === 'function') {
+                updateGuestBanner();
+            }
+            
+            // Redirect to home or show login modal
+            if (window.location.pathname !== '/') {
+                window.location.href = '/';
+            } else if (typeof openAuthModal === 'function') {
+                openAuthModal('login');
+            }
+            
+            // Close dropdown if open
+            if (isDropdownOpen) {
+                closeDropdown();
+            }
+            
+            // Dispatch custom event for other parts of the app
+            document.dispatchEvent(new CustomEvent('userLoggedOut'));
+            
+        } catch (error) {
+            console.error('Error during logout:', error);
+            // Fallback to page reload if something goes wrong
+            window.location.reload();
+        }
     }
 
-    // Handle My Tasks click
+    /**
+     * Handle My Tasks click
+     * @param {Event} e - The click event
+     */
     function handleMyTasks(e) {
-        e.preventDefault();
-        closeDropdown();
-        // Here you can implement the My Tasks functionality
-        console.log('My Tasks clicked');
-        // For example, filter tasks or navigate to a tasks page
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        try {
+            // Close dropdown
+            closeDropdown();
+            
+            // Add your My Tasks functionality here
+            console.log('My Tasks clicked');
+            
+            // Example: Scroll to tasks section if it exists
+            const tasksSection = document.getElementById('tasks');
+            if (tasksSection) {
+                tasksSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Or dispatch a custom event that other parts of your app can listen for
+            document.dispatchEvent(new CustomEvent('myTasksClicked'));
+            
+        } catch (error) {
+            console.error('Error in handleMyTasks:', error);
+        }
     }
 
-    // Initialize event listeners
+    /**
+     * Initialize event listeners
+     */
     function initEventListeners() {
+        // Avatar click/touch events
         if (userAvatar) {
+            // Mouse/touch events
             userAvatar.addEventListener('click', toggleDropdown);
-            userAvatar.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
+            userAvatar.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                userAvatar.classList.add('active');
+            }, { passive: true });
+            
+            userAvatar.addEventListener('touchend', (e) => {
+                const touchEndY = e.changedTouches[0].clientY;
+                // Only toggle if it's a tap (not a swipe)
+                if (Math.abs(touchEndY - touchStartY) < 10) {
                     toggleDropdown(e);
                 }
+                userAvatar.classList.remove('active');
+            }, { passive: true });
+            
+            // Keyboard navigation
+            userAvatar.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    toggleDropdown(e);
+                } else if (e.key === 'ArrowDown' && !isDropdownOpen) {
+                    e.preventDefault();
+                    openDropdown();
+                }
             });
         }
         
-        if (dropdownBackdrop) {
-            dropdownBackdrop.addEventListener('click', closeDropdown);
+        // Logout button
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
+            logoutBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleLogout();
+                }
+            });
         }
         
+        // My Tasks button
         if (myTasksBtn) {
             myTasksBtn.addEventListener('click', handleMyTasks);
-        }
-        
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                handleLogout();
+            myTasksBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleMyTasks(e);
+                }
             });
         }
         
-        // Close dropdown when clicking outside
-        document.addEventListener('click', handleClickOutside);
-        
-        // Handle keyboard navigation
-        document.addEventListener('keydown', handleKeyDown);
-        
-        // Handle window resize
+        // Handle window resize for responsive behavior
         let resizeTimer;
-        window.addEventListener('resize', () => {
+        const handleResize = () => {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
-                if (dropdownMenu.classList.contains('show')) {
-                    openDropdown(); // Reposition on resize
+                isMobile = window.innerWidth <= 768;
+                if (isDropdownOpen) {
+                    closeDropdown();
+                    if (dropdownMenu.classList.contains('show')) {
+                        openDropdown(); // Reposition on resize
+                    }
                 }
             }, 250);
-        });
-    }
-
-    // Initialize
-    function init() {
-        checkAuth();
-        initEventListeners();
+        };
+        
+        window.addEventListener('resize', handleResize, { passive: true });
+        
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            if (isDropdownOpen) {
+                closeDropdown();
+            }
+        }, { passive: true });
     }
 
     // Start the script
