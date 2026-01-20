@@ -53,7 +53,7 @@ export function updateUserAvatar(user) {
  * @param {HTMLElement} dropdown - The dropdown menu element
  * @param {HTMLElement} backdrop - The backdrop element
  */
-function toggleDropdown(dropdown, backdrop) {
+export function toggleDropdown(dropdown, backdrop) {
     const isOpen = dropdown.classList.contains('show');
     
     if (isOpen) {
