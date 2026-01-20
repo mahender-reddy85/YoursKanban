@@ -1442,16 +1442,34 @@ function openAuthModal(type = 'login') {
                 
                 try {
                     if (type === 'login') {
-                        await authAPI.login(data.email, data.password);
-                        showToast('Logged in successfully', 'success');
+                        const response = await authAPI.login(data.email, data.password);
+                        if (response.token) {
+                            localStorage.setItem('token', response.token);
+                            const user = await authAPI.getCurrentUser();
+                            updateUserAvatar(user);
+                            closeModal();
+                            showToast('Login successful!', 'success');
+                            // Reload the page to ensure all UI is properly updated
+                            window.location.reload();
+                        }
                     } else {
                         await authAPI.register(data);
-                        showToast('Account created successfully', 'success');
+                        showToast('Account created successfully! Please log in.', 'success');
+                        // Switch to login form after successful registration
+                        closeModal('authModal');
+                        setTimeout(() => openAuthModal('login'), 500);
                     }
-                    closeModal('authModal');
-                    location.reload();
                 } catch (error) {
-                    showToast(error.message || 'Authentication failed', 'error');
+                    console.error('Auth error:', error);
+                    const errorMessage = error.message || 'Authentication failed. Please try again.';
+                    showToast(errorMessage, 'error');
+                    
+                    // Highlight the email field in red if it's an email-related error
+                    const emailInput = document.querySelector('#authModal input[type="email"]');
+                    if (emailInput && (errorMessage.includes('email') || errorMessage.includes('Email'))) {
+                        emailInput.style.borderColor = '#ff4444';
+                        emailInput.focus();
+                    }
                 }
             };
         }
