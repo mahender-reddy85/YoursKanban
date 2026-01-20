@@ -41,6 +41,13 @@ const allowedOrigins = [
 ];
 
 // Middleware
+// Add db to request object first
+app.use((req, res, next) => {
+  req.db = pool;
+  next();
+});
+
+// Then add other middleware
 app.use(helmet());
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -57,12 +64,6 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(morgan('dev'));
-
-// Add db to request object
-app.use((req, res, next) => {
-  req.db = pool;
-  next();
-});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
