@@ -35,45 +35,59 @@ const withAuth = async (req, res, next) => {
 
 // Get all tasks (works for both authenticated and unauthenticated users)
 const getTasks = async (req, res) => {
+  console.log('getTasks called, user:', req.user ? `authenticated (${req.user.id})` : 'unauthenticated');
+  
+  if (!req.user) {
+    // For unauthenticated users, return an empty array
+    console.log('Returning empty array for unauthenticated user');
+    return res.status(200).json([]);
+  }
+  
   try {
-    console.log('getTasks called, user:', req.user ? 'authenticated' : 'unauthenticated');
+    console.log('Database pool state:', {
+      totalCount: req.db.totalCount,
+      idleCount: req.db.idleCount,
+      waitingCount: req.db.waitingCount
+    });
     
-    if (!req.user) {
-      // For unauthenticated users, return an empty array
-      console.log('Returning empty array for unauthenticated user');
-      return res.status(200).json([]);
+    // First, verify the user exists
+    const userCheck = await req.db.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
+    if (userCheck.rows.length === 0) {
+      console.error('User not found in database:', req.user.id);
+      return res.status(404).json({ message: 'User not found' });
     }
     
-    try {
-      console.log('Querying tasks for user:', req.user.id);
-      const { rows } = await req.db.query(
-        `SELECT t.*, 
-                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
-                (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.is_done = true) as completed_subtasks
-         FROM tasks t 
-         WHERE t.user_id = $1 
-         ORDER BY t.order_index, t.created_at DESC`,
-        [req.user.id]
-      );
-      console.log(`Found ${rows.length} tasks for user ${req.user.id}`);
-      return res.status(200).json(rows);
-    } catch (dbError) {
-      console.error('Database query error in getTasks:', {
-        error: dbError.message,
-        query: 'SELECT * FROM tasks WHERE user_id = $1',
-        userId: req.user.id,
-        stack: dbError.stack
-      });
-      return res.status(500).json({ 
-        message: 'Database error while fetching tasks',
-        error: process.env.NODE_ENV === 'development' ? dbError.message : undefined
-      });
-    }
-  } catch (error) {
-    console.error('Unexpected error in getTasks:', {
-      error: error.message,
-      stack: error.stack,
-      user: req.user || 'no user'
+    console.log('Querying tasks for user:', req.user.id);
+    const queryText = `
+      SELECT t.*, 
+             (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
+             (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.is_done = true) as completed_subtasks
+      FROM tasks t 
+      WHERE t.user_id = $1 
+      ORDER BY t.order_index, t.created_at DESC`;
+    
+    console.log('Executing query:', queryText);
+    const result = await req.db.query(queryText, [req.user.id]);
+    
+    console.log(`Found ${result.rows.length} tasks for user ${req.user.id}`);
+    return res.status(200).json(result.rows);
+    
+  } catch (dbError) {
+    console.error('Database error in getTasks:', {
+      error: dbError.message,
+      code: dbError.code,
+      detail: dbError.detail,
+      hint: dbError.hint,
+      query: dbError.query,
+      position: dbError.position,
+      stack: dbError.stack
+    });
+    return res.status(500).json({ 
+      message: 'Database error while fetching tasks',
+      error: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+    });
+  }
+}
     });
     res.status(500).json({ 
       message: 'Internal server error while fetching tasks',
