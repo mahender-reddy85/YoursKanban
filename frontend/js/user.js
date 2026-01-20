@@ -1,4 +1,5 @@
 // User-related functionality
+import { authAPI } from './api.js';
 
 /**
  * Updates the user avatar in the UI
