@@ -101,7 +101,15 @@ const createTask = async (req, res) => {
   console.log('createTask called with body:', JSON.stringify(req.body, null, 2));
   
   try {
-    const { title, description, status, priority, due_date, order_index, is_pinned } = req.body;
+    // Log request details for debugging
+    console.log('Request user:', req.user);
+    console.log('Database pool state:', {
+      totalCount: req.db.totalCount,
+      idleCount: req.db.idleCount,
+      waitingCount: req.db.waitingCount
+    });
+    
+    const { title, description, status, priority, due_date, order_index = 0, is_pinned = false } = req.body;
     
     // Validate required fields with more detailed error messages
     if (!title) return res.status(400).json({ message: 'Title is required' });
@@ -112,6 +120,18 @@ const createTask = async (req, res) => {
     if (!req.user || !req.user.id) {
       console.error('No user ID found in createTask');
       return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    // Verify user exists in database
+    try {
+      const userCheck = await req.db.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
+      if (userCheck.rows.length === 0) {
+        console.error('User not found in database:', req.user.id);
+        return res.status(404).json({ message: 'User not found' });
+      }
+    } catch (userCheckError) {
+      console.error('Error checking user existence:', userCheckError);
+      // Continue with task creation even if user check fails
     }
 
     console.log(`Creating task for user ${req.user.id}`, {
@@ -173,10 +193,21 @@ const createTask = async (req, res) => {
         ]
       };
 
-      const { rows } = await req.db.query(query);
+      console.log('Executing query:', query.text);
+      console.log('With values:', query.values);
       
-      console.log(`Successfully created task for user ${req.user.id}:`, rows[0].id);
-      return res.status(201).json(rows[0]);
+      const result = await req.db.query(query);
+      
+      if (!result.rows || result.rows.length === 0) {
+        console.error('No rows returned from INSERT query');
+        return res.status(500).json({ 
+          message: 'Failed to create task',
+          error: 'No data returned from database'
+        });
+      }
+      
+      console.log(`Successfully created task for user ${req.user.id}:`, result.rows[0].id);
+      return res.status(201).json(result.rows[0]);
       
     } catch (dbError) {
       console.error('Database error in createTask:', {
