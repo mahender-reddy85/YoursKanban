@@ -9,6 +9,7 @@
     display: flex;
     align-items: center;
     z-index: 1001;
+    height: 40px; /* Ensure consistent height */
 }
 
 .avatar-container {
@@ -33,30 +34,31 @@
 }
 
 .dropdown-menu {
-    position: fixed;
-    top: 60px;
-    right: 12px;
-    width: calc(100% - 24px);
-    max-width: 280px;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 280px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     padding: 0.5rem 0;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
+    transform: translateY(10px);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1000;
+    z-index: 1100; /* Higher than navbar */
     border: 1px solid var(--border-color);
     max-height: calc(100vh - 80px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    will-change: transform, opacity;
 }
 
 .dropdown-menu.show {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+    pointer-events: auto;
 }
 
 .user-info {
@@ -147,23 +149,49 @@ body.user-logged-in .user-menu {
 @media (max-width: 768px) {
     .user-menu {
         margin-left: 0.5rem;
+        position: static; /* Reset position for mobile */
     }
     
     .avatar-container {
-        width: 34px;
-        height: 34px;
-        font-size: 15px;
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
     }
     
     .dropdown-menu {
-        width: 92%;
-        max-width: 300px;
-        right: 4%;
-        left: auto;
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+        margin: 0;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .dropdown-menu.show {
+        transform: translateY(0);
     }
     
     .dropdown-item {
-        padding: 14px 16px;
+        padding: 16px 20px;
+        font-size: 15px;
+    }
+    
+    .user-info {
+        padding: 16px 20px;
+    }
+    
+    .user-name {
+        font-size: 16px;
+    }
+    
+    .user-email {
+        font-size: 14px;
     }
 }
 

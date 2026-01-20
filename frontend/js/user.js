@@ -1,10 +1,16 @@
 // User-related functionality
 import { authAPI } from './api.js';
 
-// Create backdrop element
-const dropdownBackdrop = document.createElement('div');
-dropdownBackdrop.className = 'dropdown-backdrop';
-document.body.appendChild(dropdownBackdrop);
+// Create backdrop element if it doesn't exist
+let dropdownBackdrop = document.querySelector('.dropdown-backdrop');
+if (!dropdownBackdrop) {
+    dropdownBackdrop = document.createElement('div');
+    dropdownBackdrop.className = 'dropdown-backdrop';
+    document.body.appendChild(dropdownBackdrop);
+}
+
+// Check if device is mobile
+const isMobile = () => window.innerWidth <= 768;
 
 /**
  * Updates the user avatar in the UI
@@ -51,9 +57,7 @@ function toggleDropdown(dropdown, backdrop) {
     const isOpen = dropdown.classList.contains('show');
     
     if (isOpen) {
-        dropdown.classList.remove('show');
-        backdrop.classList.remove('show');
-        document.body.classList.remove('dropdown-open');
+        closeDropdown(dropdown, backdrop);
     } else {
         // Close any other open dropdowns
         document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
@@ -62,12 +66,60 @@ function toggleDropdown(dropdown, backdrop) {
             }
         });
         
-        dropdown.classList.add('show');
-        backdrop.classList.add('show');
-        document.body.classList.add('dropdown-open');
-        
-        // Position the dropdown
-        positionDropdown(dropdown);
+        openDropdown(dropdown, backdrop);
+    }
+}
+
+/**
+ * Opens the dropdown menu
+ * @param {HTMLElement} dropdown - The dropdown menu element
+ * @param {HTMLElement} backdrop - The backdrop element
+ */
+function openDropdown(dropdown, backdrop) {
+    dropdown.classList.add('show');
+    backdrop.classList.add('show');
+    document.body.classList.add('dropdown-open');
+    
+    // Prevent body scrolling when dropdown is open on mobile
+    if (isMobile()) {
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Position the dropdown
+    positionDropdown(dropdown);
+    
+    // Add event listener to close on escape key
+    document.addEventListener('keydown', handleEscapeKey);
+}
+
+/**
+ * Closes the dropdown menu
+ * @param {HTMLElement} dropdown - The dropdown menu element
+ * @param {HTMLElement} backdrop - The backdrop element
+ */
+function closeDropdown(dropdown, backdrop) {
+    dropdown.classList.remove('show');
+    backdrop.classList.remove('show');
+    document.body.classList.remove('dropdown-open');
+    
+    // Re-enable body scrolling
+    document.body.style.overflow = '';
+    
+    // Remove event listener
+    document.removeEventListener('keydown', handleEscapeKey);
+}
+
+/**
+ * Handles the escape key press
+ * @param {KeyboardEvent} e - The keyboard event
+ */
+function handleEscapeKey(e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+        const dropdown = document.querySelector('.dropdown-menu.show');
+        const backdrop = document.querySelector('.dropdown-backdrop.show');
+        if (dropdown && backdrop) {
+            closeDropdown(dropdown, backdrop);
+        }
     }
 }
 
@@ -76,18 +128,53 @@ function toggleDropdown(dropdown, backdrop) {
  * @param {HTMLElement} dropdown - The dropdown menu element
  */
 function positionDropdown(dropdown) {
-    const rect = dropdown.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    
-    // If dropdown is going off the bottom of the screen
-    if (rect.bottom > viewportHeight) {
+    if (isMobile()) {
+        // For mobile, we use fixed positioning with bottom: 0
         dropdown.style.top = 'auto';
-        dropdown.style.bottom = '100%';
-        dropdown.style.marginBottom = '8px';
+        dropdown.style.bottom = '0';
+        dropdown.style.left = '0';
+        dropdown.style.right = '0';
+        dropdown.style.width = '100%';
+        dropdown.style.maxWidth = '100%';
+        dropdown.style.borderRadius = '16px 16px 0 0';
+        dropdown.style.transform = 'translateY(100%)';
+        
+        // Trigger reflow to ensure the transform is applied before showing
+        void dropdown.offsetHeight;
+        
+        // Add a small delay to ensure the transform is applied before showing
+        requestAnimationFrame(() => {
+            dropdown.style.transform = 'translateY(0)';
+        });
     } else {
-        dropdown.style.top = 'calc(100% + 8px)';
-        dropdown.style.bottom = 'auto';
-        dropdown.style.marginBottom = '0';
+        // For desktop, position below the avatar
+        const avatar = document.querySelector('.avatar-container');
+        if (avatar) {
+            const avatarRect = avatar.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const dropdownHeight = dropdown.offsetHeight;
+            
+            // Position below the avatar
+            dropdown.style.top = `${avatarRect.bottom + window.scrollY + 8}px`;
+            dropdown.style.right = `${window.innerWidth - (avatarRect.right + window.scrollX)}px`;
+            
+            // Check if dropdown would go off the bottom of the screen
+            if (avatarRect.bottom + dropdownHeight > viewportHeight) {
+                // Position above the avatar
+                dropdown.style.top = 'auto';
+                dropdown.style.bottom = `${viewportHeight - avatarRect.top + window.scrollY - 8}px`;
+            }
+            
+            // Ensure dropdown stays within viewport
+            const dropdownRect = dropdown.getBoundingClientRect();
+            if (dropdownRect.right > window.innerWidth) {
+                dropdown.style.right = '8px';
+            }
+            if (dropdownRect.left < 0) {
+                dropdown.style.left = '8px';
+                dropdown.style.right = 'auto';
+            }
+        }
     }
 }
 
@@ -159,14 +246,25 @@ export function initUserMenu() {
     
     // Handle window resize
     let resizeTimer;
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
             if (dropdownMenu.classList.contains('show')) {
                 positionDropdown(dropdownMenu);
             }
-        }, 250);
-    });
+        }, 100);
+    };
+    
+    // Use both resize and orientationchange for better mobile support
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    // Cleanup event listeners when the component is destroyed
+    return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+        document.removeEventListener('keydown', handleEscapeKey);
+    };
 }
 
 // Check if user is logged in on page load
