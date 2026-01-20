@@ -455,6 +455,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     }
 
+    /**
+     * Initialize the user menu
+     */
+    function init() {
+        console.log('Initializing user menu...');
+        
+        // Check authentication status
+        const isAuthenticated = checkAuth();
+        
+        // Initialize event listeners
+        initEventListeners();
+        
+        // Log successful initialization
+        console.log('User menu initialized');
+        
+        return isAuthenticated;
+    }
+
     // Start the script
     init();
 });
