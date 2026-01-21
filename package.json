@@ -3,19 +3,14 @@
   "version": "1.0.0",
   "description": "A Trello-style Kanban board application",
   "type": "module",
-  "main": "api/index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "vercel": "vercel dev",
+    "dev": "NODE_ENV=development nodemon server.js",
+    "build": "cd frontend && npm install && npm run build",
     "vercel-build": "npm install && npm run build",
-    "prebuild:css": "mkdir -p frontend/dist",
-    "build:css": "postcss frontend/YoursKanban.css -o frontend/dist/styles.min.css",
-    "build:js": "terser frontend/YoursKanban.js -o frontend/dist/script.min.js -c -m",
-    "build": "npm run build:css && npm run build:js",
-    "watch:css": "postcss frontend/YoursKanban.css -o frontend/dist/styles.min.css --watch",
-    "watch:js": "terser frontend/YoursKanban.js -o frontend/dist/script.min.js -c -m --watch",
-    "dev:all": "concurrently \"npm run dev\" \"npm run watch:css\" \"npm run watch:js\""
+    "lint": "eslint .",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["kanban", "trello", "task-management", "productivity"],
   "author": "",
@@ -37,6 +32,7 @@
     "autoprefixer": "^10.4.14",
     "concurrently": "^8.0.1",
     "cssnano": "^6.0.0",
+    "eslint": "^8.0.0",
     "nodemon": "^2.0.20",
     "postcss": "^8.4.21",
     "postcss-cli": "^10.1.0",
@@ -47,6 +43,8 @@
     "node": ">=14.0.0"
   },
   "browserslist": [
-    "defaults"
+    "defaults",
+    "not IE 11",
+    "maintained node versions"
   ]
 }
