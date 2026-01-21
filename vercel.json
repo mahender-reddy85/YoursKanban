@@ -2,50 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/ping.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/auth/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/tasks.js",
+      "src": "server.js",
       "use": "@vercel/node"
     },
     {
       "src": "frontend/**/*",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "js/**/*.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "YoursKanban.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "YoursKanban.css",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "/api/auth/$1"
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",
@@ -53,16 +21,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*)",
       "dest": "/frontend/index.html"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  ]
 }
