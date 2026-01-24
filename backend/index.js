@@ -161,7 +161,10 @@ app.get('/api/health', async (req, res) => {
 // API Routes
 app.use('/api/auth/register', registerHandler);
 app.use('/api/auth/login', loginHandler);
-app.use('/api/auth/me', meHandler);
+
+// User profile endpoints (protected)
+app.get('/api/me', protect, meHandler);
+app.get('/api/auth/me', protect, meHandler);
 
 // Task routes (protected)
 app.use('/api/tasks', protect, tasksHandler);
