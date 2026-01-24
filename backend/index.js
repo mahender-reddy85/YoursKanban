@@ -22,44 +22,40 @@ const { protect } = require('./lib/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configure CORS options
-const corsOptions = {
-  origin: function (origin, callback) {
-    // In development, allow all origins for easier testing
-    if (process.env.NODE_ENV !== 'production') {
+// Apply CORS middleware with improved origin handling
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost in development
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
       return callback(null, true);
     }
 
-    // In production, only allow specific origins
-    const allowedOrigins = [
-      'https://yourskanban.vercel.app',
-      'https://yourskanban.onrender.com',
-      'http://localhost:3000' // For local development
-    ];
-    
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.some(allowedOrigin => origin === allowedOrigin)) {
+    // Allow Vercel deployments
+    if (origin.includes('vercel.app')) {
       return callback(null, true);
     }
-    
+
+    // Allow the main production domain
+    if (origin === 'https://yourskanban.vercel.app') {
+      return callback(null, true);
+    }
+
     console.log('CORS blocked for origin:', origin);
-    return callback(new Error('Not allowed by CORS'), false);
+    callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Content-Length', 'Accept'],
-  credentials: true, // Allow credentials (cookies, authorization headers)
+  credentials: true,
   preflightContinue: false,
-  optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  optionsSuccessStatus: 200,
   maxAge: 86400 // 24 hours
-};
-
-// Apply CORS middleware before any routes
-app.use(cors(corsOptions));
+}));
 
 // Handle preflight requests
-app.options('*', cors(corsOptions));
+app.options('*', cors());
 
 // Add CORS headers to all responses
 app.use((req, res, next) => {
