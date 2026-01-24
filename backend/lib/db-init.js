@@ -11,41 +11,47 @@ async function initializeDatabase() {
   try {
     console.log('Initializing database with safe SQL...');
     
-    // Execute the safe initialization SQL
+    // Add user_id column safely
     await pool.query(`
-    DO $$
-    BEGIN
-    -- Add user_id column safely
-    IF NOT EXISTS (
-      SELECT 1 FROM information_schema.columns 
-      WHERE table_name='tasks' AND column_name='user_id'
-    ) THEN
-      ALTER TABLE tasks ADD COLUMN user_id TEXT;
-    END IF;
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name='tasks' AND column_name='user_id'
+        ) THEN
+          ALTER TABLE tasks ADD COLUMN user_id TEXT;
+        END IF;
+      END $$;
+    `);
 
-    -- Index safely
-    CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+    // Create index safely
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id)');
 
-    -- updated_at trigger function
-    CREATE OR REPLACE FUNCTION update_updated_at_column()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      NEW.updated_at = NOW();
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
+    // Create or replace the update function
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    `);
 
-    -- Trigger safely
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_trigger WHERE tgname = 'update_tasks_updated_at'
-    ) THEN
-      CREATE TRIGGER update_tasks_updated_at
-      BEFORE UPDATE ON tasks
-      FOR EACH ROW
-      EXECUTE FUNCTION update_updated_at_column();
-    END IF;
-
-    END $$;
+    // Create trigger safely using DO block
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger 
+          WHERE tgname = 'update_tasks_updated_at'
+        ) THEN
+          CREATE TRIGGER update_tasks_updated_at
+          BEFORE UPDATE ON tasks
+          FOR EACH ROW
+          EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END $$;
     `);
     
     console.log('✅ Database initialized successfully with safe SQL');
