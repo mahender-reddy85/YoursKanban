@@ -30,12 +30,20 @@ module.exports = async (req, res) => {
     // Generate token
     const token = generateToken(user.id);
 
+    // Set HTTP-only cookie with the token
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Use secure in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      path: '/'
+    });
+
     // Don't send password hash back
     const { password_hash, ...userWithoutPassword } = user;
 
     res.status(200).json({
       message: 'Login successful',
-      token,
       user: userWithoutPassword
     });
   } catch (error) {

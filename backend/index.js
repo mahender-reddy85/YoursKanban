@@ -33,7 +33,8 @@ const corsOptions = {
     // In production, only allow specific origins
     const allowedOrigins = [
       'https://yourskanban.vercel.app',
-      'https://yourskanban.onrender.com'
+      'https://yourskanban.onrender.com',
+      'http://localhost:3000' // For local development
     ];
     
     // Allow requests with no origin (like mobile apps, curl, etc.)
@@ -48,7 +49,8 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Content-Length', 'Accept'],
-  credentials: true,
+  credentials: true, // Allow credentials (cookies, authorization headers)
+  preflightContinue: false,
   optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
   maxAge: 86400 // 24 hours
 };

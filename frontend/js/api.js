@@ -22,17 +22,11 @@ async function request(endpoint, options = {}) {
         ...options.headers
     };
 
-    // Add auth token if available
-    const token = localStorage.getItem('token');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
     // Prepare fetch config
     const config = {
         ...options,
         headers,
-        credentials: 'include', // Important for cookies, authorization headers with HTTPS
+        credentials: 'include', // Send/receive cookies
         mode: 'cors', // Enable CORS mode
         cache: 'no-cache', // Disable caching for API requests
     };
@@ -87,11 +81,16 @@ async function handleResponse(response) {
 }
 
 /**
- * Checks if user is logged in
- * @returns {boolean} - True if user is logged in
+ * Checks if user is logged in by verifying the session
+ * @returns {Promise<boolean>} - Resolves to true if user is authenticated
  */
-function isLoggedIn() {
-    return !!localStorage.getItem('token');
+async function isLoggedIn() {
+    try {
+        await request('/me');
+        return true;
+    } catch (error) {
+        return false;
+    }
 }
 
 // Task-related API calls
@@ -212,8 +211,7 @@ const authAPI = {
                 body: JSON.stringify({ email, password })
             });
             
-            if (response.token) {
-                localStorage.setItem('token', response.token);
+            if (response.user) {
                 // Check if there are guest tasks to sync
                 const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
                 if (guestTasks.length > 0) {
@@ -223,9 +221,9 @@ const authAPI = {
                         console.error('Failed to sync guest tasks:', syncError);
                     }
                 }
-                return response.user || {};
+                return response.user;
             }
-            throw new Error('No token received from server');
+            throw new Error('No user data received from server');
         } catch (error) {
             console.error('Login error:', error);
             throw new Error(error.message || 'Login failed. Please check your credentials.');
