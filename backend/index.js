@@ -25,26 +25,26 @@ const PORT = process.env.PORT || 3000;
 // Apply CORS middleware with improved origin handling
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-
-    // Allow localhost in development
-    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+    // Allow all origins in development
+    if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
 
-    // Allow Vercel deployments (both production and previews)
+    // Allow all Vercel preview and production domains
     if (
-      origin.endsWith('.vercel.app') || 
-      origin.includes('yourskanban-') || 
+      !origin || // Allow requests with no origin (like mobile apps, curl, etc.)
+      origin.endsWith('.vercel.app') ||
+      origin.includes('vercel.app') ||
+      origin.includes('yourskanban-') ||
       origin === 'https://yourskanban.vercel.app' ||
-      origin.includes('likki-mahender-reddys-projects')
+      origin.includes('likki-mahender-reddys-projects') ||
+      origin.includes('localhost') // For local development
     ) {
       return callback(null, true);
     }
 
     console.log('CORS blocked for origin:', origin);
-    callback(new Error('Not allowed by CORS'));
+    callback(null, false); // Don't throw error, just don't allow the origin
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Content-Length', 'Accept'],
@@ -86,6 +86,8 @@ app.use((req, res, next) => {
 });
 
 // Initialize database and start server
+let server;
+
 async function startServer() {
   try {
     // Test database connection
@@ -108,9 +110,12 @@ async function startServer() {
     }
     
     // Start the server
-    const server = app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      
+      // Set up error handlers after server starts successfully
+      setupErrorHandlers(server);
     });
     
     // Handle server errors
@@ -132,10 +137,47 @@ async function startServer() {
       }
     });
     
+    return server;
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
+}
+
+// Set up error handlers
+function setupErrorHandlers(server) {
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err);
+    if (server) {
+      server.close(() => process.exit(1));
+    } else {
+      process.exit(1);
+    }
+  });
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    if (server) {
+      server.close(() => process.exit(1));
+    } else {
+      process.exit(1);
+    }
+  });
+
+  // Handle SIGTERM
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Shutting down gracefully');
+    if (server) {
+      server.close(() => {
+        console.log('Process terminated');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  });
 }
 
 // Other middleware
@@ -198,27 +240,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start the server
-startServer();
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  server.close(() => process.exit(1));
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  server.close(() => process.exit(1));
-});
-
-// Handle SIGTERM
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
+// Start the server and handle any startup errors
+startServer().catch(error => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });
 
 module.exports = { app, server };
