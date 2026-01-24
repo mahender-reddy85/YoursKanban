@@ -33,13 +33,8 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Allow Vercel deployments
-    if (origin.includes('vercel.app')) {
-      return callback(null, true);
-    }
-
-    // Allow the main production domain
-    if (origin === 'https://yourskanban.vercel.app') {
+    // Allow Vercel deployments (both production and previews)
+    if (origin.includes('vercel.app') || origin.includes('yourskanban-') || origin === 'https://yourskanban.vercel.app') {
       return callback(null, true);
     }
 
@@ -73,28 +68,36 @@ app.use(express.json());
 // Database connection and initialization
 const { initializeDatabase } = require('./lib/db-init');
 
-// Create database pool
+// Create database connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Add database to request object
+// Make pool available in request objects
 app.use((req, res, next) => {
   req.db = pool;
   next();
 });
 
-// Create HTTP server
-const server = createServer(app);
-
-// Start the server with database initialization
+// Initialize database and start server
 async function startServer() {
   try {
+    // Test database connection
+    try {
+      await pool.query('SELECT NOW()');
+      console.log('✅ Database connection successful');
+    } catch (error) {
+      console.error('❌ Database connection failed:', error);
+      throw error;
+    }
+
+    // Initialize database schema
     console.log('Initializing database...');
-    await initializeDatabase();
+    await initializeDatabase(pool);
     
-    server.listen(PORT, () => {
+    // Start the server
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
