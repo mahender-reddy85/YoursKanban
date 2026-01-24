@@ -92,7 +92,7 @@ const getTasks = async (req, res) => {
     const userId = req.user.id;
     
     try {
-      const result = await req.db.query(queryText, [userId]);
+      const result = await req.db.query(queryText, [user_id]);
       return result;
     } catch (queryError) {
       console.error('Database query error details:', {
