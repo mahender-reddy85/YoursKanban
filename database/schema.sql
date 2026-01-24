@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS subtasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     is_done BOOLEAN DEFAULT false,
     order_index INTEGER NOT NULL,
@@ -40,7 +39,6 @@ CREATE TABLE IF NOT EXISTS subtasks (
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON subtasks(task_id);
-CREATE INDEX IF NOT EXISTS idx_subtasks_user_id ON subtasks(user_id);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
