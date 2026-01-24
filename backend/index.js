@@ -25,25 +25,29 @@ const PORT = process.env.PORT || 3000;
 // Apply CORS middleware with improved origin handling
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow all origins in development
-    if (process.env.NODE_ENV !== 'production') {
+    // Allow all origins in development and for testing
+    if (process.env.NODE_ENV !== 'production' || process.env.NODE_ENV === 'test') {
+      console.log(`Allowing origin in ${process.env.NODE_ENV || 'development'} mode:`, origin);
       return callback(null, true);
     }
 
     // Allow all Vercel preview and production domains
-    if (
-      !origin || // Allow requests with no origin (like mobile apps, curl, etc.)
-      origin.endsWith('.vercel.app') ||
-      origin.includes('vercel.app') ||
-      origin.includes('yourskanban-') ||
-      origin === 'https://yourskanban.vercel.app' ||
-      origin.includes('likki-mahender-reddys-projects') ||
-      origin.includes('localhost') // For local development
-    ) {
+    const allowedOrigins = [
+      /^https?:\/\/yourskanban(-[a-z0-9]+)?\.vercel\.app$/,
+      /^https?:\/\/yourskanban\.vercel\.app$/,
+      /^https?:\/\/localhost(:[0-9]+)?$/,
+      /^https?:\/\/.*\.vercel\.app$/,
+      /^https?:\/\/.*yourskanban.*\.vercel\.app$/,
+      /^https?:\/\/.*-likki-mahender-reddys-projects\.vercel\.app$/
+    ];
+
+    // Check if the origin matches any of the allowed patterns
+    if (!origin || allowedOrigins.some(pattern => pattern.test(origin))) {
       return callback(null, true);
     }
 
     console.log('CORS blocked for origin:', origin);
+    console.log('Allowed origins pattern:', allowedOrigins.map(p => p.toString()));
     callback(null, false); // Don't throw error, just don't allow the origin
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -60,10 +64,20 @@ app.options('*', cors());
 // Add CORS headers to all responses
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  
+  // Set CORS headers
   if (origin) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
   }
+  
   next();
 });
 
