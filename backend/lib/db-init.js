@@ -27,20 +27,20 @@ async function initializeDatabase() {
     // Create index safely
     await pool.query('CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id)');
 
-    // Create or replace the update function
+    // 1. Create or replace the update function
     await pool.query(`
       CREATE OR REPLACE FUNCTION update_updated_at_column()
-      RETURNS TRIGGER AS $$
+      RETURNS TRIGGER AS $func$
       BEGIN
         NEW.updated_at = NOW();
         RETURN NEW;
       END;
-      $$ LANGUAGE plpgsql;
+      $func$ LANGUAGE plpgsql;
     `);
 
-    // Create trigger safely using DO block
+    // 2. Create trigger safely using DO block
     await pool.query(`
-      DO $$
+      DO $block$
       BEGIN
         IF NOT EXISTS (
           SELECT 1 FROM pg_trigger 
@@ -51,7 +51,8 @@ async function initializeDatabase() {
           FOR EACH ROW
           EXECUTE FUNCTION update_updated_at_column();
         END IF;
-      END $$;
+      END
+      $block$;
     `);
     
     console.log('✅ Database initialized successfully with safe SQL');
