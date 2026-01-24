@@ -87,53 +87,47 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize database and start server
+// Create HTTP server
+const server = createServer(app);
+
+// Start the server with database initialization
 async function startServer() {
   try {
-    console.log('Testing database connection...');
-    
-    // Test the connection
-    await pool.query('SELECT NOW()');
-    console.log('✅ Successfully connected to the database');
-    
-    // Initialize database schema
+    console.log('Initializing database...');
     await initializeDatabase();
     
-    // Start the server
-    const server = app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`CORS enabled for origins: ${corsOptions.origin.toString()}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
     
     // Handle server errors
     server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use`);
-      } else {
-        console.error('Server error:', error);
+      if (error.syscall !== 'listen') {
+        throw error;
       }
-      process.exit(1);
+
+      // Handle specific listen errors with friendly messages
+      switch (error.code) {
+        case 'EACCES':
+          console.error(`Port ${PORT} requires elevated privileges`);
+          process.exit(1);
+        case 'EADDRINUSE':
+          console.error(`Port ${PORT} is already in use`);
+          process.exit(1);
+        default:
+          throw error;
+      }
     });
     
   } catch (error) {
-    console.error('❌ Failed to start server:');
-    console.error(error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
 
-// Start the server
-startServer();
-
-// Add db to request object
-app.use((req, res, next) => {
-  req.db = pool;
-  next();
-});
-
 // Other middleware
 app.use(helmet());
-app.use(express.json());
 app.use(morgan('dev'));
 
 // Health check endpoint with database connectivity check
@@ -175,7 +169,7 @@ app.use('/api/auth/me', meHandler);
 app.use('/api/tasks', protect, tasksHandler);
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ message: 'Not Found' });
 });
 
@@ -189,14 +183,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Create HTTP server
-const server = createServer(app);
-
-// Start server
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// Start the server
+startServer();
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
