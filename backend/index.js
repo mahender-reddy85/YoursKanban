@@ -22,38 +22,52 @@ const { protect } = require('./lib/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configure CORS with more options
+// Configure CORS options
 const corsOptions = {
   origin: function (origin, callback) {
+    // In development, allow all origins for easier testing
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    // In production, only allow specific origins
     const allowedOrigins = [
       'https://yourskanban.vercel.app',
-      'http://localhost:3000',
-      'http://localhost:3001',
       'https://yourskanban.onrender.com'
     ];
     
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      console.log('CORS blocked for origin:', origin);
-      return callback(new Error(msg), false);
+    if (allowedOrigins.some(allowedOrigin => origin === allowedOrigin)) {
+      return callback(null, true);
     }
     
-    return callback(null, true);
+    console.log('CORS blocked for origin:', origin);
+    return callback(new Error('Not allowed by CORS'), false);
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Content-Length', 'Accept'],
   credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
   maxAge: 86400 // 24 hours
 };
 
 // Apply CORS middleware before any routes
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable preflight for all routes
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
+// Add CORS headers to all responses
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
 
 // Parse JSON bodies
 app.use(express.json());

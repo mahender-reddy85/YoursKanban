@@ -6,9 +6,19 @@
  * @param {Object} options - Fetch options
  * @returns {Promise<any>} - Response data
  */
+/**
+ * Makes an authenticated API request
+ * @param {string} endpoint - API endpoint
+ * @param {Object} options - Fetch options
+ * @returns {Promise<any>} - Response data
+ */
 async function request(endpoint, options = {}) {
+    const API_BASE = "https://yourskanban.onrender.com/api";
+    
+    // Set default headers
     const headers = {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...options.headers
     };
 
@@ -18,21 +28,35 @@ async function request(endpoint, options = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Prepare fetch config
     const config = {
         ...options,
-        headers
+        headers,
+        credentials: 'include', // Important for cookies, authorization headers with HTTPS
+        mode: 'cors', // Enable CORS mode
+        cache: 'no-cache', // Disable caching for API requests
     };
 
     try {
-        // Hardcoded base URL with debug logging
-        const API_BASE = "https://yourskanban.onrender.com/api";
-        console.log("API_BASE:", JSON.stringify(API_BASE));
+        console.log(`API Request: ${endpoint}`, { method: config.method || 'GET' });
         
         const response = await fetch(`${API_BASE}${endpoint}`, config);
+        
+        // Log response details for debugging
+        console.log(`API Response (${endpoint}):`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+        });
+        
         return await handleResponse(response);
     } catch (error) {
-        console.error('API request failed:', error);
-        throw error;
+        console.error('API request failed:', {
+            endpoint,
+            error: error.message,
+            stack: error.stack
+        });
+        throw new Error(error.message || 'Network request failed');
     }
 }
 
