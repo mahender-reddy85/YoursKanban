@@ -34,7 +34,12 @@ app.use(cors({
     }
 
     // Allow Vercel deployments (both production and previews)
-    if (origin.includes('vercel.app') || origin.includes('yourskanban-') || origin === 'https://yourskanban.vercel.app') {
+    if (
+      origin.endsWith('.vercel.app') || 
+      origin.includes('yourskanban-') || 
+      origin === 'https://yourskanban.vercel.app' ||
+      origin.includes('likki-mahender-reddys-projects')
+    ) {
       return callback(null, true);
     }
 
@@ -94,7 +99,13 @@ async function startServer() {
 
     // Initialize database schema
     console.log('Initializing database...');
-    await initializeDatabase(pool);
+    try {
+      await initializeDatabase(pool);
+      console.log('✅ Database schema initialized successfully');
+    } catch (error) {
+      console.error('❌ Database initialization failed:', error);
+      throw error;
+    }
     
     // Start the server
     const server = app.listen(PORT, () => {
