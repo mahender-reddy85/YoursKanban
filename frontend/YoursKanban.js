@@ -994,6 +994,15 @@ async function handleFormSubmit(e) {
     };
 
     try {
+        // Check if user is authenticated
+        const auth = getAuth();
+        if (!auth.currentUser) {
+            throw new Error('Please sign in to save tasks');
+        }
+
+        // Force token refresh before making the request
+        await auth.currentUser.getIdToken(true);
+        
         let updatedTask;
         if (existingTask) {
             // Update existing task
@@ -1020,7 +1029,19 @@ async function handleFormSubmit(e) {
         closeModal();
     } catch (error) {
         console.error('Error saving task:', error);
-        showToast(error.message || 'Failed to save task', 'error');
+        
+        // Handle specific authentication errors
+        if (error.message.includes('auth/network-request-failed')) {
+            showToast('Network error. Please check your connection.', 'error');
+        } else if (error.message.includes('auth/too-many-requests')) {
+            showToast('Too many requests. Please try again later.', 'error');
+        } else if (error.message.includes('auth/') || error.message.includes('token') || error.status === 401) {
+            // If we get an auth error, show login modal
+            showToast('Your session has expired. Please sign in again.', 'error');
+            openAuthModal('login');
+        } else {
+            showToast(error.message || 'Failed to save task', 'error');
+        }
     }
 }
 
