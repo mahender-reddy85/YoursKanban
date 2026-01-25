@@ -474,68 +474,159 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Handle logout action
+     * Handle logout action with custom confirmation dialog
      */
-    function handleLogout() {
-        // Show confirmation dialog
-        const confirmLogout = confirm('Are you sure you want to log out?');
-        if (!confirmLogout) return;
-        
-        // Sign out from Firebase if available
-        if (window.firebaseAuth) {
-            window.firebaseAuth.signOut().then(() => {
-                // Clear user data from localStorage
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
-                
-                // Close dropdown if open
-                if (isDropdownOpen) {
-                    closeDropdown();
-                }
-                
-                // Update UI
-                updateUserInfo({ name: 'Guest User', email: '' });
-                document.body.classList.remove('user-logged-in');
-                
-                // Show auth buttons
-                const authButtons = document.querySelector('.auth-buttons');
-                if (authButtons) {
-                    authButtons.style.display = 'flex';
-                    authButtons.setAttribute('aria-hidden', 'false');
-                }
-                
-                // Show success message
-                showToast('You have been logged out', 'success');
-                
-                // Redirect to home page
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1000);
-                
-            }).catch((error) => {
-                console.error('Logout error:', error);
-                showToast('Error logging out. Please try again.', 'error');
-            });
-        } else {
-            // Fallback if Firebase is not available
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            
-            // Update UI
-            updateUserInfo({ name: 'Guest User', email: '' });
-            document.body.classList.remove('user-logged-in');
-            
-            // Show auth buttons
-            const authButtons = document.querySelector('.auth-buttons');
-            if (authButtons) {
-                authButtons.style.display = 'flex';
-                authButtons.setAttribute('aria-hidden', 'false');
-            }
-            
-            // Show message and reload
-            showToast('You have been logged out', 'info');
-            setTimeout(() => window.location.reload(), 1000);
+    async function handleLogout(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
         }
+        
+        // Create confirmation dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'confirmation-dialog';
+        dialog.innerHTML = `
+            <div class="confirmation-content">
+                <p>Are you sure you want to log out?</p>
+                <div class="confirmation-buttons">
+                    <button id="confirmLogout" class="btn btn-danger">Logout</button>
+                    <button id="cancelLogout" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        // Add styles if not already added
+        if (!document.getElementById('confirmation-styles')) {
+            const style = document.createElement('style');
+            style.id = 'confirmation-styles';
+            style.textContent = `
+                .confirmation-dialog {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 2000;
+                    backdrop-filter: blur(2px);
+                }
+                .confirmation-content {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    max-width: 90%;
+                    width: 400px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    text-align: center;
+                }
+                .confirmation-content p {
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                    color: #333;
+                }
+                .confirmation-buttons {
+                    display: flex;
+                    gap: 12px;
+                    justify-content: center;
+                }
+                .confirmation-buttons button {
+                    padding: 8px 20px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: all 0.2s;
+                }
+                .confirmation-buttons button:hover {
+                    opacity: 0.9;
+                }
+                #confirmLogout {
+                    background-color: #dc3545;
+                    color: white;
+                }
+                #cancelLogout {
+                    background-color: #6c757d;
+                    color: white;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Show the dialog
+        document.body.appendChild(dialog);
+        document.body.style.overflow = 'hidden';
+
+        // Handle button clicks
+        return new Promise((resolve) => {
+            const confirmBtn = document.getElementById('confirmLogout');
+            const cancelBtn = document.getElementById('cancelLogout');
+
+            const cleanup = () => {
+                document.body.removeChild(dialog);
+                document.body.style.overflow = '';
+                document.removeEventListener('keydown', handleEscape);
+            };
+
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    resolve(false);
+                }
+            };
+
+            confirmBtn.onclick = async () => {
+                cleanup();
+                try {
+                    // Sign out from Firebase
+                    if (window.firebaseAuth) {
+                        await window.firebaseAuth.signOut();
+                        
+                        // Clear user data from localStorage
+                        localStorage.removeItem('user');
+                        localStorage.removeItem('token');
+                        
+                        // Update UI
+                        updateUserInfo({ name: 'Guest User', email: '' });
+                        document.body.classList.remove('user-logged-in');
+                        
+                        // Show auth buttons
+                        const authButtons = document.querySelector('.auth-buttons');
+                        if (authButtons) {
+                            authButtons.style.display = 'flex';
+                            authButtons.setAttribute('aria-hidden', 'false');
+                        }
+                        
+                        // Show success message
+                        showToast('You have been logged out', 'success');
+                        
+                        // Close dropdown if open
+                        if (isDropdownOpen) {
+                            closeDropdown();
+                        }
+                        
+                        // Redirect to home page after a short delay
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showToast('Error logging out. Please try again.', 'error');
+                }
+                resolve(true);
+            };
+
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            document.addEventListener('keydown', handleEscape);
+        });
     }
 
     /**
