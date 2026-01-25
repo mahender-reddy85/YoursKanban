@@ -248,12 +248,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const displayName = user.name || 'Guest User';
         const displayEmail = user.email || '';
-        const initials = displayName
-            .split(' ')
-            .map(n => n[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 2);
+        
+        // Determine what to show as initials
+        let initials = 'U'; // Default fallback
+        
+        if (displayName && displayName !== 'Guest User') {
+            // Use first letter of first name if name exists and is not 'Guest User'
+            initials = displayName.trim().charAt(0).toUpperCase();
+        } else if (displayEmail) {
+            // Otherwise use first letter of email
+            initials = displayEmail.trim().charAt(0).toUpperCase();
+        }
         
         // Update name
         if (userNameEl) {
@@ -273,6 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
         [avatarInitials, avatarInitialsLarge].forEach(el => {
             if (el) el.textContent = initials;
         });
+        
+        // Log for debugging
+        console.log('Updated user info:', { displayName, displayEmail, initials });
     }
 
     /**
