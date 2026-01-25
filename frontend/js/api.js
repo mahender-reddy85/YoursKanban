@@ -296,7 +296,7 @@ const authAPI = {
 };
 
 // Export the API objects
-export { tasksAPI, authAPI, isLoggedIn };
+export { tasksAPI, authAPI };
 
 // Make them available globally for backward compatibility
 if (typeof window !== 'undefined') {
