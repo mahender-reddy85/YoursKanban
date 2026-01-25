@@ -4,32 +4,19 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-aut
 const API_BASE = "https://yourskanban.onrender.com/api";
 
 /**
- * Get the current user's ID token
- * @returns {Promise<string|null>} - The ID token or null if not authenticated
+ * Get authentication headers with Firebase ID token
+ * @returns {Promise<Object>} - Headers object with Authorization if user is authenticated
  */
-async function getAuthToken() {
+async function getAuthHeader() {
+  const user = getAuth().currentUser;
+  if (!user) return {};
+  
   try {
-    const user = getAuth().currentUser;
-    if (!user) return null;
-    return await user.getIdToken();
+    const token = await user.getIdToken(true);
+    return { 'Authorization': `Bearer ${token}` };
   } catch (error) {
     console.error('Error getting auth token:', error);
-    return null;
-  }
-}
-
-/**
- * Get Firebase ID token for the current user
- * @returns {Promise<string|null>} - Firebase ID token or null if not authenticated
- */
-async function getFirebaseToken() {
-  try {
-    const user = getAuth().currentUser;
-    if (!user) return null;
-    return await user.getIdToken();
-  } catch (error) {
-    console.error('Error getting Firebase token:', error);
-    return null;
+    return {};
   }
 }
 
@@ -84,31 +71,17 @@ async function handleResponse(response) {
  */
 async function request(endpoint, options = {}) {
   try {
-    // Check if user is authenticated
-    const auth = getAuth();
-    if (!auth.currentUser) {
-      throw new Error('User not authenticated');
-    }
-
-    // Get the Firebase ID token for the request
-    const token = await getAuthToken();
+    // Get authentication headers with fresh token
+    const authHeaders = await getAuthHeader();
     
-    if (!token) {
-      throw new Error('Not authenticated. Please sign in.');
-    }
-    
-    // Set default headers
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers
-    };
-
     // Prepare fetch config
     const config = {
       ...options,
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+        ...(options.headers || {})
+      },
       credentials: 'include',
       mode: 'cors',
       cache: 'no-cache',
@@ -117,17 +90,23 @@ async function request(endpoint, options = {}) {
     // Make the request
     const response = await fetch(`${API_BASE}${endpoint}`, config);
     
-    // If unauthorized, try to refresh token once
+    // Handle 401 Unauthorized
     if (response.status === 401) {
-      // Force token refresh and try again
-      const newToken = await auth.currentUser.getIdToken(true);
-      if (newToken && newToken !== token) {
-        headers.Authorization = `Bearer ${newToken}`;
-        const retryResponse = await fetch(`${API_BASE}${endpoint}`, config);
-        return await handleResponse(retryResponse);
+      // Force token refresh and try one more time
+      const user = getAuth().currentUser;
+      if (user) {
+        try {
+          const newToken = await user.getIdToken(true);
+          if (newToken) {
+            config.headers.Authorization = `Bearer ${newToken}`;
+            const retryResponse = await fetch(`${API_BASE}${endpoint}`, config);
+            return await handleResponse(retryResponse);
+          }
+        } catch (error) {
+          console.error('Token refresh failed:', error);
+        }
       }
       
-      // If we get here, the token refresh didn't work
       throw new Error('Session expired. Please log in again.');
     }
     
