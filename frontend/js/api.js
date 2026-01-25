@@ -15,10 +15,14 @@
 async function request(endpoint, options = {}) {
     const API_BASE = "https://yourskanban.onrender.com/api";
     
+    // Get Clerk session token if available
+    const token = window.Clerk?.session?.getToken?.();
+    
     // Set default headers
     const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${await token}` }),
         ...options.headers
     };
 
@@ -83,28 +87,22 @@ async function handleResponse(response) {
  */
 async function isLoggedIn() {
     try {
-        const response = await fetch('https://yourskanban.onrender.com/api/me', {
-            method: 'GET',
-            credentials: 'include', // This is crucial for sending cookies
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
+        // Use the request wrapper which will include the Clerk token
+        const data = await request('/me');
         
-        if (response.ok) {
-            const user = await response.json();
-            if (user) {
-                // Store basic user info in localStorage for quick access
-                localStorage.setItem('user', JSON.stringify(user));
-                return true;
-            }
+        if (data && data.user) {
+            // Store basic user info in localStorage for quick access
+            localStorage.setItem('user', JSON.stringify(data.user));
+            return true;
         }
         
         // If we get here, the user is not authenticated
         localStorage.removeItem('user');
         return false;
     } catch (error) {
-        console.error('Error checking authentication status:', error);
+        if (error.message !== 'Not logged in.') {
+            console.error('Error checking authentication status:', error);
+        }
         return false;
     }
 }
