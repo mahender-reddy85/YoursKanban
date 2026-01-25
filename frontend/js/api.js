@@ -1,42 +1,64 @@
 // API Utility Functions
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const auth = getAuth();
 const API_BASE = "https://yourskanban.onrender.com/api";
 
-// Debug function to log token information
-async function debugToken() {
+// Track if we're currently refreshing the token
+let isRefreshing = false;
+let refreshPromise = null;
+
+/**
+ * Get the current user's ID token, with automatic refresh
+ * @returns {Promise<string|null>} - Fresh ID token or null if not authenticated
+ */
+async function getFirebaseToken() {
+  const user = auth.currentUser;
+  if (!user) {
+    console.log('🔴 No authenticated user');
+    return null;
+  }
+
+  // Check if we're already refreshing the token
+  if (isRefreshing) {
+    console.log('🔄 Token refresh in progress, waiting...');
+    return refreshPromise;
+  }
+
   try {
-    const user = auth.currentUser;
-    if (!user) {
-      console.log('No authenticated user');
-      return null;
-    }
-    const token = await user.getIdToken();
-    console.log('Current user UID:', user.uid);
-    console.log('ID Token (first 30 chars):', token.substring(0, 30) + '...');
-    console.log('Token length:', token.length);
-    return token;
+    isRefreshing = true;
+    refreshPromise = (async () => {
+      console.log('🔄 Getting fresh ID token...');
+      const token = await user.getIdToken(true); // Force refresh
+      console.log('✅ Got fresh token (first 30 chars):', token.substring(0, 30) + '...');
+      console.log('📏 Token length:', token.length);
+      return token;
+    })();
+
+    return await refreshPromise;
   } catch (error) {
-    console.error('Error getting token:', error);
+    console.error('❌ Error refreshing token:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
+  } finally {
+    isRefreshing = false;
+    refreshPromise = null;
   }
 }
 
-/**
- * Get Firebase ID token for the current user
- * @returns {Promise<string|null>} - Firebase ID token or null if not authenticated
- */
-async function getFirebaseToken() {
-  try {
-    const user = getAuth().currentUser;
-    if (!user) return null;
-    return await user.getIdToken(true);
-  } catch (error) {
-    console.error('Error getting Firebase token:', error);
-    return null;
+// Listen for auth state changes
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log('👤 Auth state changed - User signed in:', user.uid);
+    // Force token refresh when auth state changes
+    getFirebaseToken().catch(console.error);
+  } else {
+    console.log('👤 Auth state changed - No user signed in');
   }
-}
+});
 
 /**
  * Check if user is logged in using Firebase Auth
@@ -88,70 +110,151 @@ async function handleResponse(response) {
  * @returns {Promise<any>} - Response data
  */
 async function request(endpoint, options = {}) {
+  const requestId = Math.random().toString(36).substring(2, 8);
+  const startTime = Date.now();
+  
+  const log = (message, data) => {
+    console.log(`[${requestId}] ${message}`, data || '');
+  };
+  
+  const logError = (message, error) => {
+    console.error(`[${requestId}] ❌ ${message}`, {
+      error: error?.message || error,
+      code: error?.code,
+      stack: error?.stack
+    });
+  };
+  
   try {
+    log(`📡 Starting ${options.method || 'GET'} request to ${endpoint}`);
+    
+    // Get a fresh token for each request
     const token = await getFirebaseToken();
     
-    // Log request details
-    console.log(`\n--- New API Request ---`);
-    console.log(`Making ${options.method || 'GET'} request to ${endpoint}`);
-    
-    if (token) {
-      console.log('Using token (first 30 chars):', token.substring(0, 30) + '...');
-      console.log('Token length:', token.length);
-    } else if (!endpoint.includes('/public/')) {
-      console.log('No auth token available for protected endpoint');
-      throw new Error('Authentication required');
-    } else {
-      console.log('No auth token (public endpoint)');
+    if (!token && !endpoint.includes('/public/')) {
+      const error = new Error('Authentication required');
+      error.code = 'AUTH_REQUIRED';
+      throw error;
     }
     
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-        ...(options.headers || {})
-      }
+    // Prepare headers
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Request-ID': requestId,
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(options.headers || {})
+    };
+    
+    log('Request headers:', {
+      'Content-Type': headers['Content-Type'],
+      'Authorization': headers['Authorization'] ? 'Bearer [TOKEN]' : 'None',
+      'X-Request-ID': headers['X-Request-ID']
     });
     
-    // Handle 401 Unauthorized
+    // Make the request
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include' // Include cookies if needed
+    });
+    
+    const responseTime = Date.now() - startTime;
+    log(`↩️ Response received in ${responseTime}ms`, {
+      status: response.status,
+      statusText: response.statusText
+    });
+    
+    // Handle 401 Unauthorized with token refresh
     if (response.status === 401) {
-      // Try to refresh token once
+      log('🔄 Received 401, attempting token refresh...');
       const newToken = await getFirebaseToken();
-      if (newToken) {
+      
+      if (newToken && newToken !== token) {
+        log('🆕 Got new token, retrying request...');
         const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
           ...options,
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${newToken}`,
-            ...(options.headers || {})
+            ...headers,
+            'Authorization': `Bearer ${newToken}`
           }
         });
-        return await handleResponse(retryResponse);
+        return await handleResponse(retryResponse, requestId);
       }
-      throw new Error('Session expired. Please log in again.');
+      
+      const error = new Error('Session expired. Please log in again.');
+      error.code = 'SESSION_EXPIRED';
+      throw error;
     }
     
-    return await handleResponse(response);
+    return await handleResponse(response, requestId);
   } catch (error) {
-    console.error(`API request to ${endpoint} failed:`, error);
+    logError('Request failed', error);
     
     // Handle specific error cases
-    if (error.message.includes('auth/network-request-failed')) {
+    if (error.code === 'AUTH_REQUIRED') {
+      throw new Error('Please sign in to continue');
+    }
+    
+    if (error.code === 'SESSION_EXPIRED') {
+      throw new Error('Your session has expired. Please log in again.');
+    }
+    
+    if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
       throw new Error('Network error. Please check your connection.');
+    }
+    
+    if (error.message.includes('auth/network-request-failed')) {
+      throw new Error('Unable to connect to authentication service');
     }
     
     if (error.message.includes('auth/too-many-requests')) {
       throw new Error('Too many requests. Please try again later.');
     }
     
-    // Re-throw the error with a user-friendly message if it's an auth error
-    if (error.message.includes('auth/') || error.message.includes('token') || error.message === 'Authentication required') {
-      throw new Error('Your session has expired. Please log in again.');
-    }
+    // Add more specific error handling as needed
+    
+    // For other errors, include the request ID in the error message
+    const enhancedError = new Error(`${error.message} (Request ID: ${requestId})`);
+    enhancedError.originalError = error;
+    enhancedError.requestId = requestId;
+    throw enhancedError;
+  }
+}
+
+/**
+ * Handles API responses with better error handling
+ */
+async function handleResponse(response, requestId) {
+  const log = (message, data) => {
+    console.log(`[${requestId}] ${message}`, data || '');
+  };
+  
+  let data;
+  try {
+    data = await response.json();
+  } catch (error) {
+    log('⚠️ Failed to parse JSON response');
+    data = {};
+  }
+  
+  if (!response.ok) {
+    const error = new Error(data.message || 'API request failed');
+    error.status = response.status;
+    error.code = data.code;
+    error.data = data;
+    error.requestId = requestId;
+    
+    log('❌ API Error:', {
+      status: response.status,
+      code: data.code,
+      message: data.message
+    });
     
     throw error;
   }
+  
+  log('✅ Request successful');
+  return data;
 }
 
 // Task-related API calls
