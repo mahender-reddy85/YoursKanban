@@ -4,6 +4,21 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-aut
 const API_BASE = "https://yourskanban.onrender.com/api";
 
 /**
+ * Get the current user's ID token
+ * @returns {Promise<string|null>} - The ID token or null if not authenticated
+ */
+async function getAuthToken() {
+  try {
+    const user = getAuth().currentUser;
+    if (!user) return null;
+    return await user.getIdToken();
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
+  }
+}
+
+/**
  * Get Firebase ID token for the current user
  * @returns {Promise<string|null>} - Firebase ID token or null if not authenticated
  */
@@ -75,11 +90,11 @@ async function request(endpoint, options = {}) {
       throw new Error('User not authenticated');
     }
 
-    // Get a fresh token for each request
-    const token = await auth.currentUser.getIdToken(true);
+    // Get the Firebase ID token for the request
+    const token = await getAuthToken();
     
     if (!token) {
-      throw new Error('Failed to get authentication token');
+      throw new Error('Not authenticated. Please sign in.');
     }
     
     // Set default headers
