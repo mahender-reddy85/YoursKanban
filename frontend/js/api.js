@@ -64,11 +64,8 @@ async function handleResponse(response) {
     
     if (!response.ok) {
         if (response.status === 401) {
-            const token = localStorage.getItem('token');
-            if (token) {
-                localStorage.removeItem('token');
-                throw new Error('Session expired. Please log in again.');
-            }
+            // Clear any existing user session data
+            localStorage.removeItem('user');
             throw new Error('Not logged in.');
         }
         
@@ -86,9 +83,28 @@ async function handleResponse(response) {
  */
 async function isLoggedIn() {
     try {
-        await request('/me');
-        return true;
+        const response = await fetch('https://yourskanban.onrender.com/api/me', {
+            method: 'GET',
+            credentials: 'include', // This is crucial for sending cookies
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            if (user) {
+                // Store basic user info in localStorage for quick access
+                localStorage.setItem('user', JSON.stringify(user));
+                return true;
+            }
+        }
+        
+        // If we get here, the user is not authenticated
+        localStorage.removeItem('user');
+        return false;
     } catch (error) {
+        console.error('Error checking authentication status:', error);
         return false;
     }
 }
@@ -206,12 +222,23 @@ const authAPI = {
      */
     async login(email, password) {
         try {
-            const response = await request('/auth/login', {
+            const response = await fetch('https://yourskanban.onrender.com/api/auth/login', {
                 method: 'POST',
+                credentials: 'include', // Important for cookies
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ email, password })
             });
             
-            if (response.user) {
+            const data = await handleResponse(response);
+            
+            if (data.user) {
+                // Store user data in localStorage (excluding sensitive info)
+                const { password_hash, ...userData } = data.user;
+                localStorage.setItem('user', JSON.stringify(userData));
+                
                 // Check if there are guest tasks to sync
                 const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
                 if (guestTasks.length > 0) {
@@ -221,7 +248,7 @@ const authAPI = {
                         console.error('Failed to sync guest tasks:', syncError);
                     }
                 }
-                return response.user;
+                return userData;
             }
             throw new Error('No user data received from server');
         } catch (error) {
@@ -275,13 +302,32 @@ const authAPI = {
      */
     async getCurrentUser() {
         try {
-            if (!isLoggedIn()) return null;
-            const user = await request('/auth/me');
-            return user || null;
+            const response = await fetch('https://yourskanban.onrender.com/api/auth/me', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                // If we get a 401, the session is invalid
+                if (response.status === 401) {
+                    localStorage.removeItem('user');
+                    return null;
+                }
+                throw new Error('Failed to fetch user data');
+            }
+            
+            const user = await response.json();
+            if (user) {
+                // Update stored user data
+                localStorage.setItem('user', JSON.stringify(user));
+                return user;
+            }
+            return null;
         } catch (error) {
             console.error('Failed to fetch current user:', error);
-            // If there's an error getting the current user, clear the token
-            localStorage.removeItem('token');
             return null;
         }
     }
