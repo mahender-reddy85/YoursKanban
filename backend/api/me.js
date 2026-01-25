@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-const { getAuth } = require('../lib/firebase-admin');
+const { getAuth } = require('../lib/firebaseAdmin');
 
 // Create a new pool using the connection string from environment variables
 const pool = new Pool({

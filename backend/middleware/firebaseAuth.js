@@ -1,4 +1,4 @@
-const { getAuth } = require('../lib/firebase-admin');
+const { getAuth } = require('../lib/firebaseAdmin');
 
 /**
  * Firebase Authentication Middleware
