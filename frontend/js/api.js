@@ -97,55 +97,6 @@ async function request(endpoint, options = {}) {
     throw error;
   }
 
-    try {
-        console.log(`API Request: ${endpoint}`, { method: config.method || 'GET' });
-        
-        const response = await fetch(`${API_BASE}${endpoint}`, config);
-        
-        // Log response details for debugging
-        console.log(`API Response (${endpoint}):`, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries())
-        });
-        
-        return await handleResponse(response);
-    } catch (error) {
-        console.error('API request failed:', {
-            endpoint,
-            error: error.message,
-            stack: error.stack
-        });
-        throw new Error(error.message || 'Network request failed');
-    }
-}
-
-/**
- * Checks if user is logged in by verifying the session
- * @returns {Promise<boolean>} - Resolves to true if user is authenticated
- */
-async function isLoggedIn() {
-    try {
-        // Use the request wrapper which will include the Clerk token
-        const data = await request('/me');
-        
-        if (data && data.user) {
-            // Store basic user info in localStorage for quick access
-            localStorage.setItem('user', JSON.stringify(data.user));
-            return true;
-        }
-        
-        // If we get here, the user is not authenticated
-        localStorage.removeItem('user');
-        return false;
-    } catch (error) {
-        if (error.message !== 'Not logged in.') {
-            console.error('Error checking authentication status:', error);
-        }
-        return false;
-    }
-}
-
 // Task-related API calls
 const tasksAPI = {
     /**
@@ -338,35 +289,8 @@ const authAPI = {
      * @returns {Promise<Object|null>} - User data or null if not authenticated
      */
     async getCurrentUser() {
-        try {
-            const response = await fetch('https://yourskanban.onrender.com/api/auth/me', {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                // If we get a 401, the session is invalid
-                if (response.status === 401) {
-                    localStorage.removeItem('user');
-                    return null;
-                }
-                throw new Error('Failed to fetch user data');
-            }
-            
-            const user = await response.json();
-            if (user) {
-                // Update stored user data
-                localStorage.setItem('user', JSON.stringify(user));
-                return user;
-            }
-            return null;
-        } catch (error) {
-            console.error('Failed to fetch current user:', error);
-            return null;
-        }
+        return getCurrentUser();
+    }
     }
 };
 
