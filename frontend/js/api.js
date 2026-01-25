@@ -96,29 +96,6 @@ async function request(endpoint, options = {}) {
 }
 
 /**
- * Handles API response
- * @param {Response} response - Fetch response
- * @returns {Promise<any>} - Response data
- */
-async function handleResponse(response) {
-    const data = await response.json().catch(() => ({}));
-    
-    if (!response.ok) {
-        if (response.status === 401) {
-            // Clear any existing user session data
-            localStorage.removeItem('user');
-            throw new Error('Not logged in.');
-        }
-        
-        const error = new Error(data.message || 'Something went wrong');
-        error.status = response.status;
-        throw error;
-    }
-    
-    return data;
-}
-
-/**
  * Checks if user is logged in by verifying the session
  * @returns {Promise<boolean>} - Resolves to true if user is authenticated
  */
