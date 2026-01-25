@@ -96,6 +96,7 @@ async function request(endpoint, options = {}) {
     console.error(`API request to ${endpoint} failed:`, error);
     throw error;
   }
+}
 
 // Task-related API calls
 const tasksAPI = {
@@ -291,7 +292,6 @@ const authAPI = {
     async getCurrentUser() {
         return getCurrentUser();
     }
-    }
 };
 
-export { tasksAPI, authAPI };
+execute({ tasksAPI, authAPI, isLoggedIn });
