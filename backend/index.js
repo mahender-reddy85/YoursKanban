@@ -23,7 +23,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Apply CORS middleware with improved origin handling
-app.use(cors({
+const corsOptions = {
   origin: function(origin, callback) {
     // Allow all origins in development and for testing
     if (process.env.NODE_ENV !== 'production' || process.env.NODE_ENV === 'test') {
@@ -48,15 +48,19 @@ app.use(cors({
 
     console.log('CORS blocked for origin:', origin);
     console.log('Allowed origins pattern:', allowedOrigins.map(p => p.toString()));
-    callback(null, false); // Don't throw error, just don't allow the origin
+    callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Content-Length', 'Accept'],
+  exposedHeaders: ['Set-Cookie'],
   credentials: true,
   preflightContinue: false,
-  optionsSuccessStatus: 200,
-  maxAge: 86400 // 24 hours
-}));
+  optionsSuccessStatus: 204,
+  maxAge: 600 // 10 minutes for preflight cache
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
 // Handle preflight requests
 app.options('*', cors());
