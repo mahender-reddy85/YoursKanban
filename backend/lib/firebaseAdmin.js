@@ -1,67 +1,50 @@
 import admin from "firebase-admin";
 
+// Check if Firebase Admin is already initialized
 if (!admin.apps.length) {
+  console.log('Initializing Firebase Admin...');
+  
+  // Verify all required environment variables are set
+  const requiredVars = [
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_CLIENT_EMAIL',
+    'FIREBASE_PRIVATE_KEY',
+    'DATABASE_URL'
+  ];
+  
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  }
+  
+  console.log('All required environment variables found');
+  console.log('DATABASE_URL exists?', !!process.env.DATABASE_URL);
+  
   try {
-    console.log('Initializing Firebase Admin...');
-    
-    // Debug: Check if FIREBASE_SERVICE_ACCOUNT exists
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set');
-    }
-    
-    console.log('FIREBASE_SERVICE_ACCOUNT found, parsing...');
-    
-    let serviceAccount;
-    try {
-      serviceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string' 
-        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-        : process.env.FIREBASE_SERVICE_ACCOUNT;
-      
-      console.log('Service account parsed successfully. Project ID:', serviceAccount.project_id);
-    } catch (parseError) {
-      console.error('Error parsing FIREBASE_SERVICE_ACCOUNT:', parseError);
-      console.error('FIREBASE_SERVICE_ACCOUNT value:', 
-        process.env.FIREBASE_SERVICE_ACCOUNT 
-          ? `${process.env.FIREBASE_SERVICE_ACCOUNT.substring(0, 50)}...` 
-          : 'undefined');
-      throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT format. Must be valid JSON.');
-    }
-
-    // Initialize Firebase Admin
-    const config = {
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
-    };
-    
-    console.log('Initializing Firebase Admin with config:', {
-      projectId: serviceAccount.project_id,
-      databaseURL: config.databaseURL
+    // Initialize Firebase Admin with individual environment variables
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      }),
+      databaseURL: process.env.DATABASE_URL
     });
     
-    admin.initializeApp(config);
+    console.log('Firebase Admin initialized successfully');
+    console.log('Project ID:', process.env.FIREBASE_PROJECT_ID);
     
-    console.log('Firebase Admin initialized successfully for project:', serviceAccount.project_id);
-    console.log('Firebase Admin app name:', admin.app().name);
-    
-    // Test token verification with a dummy token to ensure everything is working
+    // Test authentication
     try {
-      await admin.appCheck().createToken('test');
-      console.log('Firebase Admin token verification test passed');
-    } catch (testError) {
-      console.warn('Firebase Admin token verification test failed (this might be expected):', testError.message);
+      const auth = admin.auth();
+      const users = await auth.listUsers(1);
+      console.log('Firebase Admin authentication test successful');
+    } catch (authError) {
+      console.error('Firebase Admin authentication test failed:', authError);
+      throw authError;
     }
-    
   } catch (error) {
-    console.error('❌ Error initializing Firebase Admin:', {
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-      serviceAccountAvailable: !!process.env.FIREBASE_SERVICE_ACCOUNT,
-      serviceAccountType: typeof process.env.FIREBASE_SERVICE_ACCOUNT,
-      serviceAccountPreview: process.env.FIREBASE_SERVICE_ACCOUNT 
-        ? `${process.env.FIREBASE_SERVICE_ACCOUNT.substring(0, 100)}...` 
-        : 'undefined'
-    });
+    console.error('Error initializing Firebase Admin:', error);
     throw new Error(`Failed to initialize Firebase Admin: ${error.message}`);
   }
 } else {
