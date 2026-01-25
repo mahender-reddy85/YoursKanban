@@ -151,54 +151,32 @@ function closeAuthModal() {
 async function handleLogin(e) {
   e.preventDefault();
   
-  const email = document.getElementById('authEmail')?.value;
-  const password = document.getElementById('authPassword')?.value;
-  const loginBtn = document.getElementById('loginBtn');
-  const loginError = document.getElementById('loginError');
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const loginButton = document.getElementById('loginButton');
   
   if (!email || !password) {
-    showToast('Please enter both email and password', 'error');
+    showToast('Please fill in all fields', 'error');
     return;
   }
   
   try {
-    // Show loading state
-    if (loginBtn) {
-      loginBtn.disabled = true;
-      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-    }
+    loginButton.disabled = true;
+    loginButton.textContent = 'Signing in...';
     
     // Sign in with Firebase
-    const userCred = await window.firebaseSignIn(window.firebaseAuth, email, password);
-    const token = await userCred.user.getIdToken();
+    await window.firebaseSignIn(window.firebaseAuth, email, password);
     
-    // Store the token in localStorage
-    localStorage.setItem('token', token);
-    
-    // Close the modal and show success message
+    // Update UI
+    showToast('Logged in successfully', 'success');
     closeAuthModal();
-    showToast('Login successful!', 'success');
-    
-    // Reload the page to update the UI
-    setTimeout(() => window.location.reload(), 1000);
     
   } catch (error) {
     console.error('Login error:', error);
-    const errorMessage = getAuthErrorMessage(error.code);
-    
-    // Show error message
-    if (loginError) {
-      loginError.textContent = errorMessage;
-      loginError.style.display = 'block';
-    }
-    
-    showToast(errorMessage, 'error');
+    showToast(getAuthErrorMessage(error.code), 'error');
   } finally {
-    // Reset button state
-    if (loginBtn) {
-      loginBtn.disabled = false;
-      loginBtn.textContent = 'Login';
-    }
+    loginButton.disabled = false;
+    loginButton.textContent = 'Sign In';
   }
 }
 
@@ -206,14 +184,14 @@ async function handleLogin(e) {
 async function handleSignup(e) {
   e.preventDefault();
   
-  const email = document.getElementById('signupEmail')?.value;
-  const password = document.getElementById('signupPassword')?.value;
-  const confirmPassword = document.getElementById('confirmPassword')?.value;
-  const signupBtn = document.getElementById('signupBtn');
-  const signupError = document.getElementById('signupError');
+  const name = document.getElementById('signupName').value;
+  const email = document.getElementById('signupEmail').value;
+  const password = document.getElementById('signupPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const signupButton = document.getElementById('signupButton');
   
   // Validate form
-  if (!email || !password || !confirmPassword) {
+  if (!name || !email || !password || !confirmPassword) {
     showToast('Please fill in all fields', 'error');
     return;
   }
@@ -224,97 +202,82 @@ async function handleSignup(e) {
   }
   
   if (password.length < 6) {
-    showToast('Password should be at least 6 characters', 'error');
+    showToast('Password must be at least 6 characters', 'error');
     return;
   }
   
   try {
-    // Show loading state
-    if (signupBtn) {
-      signupBtn.disabled = true;
-      signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
-    }
+    signupButton.disabled = true;
+    signupButton.textContent = 'Creating account...';
     
     // Create user with Firebase
-    const userCred = await window.firebaseSignUp(window.firebaseAuth, email, password);
-    const token = await userCred.user.getIdToken();
+    const userCredential = await window.firebaseSignUp(window.firebaseAuth, email, password);
+    const user = userCredential.user;
     
-    // Store the token in localStorage
-    localStorage.setItem('token', token);
+    // Update user profile with display name
+    await updateProfile(user, { displayName: name });
     
-    // Close the modal and show success message
-    closeAuthModal();
+    // Update UI
     showToast('Account created successfully!', 'success');
+    closeAuthModal();
     
-    // Reload the page to update the UI
-    setTimeout(() => window.location.reload(), 1000);
+    // Switch to login form
+    showLoginModal();
     
   } catch (error) {
     console.error('Signup error:', error);
-    const errorMessage = getAuthErrorMessage(error.code);
-    
-    // Show error message
-    if (signupError) {
-      signupError.textContent = errorMessage;
-      signupError.style.display = 'block';
-    }
-    
-    showToast(errorMessage, 'error');
+    showToast(getAuthErrorMessage(error.code), 'error');
   } finally {
-    // Reset button state
-    if (signupBtn) {
-      signupBtn.disabled = false;
-      signupBtn.textContent = 'Create Account';
-    }
+    signupButton.disabled = false;
+    signupButton.textContent = 'Sign Up';
   }
 }
 
 // Handle logout
-function handleLogout() {
-  if (!window.firebaseAuth) return;
-  
-  window.firebaseAuth.signOut().then(() => {
-    // Clear the token from localStorage
-    localStorage.removeItem('token');
-    showToast('Logged out successfully', 'success');
-    
-    // Reload the page to update the UI
-    setTimeout(() => window.location.reload(), 500);
-    
-  }).catch((error) => {
+async function handleLogout() {
+  try {
+    // Sign out from Firebase
+    if (window.firebaseAuth) {
+      await window.firebaseAuth.signOut();
+      showToast('Logged out successfully', 'success');
+      
+      // Reload the page to update the UI
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }
+  } catch (error) {
     console.error('Logout error:', error);
     showToast('Error logging out. Please try again.', 'error');
-  });
+  }
 }
 
 // Handle auth state changes
 function handleAuthStateChange(user) {
   const authButtons = document.querySelector('.auth-buttons');
   const userMenu = document.getElementById('userMenu');
-  const userEmail = document.getElementById('userEmail');
   
   if (user) {
     // User is signed in
+    const userData = {
+      name: user.displayName || 'User',
+      email: user.email || '',
+      photoURL: user.photoURL || ''
+    };
+    
+    // Update UI for logged-in user
     if (authButtons) authButtons.style.display = 'none';
     if (userMenu) userMenu.style.display = 'flex';
-    if (userEmail) userEmail.textContent = user.email;
     
-    // Store user data if needed
-    localStorage.setItem('user', JSON.stringify({
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL
-    }));
+    // Close auth modal if open
+    closeAuthModal();
     
+    // Show welcome message
+    showToast(`Welcome back, ${userData.name}!`, 'success');
   } else {
     // User is signed out
     if (authButtons) authButtons.style.display = 'flex';
     if (userMenu) userMenu.style.display = 'none';
-    
-    // Clear user data
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
   }
 }
 

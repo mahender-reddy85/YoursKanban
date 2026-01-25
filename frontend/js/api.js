@@ -275,9 +275,10 @@ const authAPI = {
      */
     async logout() {
         try {
-            localStorage.removeItem('token');
-            // Optionally, make a backend call to invalidate the token
-            // await request('/auth/logout', { method: 'POST' });
+            // Sign out from Firebase
+            if (window.firebaseAuth) {
+                await window.firebaseAuth.signOut();
+            }
             return true;
         } catch (error) {
             console.error('Logout error:', error);
