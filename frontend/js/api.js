@@ -19,6 +19,31 @@ async function getFirebaseToken() {
 }
 
 /**
+ * Check if user is logged in using Firebase Auth
+ * @returns {boolean} - True if user is logged in
+ */
+export function isLoggedIn() {
+  return !!getAuth().currentUser;
+}
+
+/**
+ * Get current user from Firebase Auth
+ * @returns {Object|null} - Current user object or null if not logged in
+ */
+export function getCurrentUser() {
+  const user = getAuth().currentUser;
+  if (!user) return null;
+  
+  return {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+    photoURL: user.photoURL,
+    emailVerified: user.emailVerified
+  };
+}
+
+/**
  * Handles API responses
  * @param {Response} response - Fetch response
  * @returns {Promise<any>} - Parsed response data
