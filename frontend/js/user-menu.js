@@ -246,19 +246,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUserInfo(user) {
         if (!user) return;
         
-        const displayName = user.name || 'Guest User';
+        // Get email username (part before @) if name is not available
+        let displayName = user.name;
         const displayEmail = user.email || '';
         
-        // Determine what to show as initials
-        let initials = 'U'; // Default fallback
-        
-        if (displayName && displayName !== 'Guest User') {
-            // Use first letter of first name if name exists and is not 'Guest User'
-            initials = displayName.trim().charAt(0).toUpperCase();
-        } else if (displayEmail) {
-            // Otherwise use first letter of email
-            initials = displayEmail.trim().charAt(0).toUpperCase();
+        // If no name is provided, use the email username as the display name
+        if (!displayName || displayName === 'Guest User') {
+            displayName = displayEmail.split('@')[0] || 'User';
         }
+        
+        // Determine what to show as initials
+        let initials = displayName.trim().charAt(0).toUpperCase();
         
         // Update name
         if (userNameEl) {
