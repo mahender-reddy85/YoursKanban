@@ -85,23 +85,6 @@ export function getCurrentUser() {
   };
 }
 
-/**
- * Handles API responses
- * @param {Response} response - Fetch response
- * @returns {Promise<any>} - Parsed response data
- */
-async function handleResponse(response) {
-  const data = await response.json().catch(() => ({}));
-  
-  if (!response.ok) {
-    const error = new Error(data.message || 'API request failed');
-    error.status = response.status;
-    error.data = data;
-    throw error;
-  }
-  
-  return data;
-}
 
 /**
  * Makes an authenticated API request with Firebase token
@@ -223,10 +206,14 @@ async function request(endpoint, options = {}) {
 
 /**
  * Handles API responses with better error handling
+ * @param {Response} response - Fetch response
+ * @param {string} requestId - Unique ID for the request
+ * @returns {Promise<any>} - Parsed response data
  */
-async function handleResponse(response, requestId) {
+async function handleResponse(response, requestId = '') {
   const log = (message, data) => {
-    console.log(`[${requestId}] ${message}`, data || '');
+    const prefix = requestId ? `[${requestId}] ` : '';
+    console.log(`${prefix}${message}`, data || '');
   };
   
   let data;
