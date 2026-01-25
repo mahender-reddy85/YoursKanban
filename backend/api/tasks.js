@@ -1,4 +1,6 @@
-import { verifyFirebaseToken } from '../middleware/auth.js';
+const { verifyFirebaseToken } = require('../middleware/auth');
+const express = require('express');
+const router = express.Router();
 
 // Middleware to handle authentication
 const withAuth = (req, res, next) => {
@@ -371,20 +373,14 @@ const deleteTask = async (req, res) => {
   }
 };
 
-import express from 'express';
-const router = express.Router();
 
 // Apply auth middleware
-router.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  withAuth(req, res, next);
-});
+router.use(withAuth);
 
-// Define routes
+// Routes
 router.get('/', getTasks);
 router.post('/', createTask);
 router.put('/:id', updateTask);
-router.patch('/:id', updateTask);
 router.delete('/:id', deleteTask);
 
 // Handle unsupported methods
@@ -422,4 +418,4 @@ router.use((err, req, res, next) => {
   });
 });
 
-export default router;
+module.exports = { router };

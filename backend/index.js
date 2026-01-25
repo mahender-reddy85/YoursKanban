@@ -13,7 +13,7 @@ const { Pool } = require('pg');
 
 // Import API routes and middleware
 const meHandler = require('./api/me');
-const tasksHandler = require('./api/tasks');
+const { router: tasksRouter } = require('./api/tasks');
 const firebaseAuth = require('./middleware/firebaseAuth');
 
 // Initialize express app
@@ -237,7 +237,8 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/me', firebaseAuth, meHandler);
 
 // Task routes (protected by Firebase Auth)
-app.use('/api/tasks', firebaseAuth, tasksHandler);
+const { router: tasksRouter } = require('./api/tasks');
+app.use('/api/tasks', firebaseAuth, tasksRouter);
 
 // 404 handler
 app.use((req, res) => {
