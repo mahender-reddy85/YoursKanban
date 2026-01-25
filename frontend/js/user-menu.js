@@ -101,9 +101,28 @@ async function handleLogout() {
                 resolve(false);
             }
         };
-
-        confirmBtn.onclick = async () => {
+        
+        confirmBtn.onclick = () => {
             cleanup();
+            resolve(true);
+        };
+        
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        document.addEventListener('keydown', handleEscape);
+        
+        // Handle click outside the dialog
+        dialog.onclick = (e) => {
+            if (e.target === dialog) {
+                cleanup();
+                resolve(false);
+            }
+        };
+    }).then(async (confirmed) => {
+        if (confirmed) {
             try {
                 // Sign out from Firebase
                 if (window.firebaseAuth) {
@@ -125,15 +144,7 @@ async function handleLogout() {
                 console.error('Logout error:', error);
                 showToast('Error logging out. Please try again.', 'error');
             }
-            resolve(true);
-        };
-
-        cancelBtn.onclick = () => {
-            cleanup();
-            resolve(false);
-        };
-
-        document.addEventListener('keydown', handleEscape);
+        }
     });
 }
 
