@@ -63,8 +63,15 @@ export function updateUserAvatar(user) {
         userMenu.style.display = 'flex';
         
         // Set user info
-        const firstName = user.name ? user.name.split(' ')[0] : 'U';
-        const firstLetter = firstName.charAt(0).toUpperCase();
+        let firstLetter = 'U'; // Default fallback
+        
+        if (user.name && user.name.trim() !== '') {
+            // Use first letter of first name if name exists
+            firstLetter = user.name.trim().charAt(0).toUpperCase();
+        } else if (user.email && user.email.trim() !== '') {
+            // Otherwise use first letter of email
+            firstLetter = user.email.trim().charAt(0).toUpperCase();
+        }
         
         userAvatar.textContent = firstLetter;
         if (userName) userName.textContent = user.name || 'User';
