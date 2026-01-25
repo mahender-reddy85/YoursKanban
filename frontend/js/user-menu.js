@@ -598,13 +598,27 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Logout button
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', handleLogout);
-            logoutBtn.addEventListener('keydown', (e) => {
+            // Remove any existing event listeners to prevent duplicates
+            const newLogoutBtn = logoutBtn.cloneNode(true);
+            logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+            
+            // Add new event listeners
+            newLogoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLogout();
+            });
+            
+            newLogoutBtn.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
+                    e.stopPropagation();
                     handleLogout();
                 }
             });
+            
+            // Update the reference
+            window.logoutBtn = newLogoutBtn;
         }
         
         // My Tasks button

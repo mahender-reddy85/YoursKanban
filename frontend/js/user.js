@@ -296,27 +296,8 @@ export function initUserMenu() {
         e.stopPropagation();
     });
     
-    // Handle logout
-    if (logoutBtn) {
-        const handleLogout = async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            try {
-                closeDropdown(dropdownMenu, dropdownBackdrop);
-                await authAPI.logout();
-                updateUserAvatar(null);
-                // Instead of redirecting to /login, just reload the page
-                // which will show the login form since the user is logged out
-                window.location.reload();
-            } catch (error) {
-                console.error('Logout failed:', error);
-            }
-        };
-        
-        // Add both touch and click events for better mobile support
-        logoutBtn.addEventListener('click', handleLogout);
-        logoutBtn.addEventListener('touchend', handleLogout);
-    }
+    // Logout is now handled in user-menu.js to show a custom confirmation dialog
+    // and handle the logout process consistently across the app
     
     // Handle My Tasks click
     if (myTasksBtn) {
