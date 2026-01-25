@@ -3,6 +3,43 @@
  * Handles the user avatar dropdown menu with user info and actions
  */
 
+/**
+ * Handle logout action
+ */
+function handleLogout() {
+    // Show confirmation dialog
+    const confirmLogout = confirm('Are you sure you want to log out?');
+    if (!confirmLogout) return;
+    
+    // Sign out from Firebase if available
+    if (window.firebaseAuth) {
+        window.firebaseAuth.signOut().then(() => {
+            // Clear user data from localStorage
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            
+            // Close dropdown if open
+            if (window.isDropdownOpen) {
+                window.closeDropdown && window.closeDropdown();
+            }
+            
+            // Redirect to home page
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 500);
+            
+        }).catch((error) => {
+            console.error('Logout error:', error);
+            alert('Error logging out. Please try again.');
+        });
+    } else {
+        // Fallback if Firebase is not available
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.reload();
+    }
+}
+
 // Make handleLogout globally available
 window.handleLogout = handleLogout;
 
