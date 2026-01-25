@@ -6,33 +6,38 @@ import {
   onAuthStateChanged,
   signOut as firebaseSignOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCcM9b9yCBof3CtiwDyazp4AJWp0TIJT8U",
+  authDomain: "yourskanban.firebaseapp.com",
+  projectId: "yourskanban",
+  storageBucket: "yourskanban.firebasestorage.app",
+  messagingSenderId: "260698703143",
+  appId: "1:260698703143:web:4c162e64d38633a70fd502",
+  measurementId: "G-83PTLK1WFE"
 };
 
 // Initialize Firebase
 let app;
 let auth;
+let analytics;
 
 try {
   // Initialize Firebase app
   app = initializeApp(firebaseConfig);
   
-  // Initialize Firebase Authentication
+  // Initialize Firebase services
   auth = getAuth(app);
+  analytics = getAnalytics(app);
   
   // Make auth and auth functions available globally
   window.firebaseAuth = auth;
   window.firebaseSignIn = signInWithEmailAndPassword;
   window.firebaseSignUp = createUserWithEmailAndPassword;
   window.firebaseSignOut = firebaseSignOut;
+  window.firebaseAnalytics = analytics;
   
   console.log('Firebase initialized successfully');
   
