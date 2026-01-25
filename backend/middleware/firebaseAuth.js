@@ -48,26 +48,68 @@ const firebaseAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('Authentication error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      tokenInfo: token ? `Token length: ${token.length}, starts with: ${token.substring(0, 10)}...` : 'No token provided',
+      headers: {
+        authorization: req.headers.authorization ? 'Present' : 'Missing',
+        'content-type': req.headers['content-type']
+      },
+      method: req.method,
+      url: req.originalUrl
+    });
     
     if (error.code === 'auth/id-token-expired') {
       return res.status(401).json({ 
         success: false, 
-        message: 'Authentication token has expired' 
+        message: 'Authentication token has expired',
+        code: 'TOKEN_EXPIRED'
       });
     }
     
     if (error.code === 'auth/argument-error') {
       return res.status(400).json({ 
         success: false, 
-        message: 'Invalid authentication token' 
+        message: 'Invalid authentication token',
+        code: 'INVALID_TOKEN'
       });
     }
 
-    res.status(401).json({ 
-      success: false, 
-      message: 'Authentication failed' 
-    });
+    // More specific error handling for common Firebase Auth errors
+    if (error.code === 'auth/invalid-credential') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authentication credentials',
+        code: 'INVALID_CREDENTIALS'
+      });
+    }
+
+    if (error.code === 'auth/user-disabled') {
+      return res.status(403).json({
+        success: false,
+        message: 'This account has been disabled',
+        code: 'ACCOUNT_DISABLED'
+      });
+    }
+
+    // For development, include more error details
+    const errorResponse = {
+      success: false,
+      message: 'Authentication failed',
+      code: 'AUTH_FAILED'
+    };
+
+    // In development, include more details
+    if (process.env.NODE_ENV === 'development') {
+      errorResponse.details = {
+        error: error.message,
+        code: error.code
+      };
+    }
+
+    res.status(401).json(errorResponse);
   }
 };
 
