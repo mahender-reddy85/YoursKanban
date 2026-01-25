@@ -17,16 +17,12 @@ async function request(endpoint, options = {}) {
     
     // Get Firebase token from localStorage
     const token = localStorage.getItem("token");
-    if (!token) {
-        console.error("No authentication token found");
-        return Promise.reject(new Error("Not authenticated"));
-    }
     
     // Set default headers
     const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${await token}` }),
+        ...(token && { 'Authorization': `Bearer ${token}` }), // Remove await from token
         ...options.headers
     };
 

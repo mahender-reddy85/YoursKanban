@@ -345,19 +345,6 @@ document.addEventListener('keydown', (e) => {
     closeAuthModal();
   }
 });
-    e.preventDefault();
-    showSignupModal();
-  });
-}
-
-if (switchToLogin) {
-  switchToLogin.addEventListener('click', (e) => {
-    e.preventDefault();
-    showLoginModal();
-  });
-}
-
-// Close modal when clicking outside
 window.addEventListener('click', (e) => {
   if (e.target === authModal) {
     closeAuthModal();

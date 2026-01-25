@@ -3,12 +3,19 @@
  * Handles the user avatar dropdown menu with user info and actions
  */
 
+// Make handleLogout globally available
+window.handleLogout = handleLogout;
+
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const userMenu = document.getElementById('userMenu');
     const userAvatar = document.getElementById('userAvatar');
     const dropdownMenu = document.getElementById('userDropdown');
-    const dropdownBackdrop = document.getElementById('dropdownBackdrop');
+    const dropdownBackdrop = document.createElement('div');
+    dropdownBackdrop.id = 'dropdownBackdrop';
+    document.body.appendChild(dropdownBackdrop);
+    
     const myTasksBtn = document.getElementById('myTasksBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const userNameEl = document.getElementById('userName');
@@ -27,15 +34,15 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function checkAuth() {
         try {
-            const userData = localStorage.getItem('user') || localStorage.getItem('username');
+            // Get user data from localStorage or Firebase auth state
+            const userData = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
             
-            if (userData) {
-                const user = typeof userData === 'string' && userData.startsWith('{') 
-                    ? JSON.parse(userData) 
-                    : { name: userData, email: '' };
-                
+            if (userData && token) {
+                const user = JSON.parse(userData);
                 updateUserInfo(user);
-                userMenu.style.display = 'flex';
+                
+                if (userMenu) userMenu.style.display = 'flex';
                 document.body.classList.add('user-logged-in');
                 
                 if (logoutBtn) {
@@ -49,9 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error parsing user data:', e);
         }
         
-        // Guest state
-        userMenu.style.display = 'flex';
-        updateUserInfo({ name: 'Guest User', email: 'guest@example.com' });
+        // If no user data or error, hide user menu
+        if (userMenu) userMenu.style.display = 'none';
+        document.body.classList.remove('user-logged-in');
         
         if (logoutBtn) {
             logoutBtn.style.display = 'none';
@@ -59,6 +66,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         return false;
+    }
+    
+    // Listen for auth state changes
+    if (window.firebaseAuth) {
+        window.firebaseAuth.onAuthStateChanged((user) => {
+            if (user) {
+                const userData = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || user.email.split('@')[0],
+                    photoURL: user.photoURL
+                };
+                localStorage.setItem('user', JSON.stringify(userData));
+                updateUserInfo(userData);
+                checkAuth();
+            } else {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                checkAuth();
+            }
+        });
     }
 
     /**
@@ -299,14 +327,52 @@ document.addEventListener('DOMContentLoaded', () => {
      * Handle logout action
      */
     function handleLogout() {
-        try {
-            // Clear authentication data
-            ['token', 'user', 'username', 'refreshToken'].forEach(key => {
-                localStorage.removeItem(key);
+        // Show confirmation dialog
+        const confirmLogout = confirm('Are you sure you want to log out?');
+        if (!confirmLogout) return;
+        
+        // Sign out from Firebase if available
+        if (window.firebaseAuth) {
+            window.firebaseAuth.signOut().then(() => {
+                // Clear user data from localStorage
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                
+                // Close dropdown if open
+                if (isDropdownOpen) {
+                    closeDropdown();
+                }
+                
+                // Update UI
+                updateUserInfo({ name: 'Guest User', email: '' });
+                document.body.classList.remove('user-logged-in');
+                
+                // Show auth buttons
+                const authButtons = document.querySelector('.auth-buttons');
+                if (authButtons) {
+                    authButtons.style.display = 'flex';
+                    authButtons.setAttribute('aria-hidden', 'false');
+                }
+                
+                // Show success message
+                showToast('You have been logged out', 'success');
+                
+                // Redirect to home page
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+                
+            }).catch((error) => {
+                console.error('Logout error:', error);
+                showToast('Error logging out. Please try again.', 'error');
             });
+        } else {
+            // Fallback if Firebase is not available
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
             
             // Update UI
-            updateUserInfo({ name: 'Guest User', email: 'guest@example.com' });
+            updateUserInfo({ name: 'Guest User', email: '' });
             document.body.classList.remove('user-logged-in');
             
             // Show auth buttons
@@ -316,30 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 authButtons.setAttribute('aria-hidden', 'false');
             }
             
-            // Show guest banner if function exists
-            if (typeof updateGuestBanner === 'function') {
-                updateGuestBanner();
-            }
-            
-            // Redirect to home or show login modal
-            if (window.location.pathname !== '/') {
-                window.location.href = '/';
-            } else if (typeof openAuthModal === 'function') {
-                openAuthModal('login');
-            }
-            
-            // Close dropdown if open
-            if (isDropdownOpen) {
-                closeDropdown();
-            }
-            
-            // Dispatch custom event for other parts of the app
-            document.dispatchEvent(new CustomEvent('userLoggedOut'));
-            
-        } catch (error) {
-            console.error('Error during logout:', error);
-            // Fallback to page reload if something goes wrong
-            window.location.reload();
+            // Show message and reload
+            showToast('You have been logged out', 'info');
+            setTimeout(() => window.location.reload(), 1000);
         }
     }
 
