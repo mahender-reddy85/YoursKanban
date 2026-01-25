@@ -5,61 +5,29 @@ const admin = require('../lib/firebaseAdmin');
  * Verifies the Firebase ID token from the Authorization header
  */
 exports.protect = async (req, res, next) => {
-  // Check for token in Authorization header
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.split(' ')[1];
-  
-  if (!token) {
-    console.error('No token found in Authorization header');
-    return res.status(401).json({ 
-      success: false,
-      message: 'Authentication required',
-      code: 'MISSING_AUTH_TOKEN'
-    });
-  }
-
   try {
-    // Verify the ID token
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    
-    // Get the user's record to ensure they exist
-    const userRecord = await admin.auth().getUser(decodedToken.uid);
-    
-    // Attach user information to the request
-    req.user = {
-      uid: userRecord.uid,
-      email: userRecord.email,
-      emailVerified: userRecord.emailVerified,
-      customClaims: userRecord.customClaims || {}
+    const header = req.headers.authorization;
+
+    if (!header || !header.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const idToken = header.split("Bearer ")[1];
+    const decoded = await admin.auth().verifyIdToken(idToken);
+
+    // Attach minimal user info to the request
+    req.user = { 
+      id: decoded.uid,
+      email: decoded.email,
+      email_verified: decoded.email_verified || false
     };
     
-    console.log(`Authenticated user: ${req.user.email} (${req.user.uid})`);
-    return next();
-  } catch (error) {
-    console.error('Token verification error:', error);
-    
-    // Handle different types of errors
-    if (error.code === 'auth/id-token-expired') {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Token has expired. Please log in again.',
-        code: 'TOKEN_EXPIRED'
-      });
-    }
-    
-    if (error.code === 'auth/argument-error') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token format',
-        code: 'INVALID_TOKEN_FORMAT'
-      });
-    }
-    
-    return res.status(401).json({
-      success: false,
-      message: 'Not authorized',
-      code: 'AUTH_ERROR',
-      error: error.message
+    next();
+  } catch (err) {
+    console.error('Authentication error:', err);
+    return res.status(401).json({ 
+      message: "Invalid or expired token",
+      code: "AUTH_ERROR"
     });
   }
 };
@@ -72,22 +40,22 @@ exports.admin = async (req, res, next) => {
     // First verify the token
     await exports.protect(req, res, async () => {
       try {
-        // Check if user has admin claim
-        const user = await admin.auth().getUser(req.user.uid);
+        // Get the full user record to check admin status
+        const userRecord = await admin.auth().getUser(req.user.id);
         
-        if (user.customClaims && user.customClaims.admin === true) {
+        if (userRecord.customClaims && userRecord.customClaims.admin === true) {
           req.user.isAdmin = true;
           return next();
         }
         
-        res.status(403).json({ 
+        return res.status(403).json({ 
           success: false,
-          message: 'Not authorized as an admin',
+          message: 'Admin access required',
           code: 'ADMIN_REQUIRED'
         });
       } catch (error) {
         console.error('Admin verification error:', error);
-        res.status(500).json({
+        return res.status(500).json({
           success: false,
           message: 'Error verifying admin status',
           code: 'ADMIN_VERIFICATION_ERROR'
@@ -96,7 +64,7 @@ exports.admin = async (req, res, next) => {
     });
   } catch (error) {
     console.error('Admin check error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
       message: 'Server error during admin verification',
       code: 'SERVER_ERROR'
