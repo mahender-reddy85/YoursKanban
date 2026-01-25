@@ -48,6 +48,9 @@ const firebaseAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.split(' ')[1] || '';
+    
     console.error('Authentication error:', {
       message: error.message,
       code: error.code,
