@@ -294,4 +294,13 @@ const authAPI = {
     }
 };
 
-execute({ tasksAPI, authAPI, isLoggedIn });
+// Export the API objects
+export { tasksAPI, authAPI, isLoggedIn, getCurrentUser };
+
+// Make them available globally for backward compatibility
+if (typeof window !== 'undefined') {
+    window.tasksAPI = tasksAPI;
+    window.authAPI = authAPI;
+    window.isLoggedIn = isLoggedIn;
+    window.getCurrentUser = getCurrentUser;
+}
