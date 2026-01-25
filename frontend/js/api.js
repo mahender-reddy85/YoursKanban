@@ -249,10 +249,31 @@ const tasksAPI = {
      * @returns {Promise<Array>} - Array of tasks
      */
     async getTasks() {
-        if (!isLoggedIn()) {
-            return JSON.parse(localStorage.getItem('guest_tasks') || '[]');
+        try {
+            console.log('Getting tasks...');
+            
+            if (!isLoggedIn()) {
+                console.log('User not logged in, returning guest tasks');
+                return JSON.parse(localStorage.getItem('guest_tasks') || '[]');
+            }
+            
+            const response = await request('/tasks', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Tasks retrieved successfully');
+            return response;
+        } catch (error) {
+            console.error('Error in getTasks:', {
+                message: error.message,
+                code: error.code,
+                stack: error.stack
+            });
+            throw error;
         }
-        return await request('/tasks');
     },
 
     /**

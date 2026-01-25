@@ -1,7 +1,8 @@
 // Import API services and modules
 import { authAPI, tasksAPI, isLoggedIn } from './js/api.js';
 import { updateUserAvatar } from './js/user.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { auth } from './js/firebase.js';
 
 /**
  * Application State Management
@@ -1404,12 +1405,25 @@ function handleKeyboardShortcuts(e) {
 // --- Task Management ---
 async function fetchTasks() {
     try {
+        // Check if user is authenticated
+        if (!auth.currentUser) {
+            console.log('No authenticated user, skipping task fetch');
+            state.tasks = [];
+            return [];
+        }
+        
+        console.log('Fetching tasks for user:', auth.currentUser.uid);
         const tasks = await tasksAPI.getTasks();
         state.tasks = tasks || [];
+        renderBoard(); // Make sure to update the UI
         return tasks;
     } catch (error) {
         console.error('Error fetching tasks:', error);
-        showToast('Failed to load tasks', 'error');
+        if (error.message.includes('auth/network-request-failed')) {
+            showToast('Network error. Please check your connection.', 'error');
+        } else {
+            showToast('Failed to load tasks', 'error');
+        }
         state.tasks = [];
         return [];
     }
@@ -1590,33 +1604,44 @@ window.closeModal = closeModal;
 // --- Initialization ---
 async function init() {
     try {
-        // Initialize theme
+        // Initialize theme and other UI components
         ThemeManager.init();
-        
-        // Check authentication status
-        if (isLoggedIn()) {
-            try {
-                // Load current user data
-                await authAPI.getCurrentUser();
-                // Load tasks if authenticated
-                await fetchTasks();
-            } catch (error) {
-                console.error('Error loading user data:', error);
-                showToast('Error loading your data', 'error');
-            }
-        } else {
-            // Show guest mode banner
-            updateGuestBanner();
-        }
-        
-        // Set up event listeners
         setupEventListeners();
         
-        // Initial render
+        // Wait for Firebase auth state to be determined
+        await new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    console.log("User is signed in:", user.uid);
+                    state.currentUser = user;
+                    state.isAuthenticated = true;
+                    
+                    // Load user data and tasks
+                    try {
+                        await authAPI.getCurrentUser();
+                        await fetchTasks();
+                        updateGuestBanner();
+                    } catch (error) {
+                        console.error('Error loading user data:', error);
+                        showToast('Error loading your data', 'error');
+                    }
+                } else {
+                    console.log("No user is signed in");
+                    state.currentUser = null;
+                    state.isAuthenticated = false;
+                    updateGuestBanner();
+                }
+                resolve();
+                unsubscribe(); // Clean up the listener
+            });
+        });
+        
+        // Render the board after auth state is determined
         renderBoard();
+        
     } catch (error) {
         console.error('Initialization error:', error);
-        showToast('Failed to initialize application', 'error');
+        showToast('Error initializing application', 'error');
     }
 }
 
