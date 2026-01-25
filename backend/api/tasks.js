@@ -1,36 +1,18 @@
-const { protect } = require('../lib/auth');
+import { verifyFirebaseToken } from '../middleware/auth.js';
 
 // Middleware to handle authentication
-const withAuth = async (req, res, next) => {
-  // For GET requests, allow unauthenticated access but try to set user if token exists
+const withAuth = (req, res, next) => {
+  // For GET requests, allow unauthenticated access
   if (req.method === 'GET') {
     if (req.headers.authorization) {
       // If there's a token, try to authenticate but don't fail if it's invalid
-      return protect(req, res, () => next());
+      return verifyFirebaseToken(req, res, () => next());
     }
     return next();
   }
   
   // For other methods, require authentication
-  if (!req.headers.authorization) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-  
-  // Verify token for authenticated requests
-  return protect(req, res, (err) => {
-    if (err) {
-      console.error('Auth error:', err);
-      return res.status(401).json({ message: 'Invalid or expired token' });
-    }
-    
-    // Ensure user is set on the request
-    if (!req.user || !req.user.id) {
-      console.error('No user ID found in request');
-      return res.status(401).json({ message: 'User not authenticated' });
-    }
-    
-    next();
-  });
+  return verifyFirebaseToken(req, res, next);
 };
 
 // Get all tasks (works for both authenticated and unauthenticated users)
@@ -389,11 +371,14 @@ const deleteTask = async (req, res) => {
   }
 };
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 // Apply auth middleware
-router.use(withAuth);
+router.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  withAuth(req, res, next);
+});
 
 // Define routes
 router.get('/', getTasks);
@@ -405,16 +390,36 @@ router.delete('/:id', deleteTask);
 // Handle unsupported methods
 router.all('*', (req, res) => {
   res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-  res.status(405).json({ message: `Method ${req.method} Not Allowed` });
+  res.status(405).json({ 
+    success: false,
+    code: 'METHOD_NOT_ALLOWED',
+    message: `Method ${req.method} Not Allowed` 
+  });
 });
 
 // Error handling middleware
 router.use((err, req, res, next) => {
   console.error('Tasks API error:', err);
+  
+  // Handle specific error types
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      message: 'Validation failed',
+      errors: err.errors
+    });
+  }
+  
   res.status(500).json({ 
+    success: false,
+    code: 'SERVER_ERROR',
     message: 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { error: err.message })
+    ...(process.env.NODE_ENV === 'development' && { 
+      error: err.message,
+      stack: err.stack 
+    })
   });
 });
 
-module.exports = router;
+export default router;
