@@ -903,9 +903,34 @@ function setupEventListeners() {
 }
 
 // --- Modal Management ---
+// Track form initialization state
+let isFormInitialized = false;
+
+/**
+ * Initialize the task form with proper event listeners
+ */
+function initTaskForm() {
+    if (isFormInitialized) return;
+    
+    const taskForm = document.getElementById('taskForm');
+    if (!taskForm) return;
+    
+    // Remove any existing listeners to prevent duplicates
+    taskForm.removeEventListener('submit', handleFormSubmit);
+    
+    // Add the submit handler
+    taskForm.addEventListener('submit', handleFormSubmit);
+    
+    isFormInitialized = true;
+    console.log('Task form initialized');
+}
+
 function openModal(taskId = null, status = 'todo') {
     document.getElementById('modalTitle').innerText = taskId ? 'Edit Task' : 'Create New Task';
 
+    // Initialize form if not already done
+    initTaskForm();
+    
     // Reset form
     const form = document.getElementById('taskForm');
     form.reset();
@@ -962,7 +987,12 @@ function closeModal(modalId) {
 }
 
 async function handleFormSubmit(e) {
+    // Prevent default form submission and stop propagation
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Double check if we're handling a form submission
+    if (e.target.id !== 'taskForm') return;
 
     const form = e.target;
     const id = form.dataset.id || `task-${Date.now()}`; // Ensure consistent ID format
