@@ -291,7 +291,64 @@
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="authModal" style="display: none;">
+        <div class="modal auth-modal" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 id="authModalTitle">Login to Your Account</h3>
+                <button class="icon-btn close-btn" onclick="closeAuthModal()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form">
+                <form id="loginFormElement">
+                    <div class="form-group">
+                        <label for="authEmail">Email</label>
+                        <input type="email" id="authEmail" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="authPassword">Password</label>
+                        <input type="password" id="authPassword" class="form-control" placeholder="Enter your password" required>
+                    </div>
+                    <div id="loginError" class="error-message" style="display: none;"></div>
+                    <button type="submit" id="loginBtn" class="btn btn-primary btn-block">
+                        Login
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="#" id="switchToSignup">Sign up</a></p>
+                </div>
+            </div>
+            
+            <!-- Signup Form -->
+            <div id="signupForm" class="auth-form" style="display: none;">
+                <form id="signupFormElement">
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" class="form-control" placeholder="Create a password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm your password" required>
+                    </div>
+                    <div id="signupError" class="error-message" style="display: none;"></div>
+                    <button type="submit" id="signupBtn" class="btn btn-primary btn-block">
+                        Create Account
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="#" id="switchToLogin">Log in</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications -->
     <div id="toastContainer" class="toast-container">
         <!-- Toasts will be inserted here -->
@@ -302,6 +359,9 @@
     
     <!-- Firebase -->
     <script type="module" src="js/firebase.js"></script>
+    
+    <!-- Auth Script -->
+    <script src="js/auth.js"></script>
     
     <!-- Main App Script -->
     <script type="module" src="YoursKanban.js"></script>
