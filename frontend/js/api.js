@@ -69,14 +69,24 @@ async function handleResponse(response) {
  */
 async function request(endpoint, options = {}) {
   try {
-    // Get Firebase token
-    const token = await getFirebaseToken();
+    // Check if user is authenticated
+    const auth = getAuth();
+    if (!auth.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    // Get a fresh token for each request
+    const token = await auth.currentUser.getIdToken(true);
+    
+    if (!token) {
+      throw new Error('Failed to get authentication token');
+    }
     
     // Set default headers
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
+      'Authorization': `Bearer ${token}`,
       ...options.headers
     };
 
@@ -91,9 +101,39 @@ async function request(endpoint, options = {}) {
 
     // Make the request
     const response = await fetch(`${API_BASE}${endpoint}`, config);
+    
+    // If unauthorized, try to refresh token once
+    if (response.status === 401) {
+      // Force token refresh and try again
+      const newToken = await auth.currentUser.getIdToken(true);
+      if (newToken && newToken !== token) {
+        headers.Authorization = `Bearer ${newToken}`;
+        const retryResponse = await fetch(`${API_BASE}${endpoint}`, config);
+        return await handleResponse(retryResponse);
+      }
+      
+      // If we get here, the token refresh didn't work
+      throw new Error('Session expired. Please log in again.');
+    }
+    
     return await handleResponse(response);
   } catch (error) {
     console.error(`API request to ${endpoint} failed:`, error);
+    
+    // Handle specific error cases
+    if (error.message.includes('auth/network-request-failed')) {
+      throw new Error('Network error. Please check your connection.');
+    }
+    
+    if (error.message.includes('auth/too-many-requests')) {
+      throw new Error('Too many requests. Please try again later.');
+    }
+    
+    // Re-throw the error with a user-friendly message if it's an auth error
+    if (error.message.includes('auth/') || error.message.includes('token')) {
+      throw new Error('Your session has expired. Please log in again.');
+    }
+    
     throw error;
   }
 }
