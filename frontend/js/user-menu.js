@@ -6,7 +6,14 @@
 /**
  * Handle logout action with custom confirmation dialog
  */
-async function handleLogout() {
+async function handleLogout(e) {
+    // Prevent default behavior (form submission, link navigation, etc.)
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+    }
+    
     // Create confirmation dialog
     const dialog = document.createElement('div');
     dialog.className = 'confirmation-dialog';
@@ -602,20 +609,37 @@ document.addEventListener('DOMContentLoaded', () => {
             const newLogoutBtn = logoutBtn.cloneNode(true);
             logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
             
-            // Add new event listeners
-            newLogoutBtn.addEventListener('click', (e) => {
+            // Store the original href to prevent default navigation
+            const originalHref = newLogoutBtn.href || '#';
+            newLogoutBtn.href = 'javascript:void(0)';
+            
+            // Add new event listeners with proper prevention
+            const handleLogoutClick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                handleLogout();
-            });
+                e.stopImmediatePropagation();
+                handleLogout(e);
+                return false;
+            };
             
+            // Remove any existing event listeners first
+            newLogoutBtn.removeEventListener('click', handleLogoutClick);
+            newLogoutBtn.removeEventListener('touchend', handleLogoutClick);
+            
+            // Add new listeners
+            newLogoutBtn.addEventListener('click', handleLogoutClick, true);
+            newLogoutBtn.addEventListener('touchend', handleLogoutClick, true);
+            
+            // Handle keyboard events
             newLogoutBtn.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleLogout();
+                    e.stopImmediatePropagation();
+                    handleLogout(e);
+                    return false;
                 }
-            });
+            }, true);
             
             // Update the reference
             window.logoutBtn = newLogoutBtn;
