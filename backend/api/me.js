@@ -65,27 +65,26 @@ module.exports = async (req, res) => {
     const user = await getOrCreateUser(
       firebaseUser.uid,
       firebaseUser.email,
-      firebaseUser.name
-    );
-    if (!decoded || !decoded.id) {
-      return res.status(401).json({ message: 'Invalid or expired token' });
-    }
-
-    // Fetch the user from the database
-    const result = await pool.query(
-      'SELECT id, username, email, created_at, updated_at FROM users WHERE id = $1',
-      [decoded.id]
+      firebaseUser.name || firebaseUser.displayName || ''
     );
 
-    if (result.rows.length === 0) {
-      // Clear the invalid token
-      res.clearCookie('token');
-      return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(500).json({ 
+        success: false,
+        message: 'Failed to create user' 
+      });
     }
-
-    const user = result.rows[0];
+    
+    // Return the user data
     res.status(200).json({ 
-      user,
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        created_at: user.created_at,
+        updated_at: user.updated_at
+      },
       message: 'User authenticated successfully' 
     });
   } catch (error) {
