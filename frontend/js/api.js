@@ -1,39 +1,76 @@
 // API Utility Functions
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const API_BASE = "https://yourskanban.onrender.com/api";
 
 /**
- * Makes an authenticated API request
- * @param {string} endpoint - API endpoint
- * @param {Object} options - Fetch options
- * @returns {Promise<any>} - Response data
+ * Get Firebase ID token for the current user
+ * @returns {Promise<string|null>} - Firebase ID token or null if not authenticated
  */
+async function getFirebaseToken() {
+  try {
+    const user = getAuth().currentUser;
+    if (!user) return null;
+    return await user.getIdToken();
+  } catch (error) {
+    console.error('Error getting Firebase token:', error);
+    return null;
+  }
+}
+
 /**
- * Makes an authenticated API request
+ * Handles API responses
+ * @param {Response} response - Fetch response
+ * @returns {Promise<any>} - Parsed response data
+ */
+async function handleResponse(response) {
+  const data = await response.json().catch(() => ({}));
+  
+  if (!response.ok) {
+    const error = new Error(data.message || 'API request failed');
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  
+  return data;
+}
+
+/**
+ * Makes an authenticated API request with Firebase token
  * @param {string} endpoint - API endpoint
  * @param {Object} options - Fetch options
  * @returns {Promise<any>} - Response data
  */
 async function request(endpoint, options = {}) {
-    const API_BASE = "https://yourskanban.onrender.com/api";
-    
-    // Get Firebase token from localStorage
-    const token = localStorage.getItem("token");
+  try {
+    // Get Firebase token
+    const token = await getFirebaseToken();
     
     // Set default headers
     const headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }), // Remove await from token
-        ...options.headers
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers
     };
 
     // Prepare fetch config
     const config = {
-        ...options,
-        headers,
-        credentials: 'include', // Send/receive cookies
-        mode: 'cors', // Enable CORS mode
-        cache: 'no-cache', // Disable caching for API requests
+      ...options,
+      headers,
+      credentials: 'include',
+      mode: 'cors',
+      cache: 'no-cache',
     };
+
+    // Make the request
+    const response = await fetch(`${API_BASE}${endpoint}`, config);
+    return await handleResponse(response);
+  } catch (error) {
+    console.error(`API request to ${endpoint} failed:`, error);
+    throw error;
+  }
 
     try {
         console.log(`API Request: ${endpoint}`, { method: config.method || 'GET' });
