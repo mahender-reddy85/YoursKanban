@@ -17,7 +17,6 @@ function waitForFirebase() {
 // Make functions globally available
 window.openAuthModal = showAuthModal;
 window.closeAuthModal = closeAuthModal;
-window.handleLogout = handleLogout;
 
 // Auth Modal Elements
 const authModal = document.getElementById('authModal');
