@@ -92,8 +92,9 @@ const getTasks = async (req, res) => {
     const userId = req.user.id;
     
     try {
-      const result = await req.db.query(queryText, [user_id]);
-      return result;
+      const result = await req.db.query(queryText, [userId]);
+      console.log(`Found ${result.rows.length} tasks for user ${req.user.id}`);
+      return res.status(200).json(result.rows);
     } catch (queryError) {
       console.error('Database query error details:', {
         error: queryError,
@@ -103,9 +104,6 @@ const getTasks = async (req, res) => {
       });
       throw queryError; // Re-throw to be caught by the outer catch block
     }
-    
-    console.log(`Found ${result.rows.length} tasks for user ${req.user.id}`);
-    return res.status(200).json(result.rows);
     
   } catch (dbError) {
     console.error('Database error in getTasks:', {
