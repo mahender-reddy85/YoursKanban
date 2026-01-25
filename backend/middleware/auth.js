@@ -44,6 +44,40 @@ export const verifyFirebaseToken = async (req, res, next) => {
   console.log(' Token received (first 30 chars):', token.substring(0, 30) + '...');
   console.log(' Token length:', token.length);
   console.log(' Token prefix:', token.split('.')[0]);
+  
+  try {
+    // Log detailed token information
+    console.log(' Decoded token header:', JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString()));
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    console.log(' Decoded token payload:', {
+      ...payload,
+      auth_time: payload.auth_time ? new Date(payload.auth_time * 1000).toISOString() : null,
+      iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : null,
+      exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : null,
+      now: new Date().toISOString()
+    });
+    
+    // Check if token is expired
+    if (payload.exp && payload.exp < Date.now() / 1000) {
+      console.error('❌ Token is expired');
+      console.error('Token expired at:', new Date(payload.exp * 1000).toISOString());
+      console.error('Current time:', new Date().toISOString());
+    }
+    
+    // Check token audience
+    if (payload.aud) {
+      console.log(' Token audience (aud):', payload.aud);
+      console.log(' Expected audience (project ID):', admin.app().options.projectId);
+    }
+    
+    // Check token issuer
+    if (payload.iss) {
+      console.log(' Token issuer (iss):', payload.iss);
+      console.log(' Expected issuer:', `https://securetoken.google.com/${admin.app().options.projectId}`);
+    }
+  } catch (parseError) {
+    console.error('❌ Error parsing token:', parseError);
+  }
 
   try {
     console.log(' Verifying token...');
