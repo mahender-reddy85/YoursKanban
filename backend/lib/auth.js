@@ -1,73 +1,55 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import 'dotenv/config';
+const admin = require('./firebase');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = '7d';
-
-// Generate JWT token
-const generateToken = (user_id) => {
-  return jwt.sign({ id: user_id }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN
-  });
-};
-
-// Verify JWT token
-const verifyToken = (token) => {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
-};
-
-// Hash password
-const hashPassword = async (password) => {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(password, salt);
-};
-
-// Compare password with hash
-const comparePasswords = async (password, hash) => {
-  return await bcrypt.compare(password, hash);
-};
-
-// Middleware to protect routes
+/**
+ * Middleware to protect routes with Firebase Authentication
+ * Verifies the Firebase ID token in the Authorization header
+ * and attaches the decoded token to req.user
+ */
 const protect = async (req, res, next) => {
   try {
-    let token;
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No token provided' });
     }
 
+    const token = authHeader.split(' ')[1];
     if (!token) {
-      // For non-authenticated routes, just continue without setting req.user
-      return next();
+      return res.status(401).json({ message: 'No token provided' });
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ message: 'Not authorized, invalid token' });
+    try {
+      // Verify the Firebase ID token
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      
+      // Attach the decoded token to the request object
+      req.user = {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        email_verified: decodedToken.email_verified,
+        name: decodedToken.name,
+        picture: decodedToken.picture
+      };
+      
+      next();
+    } catch (error) {
+      console.error('Error verifying token:', error);
+      return res.status(401).json({ 
+        message: 'Invalid or expired token',
+        error: error.message 
+      });
     }
-
-    // Get user from the token
-    const { rows } = await req.db.query('SELECT * FROM users WHERE id = $1', [decoded.id]);
-    
-    if (rows.length === 0) {
-      return res.status(401).json({ message: 'User not found' });
-    }
-
-    req.user = rows[0];
-    next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(401).json({ message: 'Not authorized' });
+    console.error('Authentication error:', error);
+    return res.status(500).json({ 
+      message: 'Authentication failed',
+      error: error.message 
+    });
   }
 };
 
-export {
-  generateToken,
-  verifyToken,
+module.exports = {
+  protect
+};
   hashPassword,
   comparePasswords,
   protect,

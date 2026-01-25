@@ -15,8 +15,12 @@
 async function request(endpoint, options = {}) {
     const API_BASE = "https://yourskanban.onrender.com/api";
     
-    // Get Clerk session token if available
-    const token = window.Clerk?.session?.getToken?.();
+    // Get Firebase token from localStorage
+    const token = localStorage.getItem("token");
+    if (!token) {
+        console.error("No authentication token found");
+        return Promise.reject(new Error("Not authenticated"));
+    }
     
     // Set default headers
     const headers = {
