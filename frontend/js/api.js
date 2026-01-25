@@ -1,5 +1,5 @@
 // API Utility Functions
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const API_BASE = "https://yourskanban.onrender.com/api";
 
@@ -8,9 +8,14 @@ const API_BASE = "https://yourskanban.onrender.com/api";
  * @returns {Promise<string|null>} - Firebase ID token or null if not authenticated
  */
 async function getFirebaseToken() {
-  const user = getAuth().currentUser;
-  if (!user) return null;
-  return await user.getIdToken(true);
+  try {
+    const user = getAuth().currentUser;
+    if (!user) return null;
+    return await user.getIdToken(true);
+  } catch (error) {
+    console.error('Error getting Firebase token:', error);
+    return null;
+  }
 }
 
 /**
@@ -66,7 +71,11 @@ async function request(endpoint, options = {}) {
   try {
     const token = await getFirebaseToken();
     
-    // Make the request with the token
+    // If no token and this is a protected endpoint, throw error
+    if (!token && !endpoint.includes('/public/')) {
+      throw new Error('Authentication required');
+    }
+    
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
@@ -78,7 +87,7 @@ async function request(endpoint, options = {}) {
     
     // Handle 401 Unauthorized
     if (response.status === 401) {
-      // Force token refresh and try one more time
+      // Try to refresh token once
       const newToken = await getFirebaseToken();
       if (newToken) {
         const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
@@ -91,7 +100,6 @@ async function request(endpoint, options = {}) {
         });
         return await handleResponse(retryResponse);
       }
-      
       throw new Error('Session expired. Please log in again.');
     }
     
@@ -109,7 +117,7 @@ async function request(endpoint, options = {}) {
     }
     
     // Re-throw the error with a user-friendly message if it's an auth error
-    if (error.message.includes('auth/') || error.message.includes('token')) {
+    if (error.message.includes('auth/') || error.message.includes('token') || error.message === 'Authentication required') {
       throw new Error('Your session has expired. Please log in again.');
     }
     

@@ -20,66 +20,75 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
-let auth;
+export let app;
+export let auth;
 let analytics;
 
-try {
-  // Initialize Firebase app
-  app = initializeApp(firebaseConfig);
-  
-  // Initialize Firebase services
-  auth = getAuth(app);
-  analytics = getAnalytics(app);
-  
-  // Make auth and auth functions available globally
-  window.firebaseAuth = auth;
-  window.firebaseSignIn = signInWithEmailAndPassword;
-  window.firebaseSignUp = createUserWithEmailAndPassword;
-  window.firebaseSignOut = firebaseSignOut;
-  window.firebaseAnalytics = analytics;
-  
-  console.log('Firebase initialized successfully');
-  
-  // Set up auth state change listener
-  onAuthStateChanged(auth, async (user) => {
-    try {
-      if (user) {
-        // User is signed in
-        const token = await user.getIdToken();
-        localStorage.setItem("token", token);
-        
-        // Store user data in localStorage
-        const userData = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || user.email.split('@')[0],
-          photoURL: user.photoURL
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        console.log('User logged in:', userData);
-        
-        // Dispatch custom event for other parts of the app
-        document.dispatchEvent(new CustomEvent('userLoggedIn', { detail: userData }));
-      } else {
-        // User is signed out
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        console.log('User logged out');
-        
-        // Dispatch custom event for other parts of the app
-        document.dispatchEvent(new CustomEvent('userLoggedOut'));
+// Initialize Firebase
+const initFirebase = () => {
+  try {
+    // Initialize Firebase app
+    app = initializeApp(firebaseConfig);
+    
+    // Initialize Firebase services
+    auth = getAuth(app);
+    analytics = getAnalytics(app);
+    
+    // Make auth and auth functions available globally
+    window.firebaseAuth = auth;
+    window.firebaseSignIn = signInWithEmailAndPassword;
+    window.firebaseSignUp = createUserWithEmailAndPassword;
+    window.firebaseSignOut = firebaseSignOut;
+    window.firebaseAnalytics = analytics;
+    
+    console.log('Firebase initialized successfully');
+    
+    // Set up auth state change listener
+    onAuthStateChanged(auth, async (user) => {
+      try {
+        if (user) {
+          // User is signed in
+          const token = await user.getIdToken();
+          localStorage.setItem("token", token);
+          
+          // Store user data in localStorage
+          const userData = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || user.email.split('@')[0],
+            photoURL: user.photoURL
+          };
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          console.log('User logged in:', userData);
+        } else {
+          // User is signed out
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          console.log('User logged out');
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
       }
-    } catch (error) {
-      console.error('Error in auth state change:', error);
-    }
-  });
-  
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  
-  // Fallback if Firebase fails to initialize
+    });
+    
+    return { app, auth, analytics };
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    throw error;
+  }
+};
+
+// Export a function to check if Firebase is initialized
+export function isFirebaseInitialized() {
+  return !!app && !!auth;
+}
+
+// Initialize Firebase immediately
+const firebaseApp = initFirebase();
+
+// Fallback if Firebase fails to initialize
+if (!firebaseApp) {
   window.firebaseAuth = {
     signOut: () => {
       localStorage.removeItem('token');
