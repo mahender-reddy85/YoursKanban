@@ -1,14 +1,19 @@
 import admin from '../lib/firebaseAdmin.js';
 
-console.log("Admin project:", admin.app().options.projectId);
+// Log project initialization
+console.log('Firebase Admin initialized with project:', admin.app().options.projectId);
 
 /**
  * Middleware to verify Firebase ID token
  */
 export const verifyFirebaseToken = async (req, res, next) => {
   const header = req.headers.authorization;
+  console.log('\n--- New Request ---');
+  console.log('Path:', req.path);
+  console.log('Method:', req.method);
+  
   if (!header) {
-    console.error('No authorization header');
+    console.log('No Authorization header found');
     return res.status(401).json({ 
       success: false,
       code: 'MISSING_AUTH_HEADER',
@@ -16,20 +21,47 @@ export const verifyFirebaseToken = async (req, res, next) => {
     });
   }
 
-  const token = header.split(' ')[1];
-  if (!token) {
-    console.error('No token provided');
+  const parts = header.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    console.log('Invalid Authorization header format');
     return res.status(401).json({ 
       success: false,
-      code: 'NO_TOKEN',
-      message: 'No authentication token provided'
+      code: 'INVALID_AUTH_HEADER',
+      message: 'Authorization header must be: Bearer <token>'
     });
   }
+  
+  const token = parts[1];
+  console.log('Token received (first 30 chars):', token.substring(0, 30) + '...');
+  console.log('Token length:', token.length);
 
   try {
+    console.log('Verifying token...');
     const decoded = await admin.auth().verifyIdToken(token);
-    console.log('Token project:', decoded.aud);
-    console.log('Authenticated user:', { uid: decoded.uid, email: decoded.email });
+    
+    console.log('Token verified successfully');
+    console.log('Decoded token:', {
+      uid: decoded.uid,
+      email: decoded.email,
+      iat: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : null,
+      exp: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
+      aud: decoded.aud,
+      iss: decoded.iss,
+      sub: decoded.sub
+    });
+    
+    // Verify the token's audience matches your project
+    const projectId = admin.app().options.projectId;
+    if (decoded.aud !== projectId) {
+      console.error('Token audience does not match project ID');
+      console.log('Token aud:', decoded.aud);
+      console.log('Expected aud:', projectId);
+      return res.status(401).json({
+        success: false,
+        code: 'INVALID_AUDIENCE',
+        message: 'Invalid token audience'
+      });
+    }
     
     // Attach user info to the request
     req.user = {
@@ -38,22 +70,27 @@ export const verifyFirebaseToken = async (req, res, next) => {
       email_verified: decoded.email_verified || false
     };
     
+    console.log('Authentication successful for user:', req.user.uid);
     next();
-  } catch (err) {
-    console.error('Token verification failed:', err.message);
+  } catch (error) {
+    console.error('Token verification failed:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
     
     // Handle specific error cases
-    let errorCode = 'TOKEN_VERIFICATION_FAILED';
     let statusCode = 401;
+    let errorCode = 'INVALID_TOKEN';
     let message = 'Invalid or expired token';
     
-    if (err.code === 'auth/id-token-expired') {
+    if (error.code === 'auth/id-token-expired') {
       errorCode = 'TOKEN_EXPIRED';
       message = 'Token has expired. Please log in again.';
-    } else if (err.code === 'auth/argument-error') {
-      errorCode = 'INVALID_TOKEN';
+    } else if (error.code === 'auth/argument-error') {
+      errorCode = 'INVALID_TOKEN_FORMAT';
       message = 'Invalid token format';
-    } else if (err.code === 'auth/user-disabled') {
+    } else if (error.code === 'auth/user-disabled') {
       errorCode = 'USER_DISABLED';
       message = 'This account has been disabled';
       statusCode = 403;

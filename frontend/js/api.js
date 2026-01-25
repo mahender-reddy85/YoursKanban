@@ -1,7 +1,27 @@
 // API Utility Functions
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+const auth = getAuth();
 const API_BASE = "https://yourskanban.onrender.com/api";
+
+// Debug function to log token information
+async function debugToken() {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log('No authenticated user');
+      return null;
+    }
+    const token = await user.getIdToken();
+    console.log('Current user UID:', user.uid);
+    console.log('ID Token (first 30 chars):', token.substring(0, 30) + '...');
+    console.log('Token length:', token.length);
+    return token;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    throw error;
+  }
+}
 
 /**
  * Get Firebase ID token for the current user
@@ -71,9 +91,18 @@ async function request(endpoint, options = {}) {
   try {
     const token = await getFirebaseToken();
     
-    // If no token and this is a protected endpoint, throw error
-    if (!token && !endpoint.includes('/public/')) {
+    // Log request details
+    console.log(`\n--- New API Request ---`);
+    console.log(`Making ${options.method || 'GET'} request to ${endpoint}`);
+    
+    if (token) {
+      console.log('Using token (first 30 chars):', token.substring(0, 30) + '...');
+      console.log('Token length:', token.length);
+    } else if (!endpoint.includes('/public/')) {
+      console.log('No auth token available for protected endpoint');
       throw new Error('Authentication required');
+    } else {
+      console.log('No auth token (public endpoint)');
     }
     
     const response = await fetch(`${API_BASE}${endpoint}`, {
