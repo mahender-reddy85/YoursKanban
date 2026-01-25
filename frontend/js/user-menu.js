@@ -289,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e) {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
             
             // Handle touch events
             if (e.type === 'touchstart') {
@@ -316,6 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             openDropdown();
         }
+        
+        return false;
     }
 
     /**
@@ -343,57 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Trigger reflow to ensure transition works
         dropdownMenu.offsetHeight;
         
-        // Show the dropdown and backdrop
-        document.body.style.overflow = 'hidden';
-        dropdownMenu.classList.add('show');
-        dropdownBackdrop.classList.add('show');
-        
-        // Update state and ARIA
-        isDropdownOpen = true;
-        userAvatar.setAttribute('aria-expanded', 'true');
-        
-        // Focus management
-        setTimeout(() => {
-            const firstFocusable = dropdownMenu.querySelector('button, a, [tabindex]:not([tabindex="-1"])');
-            if (firstFocusable) firstFocusable.focus();
-        }, 50);
-        
-        // Add event listeners
-        document.addEventListener('click', handleClickOutside, { passive: true });
-        document.addEventListener('keydown', handleKeyDown, { passive: true });
-        window.addEventListener('resize', handleResize, { passive: true });
-        
-        // Close on backdrop click
-        dropdownBackdrop.addEventListener('click', closeDropdown, { passive: true });
-        
-        // Prevent body scroll when dropdown is open on mobile
-        if (isMobile) {
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
-    /**
-     * Close the dropdown menu
-     */
-    function closeDropdown() {
-        dropdownMenu.classList.remove('show');
-        dropdownBackdrop.classList.remove('show');
-        userAvatar.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
-        isDropdownOpen = false;
-    }
-
-    /**
-     * Handle window resize events
-     */
-    function handleResize() {
-        isMobile = window.innerWidth <= 768;
-        if (isDropdownOpen && !isMobile) {
-            const rect = userAvatar.getBoundingClientRect();
-            dropdownMenu.style.top = `${rect.bottom + window.scrollY + 8}px`;
-            dropdownMenu.style.right = `${window.innerWidth - rect.right}px`;
-        }
-    }
     
     /**
      * Handle clicks outside the dropdown
@@ -672,8 +624,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function initEventListeners() {
         // Avatar click/touch events
         if (userAvatar) {
+            // Remove any existing event listeners to prevent duplicates
+            const newUserAvatar = userAvatar.cloneNode(true);
+            userAvatar.parentNode.replaceChild(newUserAvatar, userAvatar);
+            userAvatar = newUserAvatar;
+            
             // Mouse/touch events
-            userAvatar.addEventListener('click', toggleDropdown);
+            const handleAvatarClick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleDropdown(e);
+                return false;
+            };
+            
+            userAvatar.addEventListener('click', handleAvatarClick, true);
+            
             userAvatar.addEventListener('touchstart', (e) => {
                 touchStartY = e.touches[0].clientY;
                 userAvatar.classList.add('active');
@@ -683,21 +648,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 const touchEndY = e.changedTouches[0].clientY;
                 // Only toggle if it's a tap (not a swipe)
                 if (Math.abs(touchEndY - touchStartY) < 10) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     toggleDropdown(e);
                 }
                 userAvatar.classList.remove('active');
-            }, { passive: true });
+                return false;
+            }, { passive: false });
             
             // Keyboard navigation
             userAvatar.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
                     e.preventDefault();
+                    e.stopPropagation();
                     toggleDropdown(e);
+                    return false;
                 } else if (e.key === 'ArrowDown' && !isDropdownOpen) {
                     e.preventDefault();
+                    e.stopPropagation();
                     openDropdown();
+                    return false;
                 }
-            });
+            }, true);
+            
+            // Make sure the avatar is focusable
+            userAvatar.setAttribute('tabindex', '0');
+            userAvatar.setAttribute('role', 'button');
+            userAvatar.setAttribute('aria-haspopup', 'true');
+            userAvatar.setAttribute('aria-expanded', 'false');
+            
+            // Update the reference
+            window.userAvatar = userAvatar;
         }
         
         // Logout button
