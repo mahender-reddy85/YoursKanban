@@ -123,15 +123,13 @@ async function request(endpoint, options = {}) {
     // Prepare headers
     const headers = {
       'Content-Type': 'application/json',
-      'X-Request-ID': requestId,
       ...(token && { 'Authorization': `Bearer ${token}` }),
       ...(options.headers || {})
     };
     
     log('Request headers:', {
       'Content-Type': headers['Content-Type'],
-      'Authorization': headers['Authorization'] ? 'Bearer [TOKEN]' : 'None',
-      'X-Request-ID': headers['X-Request-ID']
+      'Authorization': headers['Authorization'] ? 'Bearer [TOKEN]' : 'None'
     });
     
     // Make the request

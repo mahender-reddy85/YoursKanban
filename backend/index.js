@@ -48,11 +48,12 @@ const corsOptions = {
     console.log('Allowed origins pattern:', allowedOrigins.map(p => p.toString()));
     callback(new Error('Not allowed by CORS'));
   },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Content-Length', 'Accept'],
   exposedHeaders: ['Set-Cookie'],
   credentials: true,
   preflightContinue: false,
+  optionsSuccessStatus: 204, // Some legacy browsers (IE11, various SmartTVs) choke on 204
   optionsSuccessStatus: 204,
   maxAge: 600 // 10 minutes for preflight cache
 };
