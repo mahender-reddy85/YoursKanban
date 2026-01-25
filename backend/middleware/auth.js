@@ -47,7 +47,42 @@ export const verifyFirebaseToken = async (req, res, next) => {
 
   try {
     console.log(' Verifying token...');
-    const decoded = await admin.auth().verifyIdToken(token, true); // Check if token is revoked
+    console.log(' Token details:', {
+      header: JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString()),
+      payload: JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString())
+    });
+    
+    // Check token format
+    if (token.split('.').length !== 3) {
+      throw new Error('Invalid token format');
+    }
+    
+    // Verify the token
+    const decoded = await admin.auth().verifyIdToken(token, true).catch(error => {
+      console.error('❌ Token verification failed:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack,
+        errorInfo: error.errorInfo
+      });
+      
+      // Check common issues
+      if (error.code === 'auth/argument-error') {
+        console.error('Token verification failed: Invalid token format');
+      } else if (error.code === 'auth/id-token-expired') {
+        console.error('Token verification failed: Token has expired');
+      } else if (error.code === 'auth/id-token-revoked') {
+        console.error('Token verification failed: Token has been revoked');
+      } else if (error.code === 'auth/user-disabled') {
+        console.error('Token verification failed: User account is disabled');
+      } else if (error.code === 'auth/invalid-id-token') {
+        console.error('Token verification failed: Invalid token');
+      } else if (error.code === 'auth/network-request-failed') {
+        console.error('Token verification failed: Network error while verifying token');
+      }
+      
+      throw error;
+    });
     
     console.log(' Token verified successfully');
     console.log(' Decoded token:', {
