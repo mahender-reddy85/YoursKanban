@@ -294,4 +294,4 @@ const authAPI = {
     }
 };
 
-export { tasksAPI, authAPI, isLoggedIn };
+export { tasksAPI, authAPI };
