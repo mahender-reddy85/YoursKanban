@@ -237,7 +237,6 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/me', firebaseAuth, meHandler);
 
 // Task routes (protected by Firebase Auth)
-const { router: tasksRouter } = require('./api/tasks');
 app.use('/api/tasks', firebaseAuth, tasksRouter);
 
 // 404 handler
