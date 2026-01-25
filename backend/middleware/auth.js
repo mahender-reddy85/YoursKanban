@@ -7,197 +7,92 @@ console.log('Firebase Admin initialized with project:', admin.app().options.proj
  * Middleware to verify Firebase ID token
  */
 export const verifyFirebaseToken = async (req, res, next) => {
-  // Log incoming request details
-  console.log('\n--- New Request ---');
-  console.log('Path:', req.path);
-  console.log('Method:', req.method);
-  console.log('Headers:', {
-    host: req.headers.host,
-    'content-type': req.headers['content-type'],
-    'user-agent': req.headers['user-agent']
-  });
-
-  const header = req.headers.authorization;
-
-  if (!header) {
-    console.log(' No Authorization header found');
-    return res.status(401).json({ 
-      success: false,
-      code: 'MISSING_AUTH_HEADER',
-      message: 'No authorization header provided',
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  const parts = header.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    console.log(' Invalid Authorization header format');
-    return res.status(401).json({ 
-      success: false,
-      code: 'INVALID_AUTH_HEADER',
-      message: 'Authorization header must be: Bearer <token>',
-      timestamp: new Date().toISOString()
-    });
-  }
-  
-  const token = parts[1];
-  console.log(' Token received (first 30 chars):', token.substring(0, 30) + '...');
-  console.log(' Token length:', token.length);
-  console.log(' Token prefix:', token.split('.')[0]);
-  
   try {
-    // Log detailed token information
-    console.log(' Decoded token header:', JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString()));
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    console.log(' Decoded token payload:', {
-      ...payload,
-      auth_time: payload.auth_time ? new Date(payload.auth_time * 1000).toISOString() : null,
-      iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : null,
-      exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : null,
-      now: new Date().toISOString()
-    });
-    
-    // Check if token is expired
-    if (payload.exp && payload.exp < Date.now() / 1000) {
-      console.error('❌ Token is expired');
-      console.error('Token expired at:', new Date(payload.exp * 1000).toISOString());
-      console.error('Current time:', new Date().toISOString());
-    }
-    
-    // Check token audience
-    if (payload.aud) {
-      console.log(' Token audience (aud):', payload.aud);
-      console.log(' Expected audience (project ID):', admin.app().options.projectId);
-    }
-    
-    // Check token issuer
-    if (payload.iss) {
-      console.log(' Token issuer (iss):', payload.iss);
-      console.log(' Expected issuer:', `https://securetoken.google.com/${admin.app().options.projectId}`);
-    }
-  } catch (parseError) {
-    console.error('❌ Error parsing token:', parseError);
-  }
-
-  try {
-    console.log(' Verifying token...');
-    console.log(' Token details:', {
-      header: JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString()),
-      payload: JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString())
-    });
-    
-    // Check token format
-    if (token.split('.').length !== 3) {
-      throw new Error('Invalid token format');
-    }
-    
-    // Verify the token
-    const decoded = await admin.auth().verifyIdToken(token, true).catch(error => {
-      console.error('❌ Token verification failed:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack,
-        errorInfo: error.errorInfo
-      });
-      
-      // Check common issues
-      if (error.code === 'auth/argument-error') {
-        console.error('Token verification failed: Invalid token format');
-      } else if (error.code === 'auth/id-token-expired') {
-        console.error('Token verification failed: Token has expired');
-      } else if (error.code === 'auth/id-token-revoked') {
-        console.error('Token verification failed: Token has been revoked');
-      } else if (error.code === 'auth/user-disabled') {
-        console.error('Token verification failed: User account is disabled');
-      } else if (error.code === 'auth/invalid-id-token') {
-        console.error('Token verification failed: Invalid token');
-      } else if (error.code === 'auth/network-request-failed') {
-        console.error('Token verification failed: Network error while verifying token');
-      }
-      
-      throw error;
-    });
-    
-    console.log(' Token verified successfully');
-    console.log(' Decoded token:', {
-      uid: decoded.uid,
-      email: decoded.email,
-      email_verified: decoded.email_verified,
-      auth_time: decoded.auth_time ? new Date(decoded.auth_time * 1000).toISOString() : null,
-      iat: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : null,
-      exp: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
-      now: new Date().toISOString(),
-      token_used: decoded.token_used || false,
-      aud: decoded.aud,
-      iss: decoded.iss,
-      sub: decoded.sub,
-      firebase: decoded.firebase ? {
-        sign_in_provider: decoded.firebase.sign_in_provider,
-        identities: Object.keys(decoded.firebase.identities || {})
-      } : null
+    // Log incoming request details
+    console.log('\n--- New Request ---');
+    console.log('Path:', req.path);
+    console.log('Method:', req.method);
+    console.log('Headers:', {
+      host: req.headers.host,
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent']
     });
 
-    // Check if token is expired
-    const now = Date.now() / 1000;
-    if (decoded.exp < now) {
-      console.error(' Token expired:', { 
-        expired_seconds_ago: Math.round(now - decoded.exp),
-        expired_at: new Date(decoded.exp * 1000).toISOString()
-      });
-      throw new Error('Token has expired');
+    // Skip token verification for OPTIONS requests (preflight)
+    if (req.method === 'OPTIONS') {
+      console.log('Skipping auth for OPTIONS request');
+      return next();
     }
 
-    // Verify the token's audience matches your project
-    const projectId = admin.app().options.projectId;
-    if (decoded.aud !== projectId) {
-      console.error('Token audience does not match project ID');
-      console.log('Token aud:', decoded.aud);
-      console.log('Expected aud:', projectId);
-      return res.status(401).json({
+    const header = req.headers.authorization;
+
+    if (!header) {
+      console.log('No Authorization header found');
+      return res.status(401).json({ 
         success: false,
-        code: 'INVALID_AUDIENCE',
-        message: 'Invalid token audience',
+        code: 'MISSING_AUTH_HEADER',
+        message: 'No authorization header provided',
         timestamp: new Date().toISOString()
       });
     }
-    
-    // Attach user info to the request
-    req.user = {
-      uid: decoded.uid,
-      email: decoded.email,
-      email_verified: decoded.email_verified || false
-    };
-    
-    console.log('Authentication successful for user:', req.user.uid);
-    next();
-  } catch (error) {
-    console.error('Token verification failed:', {
-      code: error.code,
-      message: error.message,
-      stack: error.stack
-    });
-    
-    // Handle specific error cases
-    let statusCode = 401;
-    let errorCode = 'INVALID_TOKEN';
-    let message = 'Invalid or expired token';
-    
-    if (error.code === 'auth/id-token-expired') {
-      errorCode = 'TOKEN_EXPIRED';
-      message = 'Token has expired. Please log in again.';
-    } else if (error.code === 'auth/argument-error') {
-      errorCode = 'INVALID_TOKEN_FORMAT';
-      message = 'Invalid token format';
-    } else if (error.code === 'auth/user-disabled') {
-      errorCode = 'USER_DISABLED';
-      message = 'This account has been disabled';
-      statusCode = 403;
+
+    const parts = header.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      console.log('Invalid Authorization header format');
+      return res.status(401).json({ 
+        success: false,
+        code: 'INVALID_AUTH_HEADER',
+        message: 'Authorization header must be: Bearer <token>',
+        timestamp: new Date().toISOString()
+      });
     }
+
+    const token = parts[1];
+    console.log('Token received (first 10 chars):', token.substring(0, 10) + '...');
     
-    return res.status(statusCode).json({
+    try {
+      // Verify the token
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      console.log('Token verified for user:', decodedToken.uid);
+      
+      // Add the decoded token to the request
+      req.user = decodedToken;
+      return next();
+      
+    } catch (error) {
+      console.error('Token verification failed:', error.message);
+      
+      let statusCode = 401;
+      let errorCode = 'INVALID_TOKEN';
+      let message = 'Invalid or expired token';
+
+      if (error.code === 'auth/id-token-expired') {
+        errorCode = 'TOKEN_EXPIRED';
+        message = 'Token has expired';
+      } else if (error.code === 'auth/user-disabled') {
+        errorCode = 'USER_DISABLED';
+        message = 'This account has been disabled';
+        statusCode = 403;
+      } else if (error.code === 'auth/argument-error') {
+        errorCode = 'INVALID_TOKEN_FORMAT';
+        message = 'Invalid token format';
+      }
+
+      return res.status(statusCode).json({
+        success: false,
+        code: errorCode,
+        message: message,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error('Unexpected error in auth middleware:', error);
+    return res.status(500).json({
       success: false,
-      code: errorCode,
-      message: message
+      code: 'SERVER_ERROR',
+      message: 'An unexpected error occurred',
+      timestamp: new Date().toISOString()
     });
   }
 };
@@ -222,14 +117,16 @@ export const requireAdmin = async (req, res, next) => {
         return res.status(403).json({ 
           success: false,
           code: 'ADMIN_REQUIRED',
-          message: 'Admin access required'
+          message: 'Admin access required',
+          timestamp: new Date().toISOString()
         });
       } catch (error) {
         console.error('Admin verification error:', error);
         return res.status(500).json({
           success: false,
           code: 'ADMIN_VERIFICATION_ERROR',
-          message: 'Error verifying admin status'
+          message: 'Error verifying admin status',
+          timestamp: new Date().toISOString()
         });
       }
     });
@@ -238,7 +135,8 @@ export const requireAdmin = async (req, res, next) => {
     return res.status(500).json({ 
       success: false,
       code: 'SERVER_ERROR',
-      message: 'Server error during admin verification'
+      message: 'Server error during admin verification',
+      timestamp: new Date().toISOString()
     });
   }
 };

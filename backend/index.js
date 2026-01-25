@@ -20,69 +20,46 @@ const firebaseAuth = require('./middleware/firebaseAuth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Apply CORS middleware with improved origin handling
+// CORS configuration
+const allowedOrigins = [
+  'https://yourskanban.vercel.app',
+  'https://yourskanban-git-main-likki-mahender-reddys-projects.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
 const corsOptions = {
-  origin: function(origin, callback) {
-    // Allow all origins in development and for testing
-    if (process.env.NODE_ENV !== 'production' || process.env.NODE_ENV === 'test') {
-      console.log(`Allowing origin in ${process.env.NODE_ENV || 'development'} mode:`, origin);
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow all origins in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Allowing origin in development: ${origin}`);
       return callback(null, true);
     }
-
-    // Allow all Vercel preview and production domains
-    const allowedOrigins = [
-      /^https?:\/\/yourskanban(-[a-z0-9]+)?\.vercel\.app$/,
-      /^https?:\/\/yourskanban\.vercel\.app$/,
-      /^https?:\/\/localhost(:[0-9]+)?$/,
-      /^https?:\/\/.*\.vercel\.app$/,
-      /^https?:\/\/.*yourskanban.*\.vercel\.app$/,
-      /^https?:\/\/.*-likki-mahender-reddys-projects\.vercel\.app$/
-    ];
-
-    // Check if the origin matches any of the allowed patterns
-    if (!origin || allowedOrigins.some(pattern => pattern.test(origin))) {
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.includes(origin) || 
+        origin.endsWith('.vercel.app') || 
+        origin.endsWith('.onrender.com')) {
       return callback(null, true);
     }
-
+    
     console.log('CORS blocked for origin:', origin);
-    console.log('Allowed origins pattern:', allowedOrigins.map(p => p.toString()));
     callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Content-Length', 'Accept'],
-  exposedHeaders: ['Set-Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204, // Some legacy browsers (IE11, various SmartTVs) choke on 204
-  optionsSuccessStatus: 204,
-  maxAge: 600 // 10 minutes for preflight cache
+  optionsSuccessStatus: 200
 };
 
 // Apply CORS middleware
 app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors());
-
-// Add CORS headers to all responses
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Set CORS headers
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-  }
-  
-  next();
-});
+app.options('*', cors(corsOptions));
 
 // Parse JSON bodies
 app.use(express.json());
