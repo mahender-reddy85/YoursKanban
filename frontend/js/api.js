@@ -1,23 +1,16 @@
 // API Utility Functions
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const API_BASE = "https://yourskanban.onrender.com/api";
 
 /**
- * Get authentication headers with Firebase ID token
- * @returns {Promise<Object>} - Headers object with Authorization if user is authenticated
+ * Get Firebase ID token for the current user
+ * @returns {Promise<string|null>} - Firebase ID token or null if not authenticated
  */
-async function getAuthHeader() {
+async function getFirebaseToken() {
   const user = getAuth().currentUser;
-  if (!user) return {};
-  
-  try {
-    const token = await user.getIdToken(true);
-    return { 'Authorization': `Bearer ${token}` };
-  } catch (error) {
-    console.error('Error getting auth token:', error);
-    return {};
-  }
+  if (!user) return null;
+  return await user.getIdToken(true);
 }
 
 /**
@@ -71,40 +64,32 @@ async function handleResponse(response) {
  */
 async function request(endpoint, options = {}) {
   try {
-    // Get authentication headers with fresh token
-    const authHeaders = await getAuthHeader();
+    const token = await getFirebaseToken();
     
-    // Prepare fetch config
-    const config = {
+    // Make the request with the token
+    const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...authHeaders,
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...(options.headers || {})
-      },
-      credentials: 'include',
-      mode: 'cors',
-      cache: 'no-cache',
-    };
-
-    // Make the request
-    const response = await fetch(`${API_BASE}${endpoint}`, config);
+      }
+    });
     
     // Handle 401 Unauthorized
     if (response.status === 401) {
       // Force token refresh and try one more time
-      const user = getAuth().currentUser;
-      if (user) {
-        try {
-          const newToken = await user.getIdToken(true);
-          if (newToken) {
-            config.headers.Authorization = `Bearer ${newToken}`;
-            const retryResponse = await fetch(`${API_BASE}${endpoint}`, config);
-            return await handleResponse(retryResponse);
+      const newToken = await getFirebaseToken();
+      if (newToken) {
+        const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${newToken}`,
+            ...(options.headers || {})
           }
-        } catch (error) {
-          console.error('Token refresh failed:', error);
-        }
+        });
+        return await handleResponse(retryResponse);
       }
       
       throw new Error('Session expired. Please log in again.');
