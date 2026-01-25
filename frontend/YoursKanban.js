@@ -1,6 +1,7 @@
 // Import API services and modules
 import { authAPI, tasksAPI, isLoggedIn } from './js/api.js';
 import { updateUserAvatar } from './js/user.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 /**
  * Application State Management
