@@ -1,3 +1,19 @@
+// Wait for Firebase to be available
+function waitForFirebase() {
+  return new Promise((resolve) => {
+    if (window.firebaseAuth) {
+      resolve();
+    } else {
+      const checkInterval = setInterval(() => {
+        if (window.firebaseAuth) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 100);
+    }
+  });
+}
+
 // Make functions globally available
 window.openAuthModal = showAuthModal;
 window.closeAuthModal = closeAuthModal;
@@ -12,11 +28,22 @@ const switchToLogin = document.getElementById('switchToLogin');
 const authModalTitle = document.getElementById('authModalTitle');
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  initializeAuthButtons();
-  initializeAuthStateListener();
-  initializeFormSubmissions();
-  initializeModalSwitchers();
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Wait for Firebase to be available
+    await waitForFirebase();
+    
+    // Initialize auth components
+    initializeAuthButtons();
+    initializeAuthStateListener();
+    initializeFormSubmissions();
+    initializeModalSwitchers();
+    
+    console.log('Auth module initialized');
+  } catch (error) {
+    console.error('Error initializing auth module:', error);
+    showToast('Error initializing authentication. Please refresh the page.', 'error');
+  }
 });
 
 // Initialize auth buttons

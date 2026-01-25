@@ -354,16 +354,16 @@
         <!-- Toasts will be inserted here -->
     </div>
 
-    <!-- User Menu Script -->
-    <script src="js/user-menu.js"></script>
-    
-    <!-- Firebase -->
+    <!-- Firebase must be loaded first -->
     <script type="module" src="js/firebase.js"></script>
     
-    <!-- Auth Script -->
-    <script src="js/auth.js"></script>
+    <!-- Auth Script (defer to ensure it runs after DOM is ready) -->
+    <script src="js/auth.js" defer></script>
     
-    <!-- Main App Script -->
+    <!-- User Menu Script (defer to ensure it runs after DOM is ready) -->
+    <script src="js/user-menu.js" defer></script>
+    
+    <!-- Main App Script (type="module" is deferred by default) -->
     <script type="module" src="YoursKanban.js"></script>
 </body>
 
