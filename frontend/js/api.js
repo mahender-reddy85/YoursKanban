@@ -265,18 +265,20 @@ const tasksAPI = {
             
             if (!isLoggedIn()) {
                 console.log('User not logged in, returning guest tasks');
-                return JSON.parse(localStorage.getItem('guest_tasks') || '[]');
+                const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
+                return { success: true, data: guestTasks };
             }
             
-            const response = await request('/tasks', {
+            const response = await request('/v1/tasks', {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
             
             console.log('Tasks retrieved successfully');
-            return response;
+            return response.data || [];
         } catch (error) {
             console.error('Error in getTasks:', {
                 message: error.message,
@@ -295,15 +297,26 @@ const tasksAPI = {
     async createTask(task) {
         if (!isLoggedIn()) {
             const tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
-            const newTask = { ...task, id: Date.now().toString() };
+            const newTask = { 
+                ...task, 
+                id: `guest-${Date.now()}`,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                subtasks: []
+            };
             tasks.push(newTask);
             localStorage.setItem('guest_tasks', JSON.stringify(tasks));
-            return newTask;
+            return { success: true, data: newTask };
         }
-        return await request('/tasks', {
+        const response = await request('/v1/tasks', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(task)
         });
+        return response.data;
     },
 
     /**
@@ -317,16 +330,26 @@ const tasksAPI = {
             const tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
             const index = tasks.findIndex(t => t.id === id);
             if (index !== -1) {
-                tasks[index] = { ...tasks[index], ...updates };
+                const updatedTask = { 
+                    ...tasks[index], 
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                };
+                tasks[index] = updatedTask;
                 localStorage.setItem('guest_tasks', JSON.stringify(tasks));
-                return tasks[index];
+                return { success: true, data: updatedTask };
             }
-            throw new Error('Task not found');
+            throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
         }
-        return await request(`/tasks/${id}`, {
-            method: 'PUT',
+        const response = await request(`/v1/tasks/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(updates)
         });
+        return response.data;
     },
 
     /**
@@ -336,14 +359,26 @@ const tasksAPI = {
      */
     async deleteTask(id) {
         if (!isLoggedIn()) {
-            const tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
-            const filtered = tasks.filter(t => t.id !== id);
-            localStorage.setItem('guest_tasks', JSON.stringify(filtered));
+            let tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
+            const initialLength = tasks.length;
+            tasks = tasks.filter(t => t.id !== id);
+            
+            if (tasks.length === initialLength) {
+                throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
+            }
+            
+            localStorage.setItem('guest_tasks', JSON.stringify(tasks));
             return { success: true };
         }
-        return await request(`/tasks/${id}`, {
-            method: 'DELETE'
+        
+        const response = await request(`/v1/tasks/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json'
+            }
         });
+        
+        return { success: true };
     },
 
     /**
@@ -351,24 +386,25 @@ const tasksAPI = {
      * @returns {Promise<Array>} - Synced tasks
      */
     async syncGuestTasks() {
-        if (!isLoggedIn()) {
-            throw new Error('Must be logged in to sync tasks');
-        }
-
         const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
-        if (guestTasks.length === 0) {
-            return [];
-        }
+        if (!guestTasks.length) return [];
 
         const syncedTasks = [];
         for (const task of guestTasks) {
-            // Remove local ID and let server generate a new one
-            const { id: _, ...taskData } = task;
-            const syncedTask = await request('/tasks', {
-                method: 'POST',
-                body: JSON.stringify(taskData)
-            });
-            syncedTasks.push(syncedTask);
+            try {
+                // Remove client-side only fields
+                const { id, created_at, updated_at, ...taskData } = task;
+                const response = await this.createTask(taskData);
+                if (response && response.id) {
+                    syncedTasks.push(response);
+                }
+            } catch (error) {
+                console.error('Error syncing task:', {
+                    taskId: task.id,
+                    error: error.message,
+                    code: error.code
+                });
+            }
         }
 
         // Clear guest tasks after successful sync
