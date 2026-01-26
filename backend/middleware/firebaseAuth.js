@@ -1,4 +1,4 @@
-const { getAuth } = require('../lib/firebaseAdmin');
+const admin = require('firebase-admin');
 
 /**
  * Firebase Authentication Middleware
@@ -25,8 +25,8 @@ const firebaseAuth = async (req, res, next) => {
       });
     }
 
-    // Verify the ID token
-    const decodedToken = await getAuth().verifyIdToken(token);
+    // Verify the ID token using admin.auth()
+    const decodedToken = await admin.auth().verifyIdToken(token);
     
     // Check if token is expired
     const currentTime = Math.floor(Date.now() / 1000);
