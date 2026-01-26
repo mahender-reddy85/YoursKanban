@@ -1,48 +1,24 @@
 const admin = require("firebase-admin");
 
-// Helper function to safely format private key
-const formatPrivateKey = (key) => {
-  if (!key) return null;
-  // Handle both escaped and unescaped newlines
-  return key.replace(/\\n/g, '\n').replace(/\n/g, '\n');
-};
-
 if (!admin.apps.length) {
   try {
     // Load environment variables explicitly
     require('dotenv').config();
     
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY);
-
-    console.log('🔧 Initializing Firebase Admin with:', {
-      projectId: projectId ? '✅ Set' : '❌ Missing',
-      clientEmail: clientEmail ? '✅ Set' : '❌ Missing',
-      privateKey: privateKey ? '✅ Set' : '❌ Missing',
-      privateKeyPreview: privateKey ? `...${privateKey.substring(privateKey.length - 20)}` : 'N/A'
-    });
-
-    if (!projectId || !clientEmail || !privateKey) {
-      const missing = [];
-      if (!projectId) missing.push('FIREBASE_PROJECT_ID');
-      if (!clientEmail) missing.push('FIREBASE_CLIENT_EMAIL');
-      if (!privateKey) missing.push('FIREBASE_PRIVATE_KEY');
-      
-      throw new Error(`Missing required Firebase Admin environment variables: ${missing.join(', ')}`);
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is required');
     }
 
-    // Initialize Firebase Admin
-    const firebaseConfig = {
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey
-      }),
-      databaseURL: `https://${projectId}.firebaseio.com`
-    };
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    
+    console.log('🔧 Initializing Firebase Admin with service account for project:', serviceAccount.project_id);
+    
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
+    });
 
-    admin.initializeApp(firebaseConfig);
+    console.log("🔥 Firebase Admin Project:", serviceAccount.project_id);
 
     // Verify the admin connection
     admin.auth().listUsers(1)
