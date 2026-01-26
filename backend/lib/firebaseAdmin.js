@@ -1,13 +1,9 @@
-const admin = require("firebase-admin");
+// This file is maintained for backward compatibility
+// Please use require('../config/firebase') instead
 
-if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const admin = require('../config/firebase');
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-
-  console.log("🔥 Firebase Admin Project:", serviceAccount.project_id);
-}
+// Log to help with migration
+console.log('Firebase Admin initialized with project:', admin.app().options.projectId);
 
 module.exports = admin;
