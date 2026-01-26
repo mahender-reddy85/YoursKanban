@@ -93,6 +93,14 @@ const createTasksRouter = (pool) => {
     const { id: userId } = req.user;
     const { title, description, status, priority, dueDate } = req.body;
 
+    // Convert the timestamp to a PostgreSQL timestamp if it exists
+    let formattedDueDate = null;
+    if (dueDate) {
+      // If it's a Unix timestamp in milliseconds, convert to seconds
+      const timestamp = typeof dueDate === 'string' ? parseInt(dueDate, 10) : dueDate;
+      formattedDueDate = new Date(timestamp).toISOString();
+    }
+
     const result = await pool.query(
       `INSERT INTO tasks (user_id, title, description, status, priority, due_date)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -103,7 +111,7 @@ const createTasksRouter = (pool) => {
         description || null, 
         status || 'todo', 
         priority || 'medium', 
-        dueDate || null
+        formattedDueDate
       ]
     );
 
