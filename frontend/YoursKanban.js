@@ -1405,27 +1405,47 @@ function handleKeyboardShortcuts(e) {
 // --- Task Management ---
 async function fetchTasks() {
     try {
-        // Check if user is authenticated
-        if (!auth.currentUser) {
-            console.log('No authenticated user, skipping task fetch');
-            state.tasks = [];
-            return [];
-        }
+        // Get the current user from Firebase Auth
+        const user = auth.currentUser;
         
-        console.log('Fetching tasks for user:', auth.currentUser.uid);
+        if (!user) {
+            console.log('No authenticated user, using guest tasks');
+            state.tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
+            renderBoard();
+            return state.tasks;
+        }
+
+        // Force token refresh before making the request
+        console.log('Getting fresh token for task fetch...');
+        const token = await user.getIdToken(true);
+        console.log('Token refresh successful, fetching tasks...');
+        
         const tasks = await tasksAPI.getTasks();
         state.tasks = tasks || [];
-        renderBoard(); // Make sure to update the UI
+        renderBoard();
         return tasks;
     } catch (error) {
-        console.error('Error fetching tasks:', error);
+        console.error('Error in fetchTasks:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+        
         if (error.message.includes('auth/network-request-failed')) {
             showToast('Network error. Please check your connection.', 'error');
+        } else if (error.code === 'unauthenticated' || error.code === 401) {
+            // If we get an auth error, sign out and show login
+            console.log('Authentication error, signing out...');
+            await authAPI.logout();
+            showToast('Session expired. Please log in again.', 'error');
+            state.tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
         } else {
             showToast('Failed to load tasks', 'error');
+            state.tasks = [];
         }
-        state.tasks = [];
-        return [];
+        
+        renderBoard();
+        return state.tasks;
     }
 }
 
@@ -1662,8 +1682,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         await init();
         
-        // Check if user is logged in
-        const user = await authAPI.getCurrentUser().catch(() => null);
+        // Check if user is logged in - getCurrentUser is synchronous
+        const user = authAPI.getCurrentUser();
         
         // Show user menu if the element exists and user is logged in
         const userMenu = document.getElementById('userMenu');
@@ -1675,6 +1695,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateGuestBanner();
     } catch (error) {
         console.error('Error initializing app:', error);
+        showToast('Error initializing app: ' + (error.message || 'Unknown error'), 'error');
     }
     // Set up delete confirmation
     const confirmDeleteBtn = document.getElementById('confirmDelete');
