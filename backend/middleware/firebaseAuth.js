@@ -1,4 +1,5 @@
 const admin = require('../lib/firebaseAdmin');
+const { pool } = require('../lib/db');
 
 /**
  * Firebase Authentication Middleware
@@ -41,16 +42,45 @@ const firebaseAuth = async (req, res, next) => {
         });
       }
 
-      // Add the decoded token to the request object
-      req.user = {
-        uid: decodedToken.uid,
-        email: decodedToken.email,
-        email_verified: decodedToken.email_verified,
-        name: decodedToken.name || '',
-        picture: decodedToken.picture || ''
-      };
-
-      next();
+      // Get or create user in our database
+      const { uid, email, name = '', picture = '' } = decodedToken;
+      
+      try {
+        // Try to find existing user
+        const userResult = await pool.query(
+          'SELECT * FROM users WHERE firebase_uid = $1',
+          [uid]
+        );
+        
+        let user;
+        
+        if (userResult.rows.length === 0) {
+          // Create new user if doesn't exist
+          console.log(` Creating new user for ${email} (${uid})`);
+          const newUserResult = await pool.query(
+            `INSERT INTO users 
+             (firebase_uid, email, name, avatar_url) 
+             VALUES ($1, $2, $3, $4) 
+             RETURNING *`,
+            [uid, email, name, picture]
+          );
+          user = newUserResult.rows[0];
+        } else {
+          // Use existing user
+          user = userResult.rows[0];
+        }
+        
+        // Attach user to request object
+        req.user = user;
+        next();
+      } catch (dbError) {
+        console.error('Database error in auth middleware:', dbError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error accessing user database',
+          code: 'DATABASE_ERROR'
+        });
+      }
     } catch (verifyError) {
       console.error('❌ Token verification failed:', {
         message: verifyError.message,
