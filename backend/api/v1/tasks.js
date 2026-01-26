@@ -18,7 +18,8 @@ const createTasksRouter = (pool) => {
                       'id', st.id,
                       'title', st.description,  -- Using description as title
                       'is_completed', st.is_completed,
-                      'order_index', st.position,  -- Using position instead of order_index
+                      'order_index', st.position,  -- Using position for order_index
+                      'position', st.position,     -- Including position for backward compatibility
                       'created_at', st.created_at,
                       'updated_at', st.updated_at,
                       'description', st.description  -- Including description for backward compatibility
@@ -61,7 +62,8 @@ const createTasksRouter = (pool) => {
                     'id', st.id,
                     'title', st.description,  -- Using description as title
                     'is_completed', st.is_completed,
-                    'order_index', st.position,  -- Using position instead of order_index
+                    'order_index', st.position,  -- Using position for order_index
+                    'position', st.position,     -- Including position for backward compatibility
                     'created_at', st.created_at,
                     'updated_at', st.updated_at,
                     'description', st.description  -- Including description for backward compatibility
