@@ -527,7 +527,7 @@ function createTaskCard(task) {
     // Calculate progress for subtasks
     let progressHTML = '';
     if (task.subtasks && task.subtasks.length > 0) {
-        const completedCount = task.subtasks.filter(st => st.completed).length;
+        const completedCount = task.subtasks.filter(st => st.is_completed || st.completed).length;
         const progressPercent = (completedCount / task.subtasks.length) * 100;
         progressHTML = `
             <div class="subtask-progress">
@@ -541,17 +541,31 @@ function createTaskCard(task) {
             <div class="subtask-list">
                 ${task.subtasks.map(subtask => `
                     <div class="subtask-preview">
-                        <span class="subtask-checkbox ${subtask.completed ? 'completed' : ''}">
-                            ${subtask.completed ? '✓' : ''}
+                        <span class="subtask-checkbox ${(subtask.is_completed || subtask.completed) ? 'completed' : ''}">
+                            ${(subtask.is_completed || subtask.completed) ? '✓' : ''}
                         </span>
-                        <span class="subtask-text ${subtask.completed ? 'completed' : ''}">
-                            ${sanitize(subtask.text)}
+                        <span class="subtask-text ${(subtask.is_completed || subtask.completed) ? 'completed' : ''}">
+                            ${sanitize(subtask.description || subtask.text || '')}
                         </span>
                     </div>
                 `).join('')}
             </div>
         `;
     }
+
+    // Calculate progress for the progress bar
+    const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+    const completedSubtasks = hasSubtasks ? task.subtasks.filter(st => st.is_completed || st.completed).length : 0;
+    const totalSubtasks = hasSubtasks ? task.subtasks.length : 0;
+    const progressPercent = hasSubtasks ? (completedSubtasks / totalSubtasks) * 100 : 0;
+
+    // Format due date
+    const dueDate = task.due_date || task.dueDate;
+    const formattedDueDate = dueDate ? new Date(dueDate).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+    }) : null;
 
     card.innerHTML = `
         <div class="card-header">
@@ -577,13 +591,13 @@ function createTaskCard(task) {
         ${task.description ? `<div class="card-desc">${sanitize(task.description)}</div>` : ''}
         
         <!-- Subtask Progress -->
-        ${task.subtasks?.length > 0 ? `
+        ${hasSubtasks ? `
         <div class="subtask-progress">
             <div class="progress-bar">
-                <div class="progress" style="width: ${(task.subtasks.filter(st => st.completed).length / task.subtasks.length) * 100}%"></div>
+                <div class="progress" style="width: ${progressPercent}%"></div>
             </div>
             <div class="progress-text">
-                ${task.subtasks.filter(st => st.completed).length} of ${task.subtasks.length} tasks
+                ${completedSubtasks} of ${totalSubtasks} tasks
             </div>
         </div>` : ''}
         
@@ -603,10 +617,10 @@ function createTaskCard(task) {
             <span class="priority-badge priority-${task.priority || 'medium'}">
                 ${(task.priority || 'medium').toUpperCase()}
             </span>
-            ${task.dueDate ? `
+            ${formattedDueDate ? `
             <div class="card-date">
                 <i class="far fa-calendar-alt"></i>
-                ${new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                ${formattedDueDate}
             </div>` : ''}
         </div>
     `;
