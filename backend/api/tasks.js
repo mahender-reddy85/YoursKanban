@@ -1,247 +1,163 @@
-const { verifyFirebaseToken } = require('../middleware/auth');
 const express = require('express');
-const router = express.Router();
+const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
 
-// Middleware to handle authentication
-const withAuth = (req, res, next) => {
-  // For GET requests, allow unauthenticated access
-  if (req.method === 'GET') {
-    if (req.headers.authorization) {
-      // If there's a token, try to authenticate but don't fail if it's invalid
-      return verifyFirebaseToken(req, res, () => next());
+// Create a router with database pool
+const createTasksRouter = (pool) => {
+  const router = express.Router();
+  
+  // Middleware to add db to request
+  router.use((req, res, next) => {
+    req.db = pool;
+    next();
+  });
+  
+  // Authentication middleware
+  const withAuth = (req, res, next) => {
+    // For GET requests, allow unauthenticated access
+    if (req.method === 'GET') {
+      if (req.headers.authorization) {
+        // If there's a token, try to authenticate but don't fail if it's invalid
+        return verifyFirebaseToken(req, res, () => next());
+      }
+      return next();
     }
-    return next();
-  }
-  
-  // For other methods, require authentication
-  return verifyFirebaseToken(req, res, next);
-};
+    // For other methods, require authentication
+    return verifyFirebaseToken(req, res, next);
+  };
 
-// Get all tasks (works for both authenticated and unauthenticated users)
-const getTasks = async (req, res) => {
-  console.log('getTasks called, user:', req.user ? `authenticated (${req.user.uid})` : 'unauthenticated');
-  
-  if (!req.user) {
-    // For unauthenticated users, return an empty array
-    console.log('Returning empty array for unauthenticated user');
-    return res.status(200).json([]);
-  }
-  
-  // First, check if the tasks table exists
-  try {
-    const tableCheck = await req.db.query(
-      `SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'tasks'
-      )`
-    );
+  // Get all tasks (works for both authenticated and unauthenticated users)
+  const getTasks = async (req, res) => {
+    console.log('getTasks called, user:', req.user ? `authenticated (${req.user.uid})` : 'unauthenticated');
     
-    if (!tableCheck.rows[0].exists) {
-      console.error('Tasks table does not exist in the database');
+    if (!req.user) {
+      // For unauthenticated users, return an empty array
+      console.log('Returning empty array for unauthenticated user');
       return res.status(200).json([]);
     }
-  } catch (checkError) {
-    console.error('Error checking for tasks table:', checkError);
-    return res.status(500).json({ 
-      message: 'Error checking database schema',
-      ...(process.env.NODE_ENV === 'development' && { error: checkError.message })
-    });
-  }
-  
-  try {
-    console.log('Database pool state:', {
-      totalCount: req.db.totalCount,
-      idleCount: req.db.idleCount,
-      waitingCount: req.db.waitingCount
-    });
     
-    // Get or create user in the database
-    const firebaseUid = req.user.uid;
-    let dbUserId;
-    
-    // Check if user exists in database
-    const userCheck = await req.db.query(
-      'SELECT id FROM users WHERE firebase_uid = $1', 
-      [firebaseUid]
-    );
-    
-    if (userCheck.rows.length === 0) {
-      // Create new user if they don't exist
-      console.log('Creating new user for Firebase UID:', firebaseUid);
-      const newUser = await req.db.query(
-        'INSERT INTO users (firebase_uid, email) VALUES ($1, $2) RETURNING id',
-        [firebaseUid, req.user.email]
+    // First, check if the tasks table exists
+    try {
+      const tableCheck = await req.db.query(
+        `SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'tasks'
+        )`
       );
-      dbUserId = newUser.rows[0].id;
-    } else {
-      dbUserId = userCheck.rows[0].id;
+      
+      if (!tableCheck.rows[0].exists) {
+        console.error('Tasks table does not exist in the database');
+        return res.status(200).json([]);
+      }
+    } catch (checkError) {
+      console.error('Error checking for tasks table:', checkError);
+      return res.status(500).json({ 
+        message: 'Error checking database schema',
+        ...(process.env.NODE_ENV === 'development' && { error: checkError.message })
+      });
     }
     
-    console.log('Querying tasks for user ID:', dbUserId);
-    const queryText = `
-      SELECT t.*, 
-             (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
-             (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.is_done = true) as completed_subtasks
-      FROM tasks t 
-      WHERE t.user_id = $1 
-      ORDER BY t."order_index" ASC, t.created_at DESC`;
-    
-    console.log('Executing query:', queryText);
-    const userId = dbUserId;
-    
     try {
-      const result = await req.db.query(queryText, [userId]);
+      // Get or create user in the database
+      const firebaseUid = req.user.uid;
+      let dbUserId;
+      
+      // Check if user exists in database
+      const userCheck = await req.db.query(
+        'SELECT id FROM users WHERE firebase_uid = $1', 
+        [firebaseUid]
+      );
+      
+      if (userCheck.rows.length === 0) {
+        // Create new user if they don't exist
+        console.log('Creating new user for Firebase UID:', firebaseUid);
+        const newUser = await req.db.query(
+          'INSERT INTO users (firebase_uid, email) VALUES ($1, $2) RETURNING id',
+          [firebaseUid, req.user.email]
+        );
+        dbUserId = newUser.rows[0].id;
+      } else {
+        dbUserId = userCheck.rows[0].id;
+      }
+      
+      console.log('Querying tasks for user ID:', dbUserId);
+      const queryText = `
+        SELECT t.*, 
+               (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
+               (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.is_done = true) as completed_subtasks
+        FROM tasks t 
+        WHERE t.user_id = $1 
+        ORDER BY t."order_index" ASC, t.created_at DESC`;
+      
+      console.log('Executing query:', queryText);
+      const result = await req.db.query(queryText, [dbUserId]);
       console.log(`Found ${result.rows.length} tasks for user ${dbUserId}`);
       return res.status(200).json(result.rows);
-    } catch (queryError) {
-      console.error('Database query error details:', {
-        error: queryError,
-        query: queryText,
-        parameters: [userId],
-        stack: queryError.stack
+      
+    } catch (error) {
+      console.error('Error in getTasks:', {
+        message: error.message,
+        stack: error.stack,
+        user: req.user ? { uid: req.user.uid, email: req.user.email } : 'no user'
       });
-      throw queryError; // Re-throw to be caught by the outer catch block
-    }
-    
-  } catch (dbError) {
-    console.error('Database error in getTasks:', {
-      message: dbError.message,
-      name: dbError.name,
-      code: dbError.code,
-      detail: dbError.detail,
-      hint: dbError.hint,
-      position: dbError.position,
-      routine: dbError.routine,
-      severity: dbError.severity,
-      schema: dbError.schema,
-      table: dbError.table,
-      constraint: dbError.constraint,
-      column: dbError.column,
-      dataType: dbError.dataType,
-      where: dbError.where,
-      file: dbError.file,
-      line: dbError.line,
-      stack: dbError.stack
-    });
-    
-    // More detailed error response in development
-    const errorResponse = {
-      message: 'Database error while fetching tasks',
-      ...(process.env.NODE_ENV === 'development' && {
-        error: dbError.message,
-        details: {
-          code: dbError.code,
-          detail: dbError.detail,
-          hint: dbError.hint,
-          table: dbError.table,
-          constraint: dbError.constraint,
-          column: dbError.column,
-          stack: dbError.stack
-        }
-      })
-    };
-    
-    return res.status(500).json(errorResponse);
-  }
-}
-
-// Create a new task
-const createTask = async (req, res) => {
-  console.log('createTask called with body:', JSON.stringify(req.body, null, 2));
-  
-  try {
-    // Log request details for debugging
-    console.log('Request user:', req.user);
-    console.log('Database pool state:', {
-      totalCount: req.db.totalCount,
-      idleCount: req.db.idleCount,
-      waitingCount: req.db.waitingCount
-    });
-    
-    const { title, description, status, priority, due_date, order_index = 0, is_pinned = false } = req.body;
-    
-    // Validate required fields with more detailed error messages
-    if (!title) return res.status(400).json({ message: 'Title is required' });
-    if (!status) return res.status(400).json({ message: 'Status is required' });
-    if (!priority) return res.status(400).json({ message: 'Priority is required' });
-
-    // Ensure user is authenticated for task creation
-    if (!req.user || !req.user.uid) {
-      console.error('No user UID found in createTask');
-      return res.status(401).json({ message: 'User not authenticated' });
-    }
-    
-    // Get or create user in the database
-    const firebaseUid = req.user.uid;
-    let dbUserId;
-    
-    // Check if user exists in database
-    const userCheck = await req.db.query(
-      'SELECT id FROM users WHERE firebase_uid = $1', 
-      [firebaseUid]
-    );
-    
-    if (userCheck.rows.length === 0) {
-      // Create new user if they don't exist
-      console.log('Creating new user for Firebase UID:', firebaseUid);
-      const newUser = await req.db.query(
-        'INSERT INTO users (firebase_uid, email) VALUES ($1, $2) RETURNING id',
-        [firebaseUid, req.user.email]
-      );
-      dbUserId = newUser.rows[0].id;
-    } else {
-      dbUserId = userCheck.rows[0].id;
-    }
-    
-    console.log(`Creating task for user ID ${dbUserId}`, {
-      title,
-      status,
-      priority,
-      hasDescription: !!description,
-      dueDate: due_date || 'not set',
-      order_index: order_index !== undefined ? order_index : 'auto'
-    });
-
-    // Get the highest order index if not provided
-    let order = order_index;
-    if (order === undefined) {
-      try {
-        console.log('Getting next order index for user ID:', dbUserId);
-        const result = await req.db.query(
-          'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
-          [dbUserId]
-        );
-        order = result.rows[0]?.next_order || 1;
-        console.log('Next order index:', order);
-      } catch (error) {
-        console.error('Error getting next order index:', {
+      
+      return res.status(500).json({ 
+        message: 'Error fetching tasks',
+        ...(process.env.NODE_ENV === 'development' && { 
           error: error.message,
-          stack: error.stack,
-          userId: req.user.uid
-        });
-        order = 1; // Default to 1 if there's an error
-      }
-    }
-
-    try {
-      console.log('Executing database query with params:', {
-        user_id: dbUserId,
-        title,
-        description: description || null,
-        status,
-        priority,
-        due_date: due_date || null,
-        order_index: order,
-        is_pinned: is_pinned || false
+          stack: error.stack 
+        })
       });
+    }
+  };
 
-      const query = {
-        text: `INSERT INTO tasks 
-               (user_id, title, description, status, priority, due_date, order_index, is_pinned)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-               RETURNING *`,
-        values: [
+  // Create a new task
+  const createTask = async (req, res) => {
+    try {
+      const { title, description, status, priority, due_date, is_pinned } = req.body;
+      
+      if (!title || !status || !priority) {
+        return res.status(400).json({ 
+          message: 'Title, status, and priority are required' 
+        });
+      }
+      
+      // Get or create user in the database
+      const firebaseUid = req.user.uid;
+      let dbUserId;
+      
+      // Check if user exists in database
+      const userCheck = await req.db.query(
+        'SELECT id FROM users WHERE firebase_uid = $1', 
+        [firebaseUid]
+      );
+      
+      if (userCheck.rows.length === 0) {
+        // Create new user if they don't exist
+        console.log('Creating new user for Firebase UID:', firebaseUid);
+        const newUser = await req.db.query(
+          'INSERT INTO users (firebase_uid, email) VALUES ($1, $2) RETURNING id',
+          [firebaseUid, req.user.email]
+        );
+        dbUserId = newUser.rows[0].id;
+      } else {
+        dbUserId = userCheck.rows[0].id;
+      }
+      
+      // Get the next order index
+      const orderResult = await req.db.query(
+        'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
+        [dbUserId]
+      );
+      const order = orderResult.rows[0].next_order;
+      
+      // Create the task
+      const result = await req.db.query(
+        `INSERT INTO tasks 
+         (user_id, title, description, status, priority, due_date, order_index, is_pinned)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [
           dbUserId,
           title,
           description || null,
@@ -251,218 +167,227 @@ const createTask = async (req, res) => {
           order,
           is_pinned || false
         ]
-      };
+      );
+      
+      return res.status(201).json(result.rows[0]);
+      
+    } catch (error) {
+      console.error('Error in createTask:', {
+        message: error.message,
+        stack: error.stack,
+        body: req.body,
+        user: req.user ? { uid: req.user.uid, email: req.user.email } : 'no user'
+      });
+      
+      return res.status(500).json({ 
+        message: 'Error creating task',
+        ...(process.env.NODE_ENV === 'development' && { 
+          error: error.message,
+          stack: error.stack 
+        })
+      });
+    }
+  };
 
-      console.log('Executing query:', query.text);
-      console.log('With values:', query.values);
+  // Update a task
+  const updateTask = async (req, res) => {
+    try {
+      const taskId = req.params.id;
+      const { title, description, status, priority, due_date, order_index, is_pinned } = req.body;
+      
+      if (!taskId) {
+        return res.status(400).json({ message: 'Task ID is required' });
+      }
+      
+      // Get user ID from Firebase UID
+      const userResult = await req.db.query(
+        'SELECT id FROM users WHERE firebase_uid = $1',
+        [req.user.uid]
+      );
+      
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      const dbUserId = userResult.rows[0].id;
+      
+      // Build the update query dynamically based on provided fields
+      const updates = [];
+      const values = [taskId, dbUserId];
+      let paramIndex = 3;
+      
+      if (title !== undefined) {
+        updates.push(`title = $${paramIndex++}`);
+        values.push(title);
+      }
+      
+      if (description !== undefined) {
+        updates.push(`description = $${paramIndex++}`);
+        values.push(description);
+      }
+      
+      if (status !== undefined) {
+        updates.push(`status = $${paramIndex++}`);
+        values.push(status);
+      }
+      
+      if (priority !== undefined) {
+        updates.push(`priority = $${paramIndex++}`);
+        values.push(priority);
+      }
+      
+      if (due_date !== undefined) {
+        updates.push(`due_date = $${paramIndex++}`);
+        values.push(due_date);
+      }
+      
+      if (order_index !== undefined) {
+        updates.push(`order_index = $${paramIndex++}`);
+        values.push(order_index);
+      }
+      
+      if (is_pinned !== undefined) {
+        updates.push(`is_pinned = $${paramIndex++}`);
+        values.push(is_pinned);
+      }
+      
+      if (updates.length === 0) {
+        return res.status(400).json({ message: 'No valid fields to update' });
+      }
+      
+      // Add updated_at timestamp
+      updates.push('updated_at = NOW()');
+      
+      const query = {
+        text: `UPDATE tasks 
+               SET ${updates.join(', ')}
+               WHERE id = $1 AND user_id = $2
+               RETURNING *`,
+        values: values
+      };
       
       const result = await req.db.query(query);
       
-      if (!result.rows || result.rows.length === 0) {
-        console.error('No rows returned from INSERT query');
-        return res.status(500).json({ 
-          message: 'Failed to create task',
-          error: 'No data returned from database'
-        });
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'Task not found or not authorized' });
       }
       
-      console.log(`Successfully created task for user ID ${dbUserId}:`, result.rows[0].id);
-      return res.status(201).json(result.rows[0]);
+      return res.status(200).json(result.rows[0]);
       
-    } catch (dbError) {
-      console.error('Database error in createTask:', {
-        error: dbError.message,
-        code: dbError.code,
-        detail: dbError.detail,
-        constraint: dbError.constraint,
-        table: dbError.table,
-        query: query?.text,
-        values: query?.values,
-        stack: dbError.stack
+    } catch (error) {
+      console.error('Error in updateTask:', {
+        message: error.message,
+        stack: error.stack,
+        params: req.params,
+        body: req.body,
+        user: req.user ? { uid: req.user.uid, email: req.user.email } : 'no user'
       });
       
-      // Handle specific database errors
-      if (dbError.code === '23505') { // Unique violation
-        return res.status(409).json({ 
-          message: 'A task with these details already exists',
-          details: dbError.detail
-        });
-      }
-      
-      // Handle other common PostgreSQL errors
-      if (dbError.code === '22P02') { // Invalid text representation
-        return res.status(400).json({
-          message: 'Invalid data format',
-          details: dbError.message
-        });
-      }
-      
-      // If we get here, it's an unhandled database error
-      throw new Error(`Database error: ${dbError.message}`);
+      return res.status(500).json({ 
+        message: 'Error updating task',
+        ...(process.env.NODE_ENV === 'development' && { 
+          error: error.message,
+          stack: error.stack 
+        })
+      });
     }
-  } catch (error) {
-    console.error('Unexpected error in createTask:', {
-      error: error.message,
-      stack: error.stack,
-      user: req.user ? { uid: req.user.uid, email: req.user.email } : 'no user',
-      requestBody: req.body
+  };
+
+  // Delete a task
+  const deleteTask = async (req, res) => {
+    try {
+      const taskId = req.params.id;
+      
+      if (!taskId) {
+        return res.status(400).json({ message: 'Task ID is required' });
+      }
+      
+      // Get user ID from Firebase UID
+      const userResult = await req.db.query(
+        'SELECT id FROM users WHERE firebase_uid = $1',
+        [req.user.uid]
+      );
+      
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      const dbUserId = userResult.rows[0].id;
+      
+      // Delete the task (cascade will handle subtasks)
+      const result = await req.db.query(
+        'DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *',
+        [taskId, dbUserId]
+      );
+      
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'Task not found or not authorized' });
+      }
+      
+      return res.status(200).json({ message: 'Task deleted successfully' });
+      
+    } catch (error) {
+      console.error('Error in deleteTask:', {
+        message: error.message,
+        stack: error.stack,
+        params: req.params,
+        user: req.user ? { uid: req.user.uid, email: req.user.email } : 'no user'
+      });
+      
+      return res.status(500).json({ 
+        message: 'Error deleting task',
+        ...(process.env.NODE_ENV === 'development' && { 
+          error: error.message,
+          stack: error.stack 
+        })
+      });
+    }
+  };
+
+  // Apply auth middleware
+  router.use(withAuth);
+
+  // Routes
+  router.get('/', getTasks);
+  router.post('/', createTask);
+  router.put('/:id', updateTask);
+  router.delete('/:id', deleteTask);
+
+  // Handle unsupported methods
+  router.all('*', (req, res) => {
+    res.status(405).json({ 
+      success: false,
+      code: 'METHOD_NOT_ALLOWED',
+      message: `Method ${req.method} Not Allowed` 
     });
+  });
+
+  // Error handling middleware
+  router.use((err, req, res, next) => {
+    console.error('Tasks API error:', err);
+    
+    // Handle specific error types
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        errors: err.errors
+      });
+    }
     
     res.status(500).json({ 
-      message: 'Internal server error while creating task',
+      success: false,
+      code: 'SERVER_ERROR',
+      message: 'Internal server error',
       ...(process.env.NODE_ENV === 'development' && { 
-        error: error.message,
-        stack: error.stack
+        error: err.message,
+        stack: err.stack 
       })
     });
-  }
-};
-
-// Update a task
-const updateTask = async (req, res) => {
-  try {
-    const taskId = req.params.id;
-    const { title, description, status, priority, due_date, order_index, is_pinned } = req.body;
-
-    // Get user ID from Firebase UID
-    const userResult = await req.db.query(
-      'SELECT id FROM users WHERE firebase_uid = $1',
-      [req.user.uid]
-    );
-    
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    const dbUserId = userResult.rows[0].id;
-
-    // First, verify the task exists and belongs to the user
-    const taskResult = await req.db.query(
-      'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
-      [taskId, dbUserId]
-    );
-
-    if (taskResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    // Update the task
-    const { rows } = await req.db.query(
-      `UPDATE tasks SET 
-        title = COALESCE($1, title),
-        description = COALESCE($2, description),
-        status = COALESCE($3, status),
-        priority = COALESCE($4, priority),
-        due_date = $5,
-        order_index = COALESCE($6, order_index),
-        is_pinned = COALESCE($7, is_pinned),
-        updated_at = NOW()
-       WHERE id = $8 AND user_id = $9
-       RETURNING *`,
-      [
-        title,
-        description,
-        status,
-        priority,
-        due_date || null,
-        order_index,
-        is_pinned,
-        taskId,
-        dbUserId
-      ]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    res.status(200).json(rows[0]);
-  } catch (error) {
-    console.error('Update task error:', error);
-    res.status(500).json({ message: 'Error updating task' });
-  }
-};
-
-// Delete a task
-const deleteTask = async (req, res) => {
-  try {
-    const taskId = req.params.id;
-
-    // Get user ID from Firebase UID
-    const userResult = await req.db.query(
-      'SELECT id FROM users WHERE firebase_uid = $1',
-      [req.user.uid]
-    );
-    
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    const dbUserId = userResult.rows[0].id;
-
-    // First, verify the task exists and belongs to the user
-    const taskResult = await req.db.query(
-      'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
-      [taskId, dbUserId]
-    );
-
-    if (taskResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    // Delete the task (cascade will handle subtasks)
-    await req.db.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [taskId, dbUserId]);
-    
-    res.status(200).json({ message: 'Task deleted successfully' });
-  } catch (error) {
-    console.error('Delete task error:', error);
-    res.status(500).json({ message: 'Error deleting task' });
-  }
-};
-
-
-// Apply auth middleware
-router.use(withAuth);
-
-// Routes
-router.get('/', getTasks);
-router.post('/', createTask);
-router.put('/:id', updateTask);
-router.delete('/:id', deleteTask);
-
-// Handle unsupported methods
-router.all('*', (req, res) => {
-  res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-  res.status(405).json({ 
-    success: false,
-    code: 'METHOD_NOT_ALLOWED',
-    message: `Method ${req.method} Not Allowed` 
   });
-});
 
-// Error handling middleware
-router.use((err, req, res, next) => {
-  console.error('Tasks API error:', err);
-  
-  // Handle specific error types
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      code: 'VALIDATION_ERROR',
-      message: 'Validation failed',
-      errors: err.errors
-    });
-  }
-  
-  res.status(500).json({ 
-    success: false,
-    code: 'SERVER_ERROR',
-    message: 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { 
-      error: err.message,
-      stack: err.stack 
-    })
-  });
-});
+  return router;
+};
 
-module.exports = { router };
+module.exports = { createTasksRouter };
