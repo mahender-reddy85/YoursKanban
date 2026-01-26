@@ -12,20 +12,23 @@ const createTasksRouter = (pool) => {
     const query = isGuest 
       ? 'SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC'
       : `SELECT t.*, 
-                json_agg(
-                  json_build_object(
-                    'id', s.id,
-                    'title', s.title,
-                    'is_completed', s.is_completed,
-                    'order_index', s.order_index,
-                    'created_at', s.created_at,
-                    'updated_at', s.updated_at
-                  ) ORDER BY s.order_index
+                COALESCE(
+                  (SELECT json_agg(
+                    json_build_object(
+                      'id', st.id,
+                      'title', st.title,
+                      'is_completed', st.is_completed,
+                      'order_index', st.order_index,
+                      'created_at', st.created_at,
+                      'updated_at', st.updated_at
+                    ) ORDER BY st.order_index
+                  )
+                  FROM subtasks st 
+                  WHERE st.task_id = t.id),
+                  '[]'::json
                 ) as subtasks
          FROM tasks t
-         LEFT JOIN subtasks s ON t.id = s.task_id
          WHERE t.user_id = $1
-         GROUP BY t.id
          ORDER BY t.created_at DESC`;
 
     const result = await pool.query(query, [userId]);
