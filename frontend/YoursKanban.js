@@ -1256,73 +1256,141 @@ function hideDeleteConfirmation() {
 }
 
 // Toggle task pinned status
-function togglePin(id) {
-    const task = state.tasks.find(t => t.id === id);
-    if (task) {
+async function togglePin(id) {
+    try {
+        const task = state.tasks.find(t => t.id === id);
+        if (!task) return;
+        
+        // Optimistic UI update
         task.pinned = !task.pinned;
+        renderBoard();
+        
+        // Update backend
+        await tasksAPI.updateTask(id, { pinned: task.pinned });
+        
+        // Update local state and save
+        saveState();
+        showToast(task.pinned ? 'Task pinned' : 'Task unpinned', 'success');
+    } catch (error) {
+        console.error('Error toggling pin status:', error);
+        showToast('Failed to update task', 'error');
+        // Re-render to revert optimistic update
+        renderBoard();
+    }
+}
+
+async function duplicateTask(id) {
+    try {
+        const taskToDuplicate = state.tasks.find(task => task.id === id);
+        if (!taskToDuplicate) return;
+
+        // Create a deep copy of the task
+        const newTask = JSON.parse(JSON.stringify(taskToDuplicate));
+        
+        // Generate a new ID and update timestamps
+        newTask.id = `temp-${Date.now()}`; // Temporary ID for optimistic update
+        newTask.createdAt = new Date().toISOString();
+        newTask.updatedAt = new Date().toISOString();
+
+        // Add " (Copy)" to the title if it doesn't already have it
+        if (!newTask.title.includes(' (Copy)')) {
+            newTask.title = `${newTask.title} (Copy)`;
+        }
+
+        // Optimistic UI update
+        state.tasks.unshift(newTask);
+        renderBoard();
+
+        // Create task in the backend
+        const createdTask = await tasksAPI.createTask({
+            title: newTask.title,
+            description: newTask.description,
+            status: newTask.status,
+            priority: newTask.priority,
+            dueDate: newTask.dueDate,
+            pinned: newTask.pinned || false
+        });
+
+        // Update the task with the actual ID from the backend
+        const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
+        if (taskIndex !== -1) {
+            state.tasks[taskIndex] = { ...createdTask, subtasks: newTask.subtasks || [] };
+        }
+
         saveState();
         renderBoard();
-        showToast(task.pinned ? 'Task pinned' : 'Task unpinned', 'success');
+        showToast('Task duplicated', 'success');
+    } catch (error) {
+        console.error('Error duplicating task:', error);
+        showToast('Failed to duplicate task', 'error');
+        // Re-render to revert optimistic update
+        renderBoard();
     }
 }
 
-function duplicateTask(id) {
-    const taskToDuplicate = state.tasks.find(task => task.id === id);
-    if (!taskToDuplicate) return;
+async function deleteTask(id) {
+    try {
+        const taskToDelete = state.tasks.find(task => task.id === id);
+        if (!taskToDelete) return;
 
-    // Create a deep copy of the task
-    const newTask = JSON.parse(JSON.stringify(taskToDuplicate));
+        // Store the deleted task for potential undo
+        state.lastDeletedTask = { ...taskToDelete, deletedAt: Date.now() };
 
-    // Generate a new ID and update timestamps
-    newTask.id = Date.now().toString();
-    newTask.createdAt = Date.now();
-    newTask.updatedAt = Date.now();
+        // Optimistic UI update
+        state.tasks = state.tasks.filter(task => task.id !== id);
+        renderBoard();
+        hideDeleteConfirmation();
 
-    // Add " (Copy)" to the title if it doesn't already have it
-    if (!newTask.title.includes(' (Copy)')) {
-        newTask.title = `${newTask.title} (Copy)`;
-    }
+        // Delete from backend
+        await tasksAPI.deleteTask(id);
 
-    // Add the new task to the beginning of the tasks array
-    state.tasks.unshift(newTask);
-    saveState();
-    renderBoard();
+        // Save state after successful backend deletion
+        saveState();
 
-    // Show success toast
-    showToast('Task duplicated', 'success');
-}
+        // Show toast with undo option
+        showToast(
+            'Task deleted',
+            'error',
+            10000, // Give more time for undo
+            async () => {
+                try {
+                    // Undo delete action
+                    if (state.lastDeletedTask) {
+                        const { deletedAt, ...task } = state.lastDeletedTask;
+                        
+                        // Recreate the task in the backend
+                        const createdTask = await tasksAPI.createTask({
+                            ...task,
+                            // Make sure to exclude any internal fields
+                            id: undefined, // Let the backend generate a new ID
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        });
 
-function deleteTask(id) {
-    const taskToDelete = state.tasks.find(task => task.id === id);
-    if (!taskToDelete) return;
-
-    // Store the deleted task for potential undo
-    state.lastDeletedTask = { ...taskToDelete, deletedAt: Date.now() };
-
-    // Remove the task
-    state.tasks = state.tasks.filter(task => task.id !== id);
-    saveState();
-    renderBoard();
-    hideDeleteConfirmation();
-
-    // Show toast with undo option
-    showToast(
-        'Task deleted',
-        'error',
-        5000,
-        () => {
-            // Undo delete action
-            if (state.lastDeletedTask) {
-                // Remove the deletedAt property before adding back
-                const { deletedAt, ...task } = state.lastDeletedTask;
-                state.tasks.push(task);
-                saveState();
-                renderBoard();
-                showToast('Task restored', 'success');
-                state.lastDeletedTask = null;
+                        // Add the recreated task to the local state
+                        state.tasks.push(createdTask);
+                        saveState();
+                        renderBoard();
+                        showToast('Task restored', 'success');
+                        state.lastDeletedTask = null;
+                    }
+                } catch (error) {
+                    console.error('Error undoing delete:', error);
+                    showToast('Failed to restore task', 'error');
+                }
             }
+        );
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        showToast('Failed to delete task', 'error');
+        // Revert optimistic update
+        if (state.lastDeletedTask) {
+            const { deletedAt, ...task } = state.lastDeletedTask;
+            state.tasks.push(task);
+            state.lastDeletedTask = null;
+            renderBoard();
         }
-    );
+    }
 }
 
 // Export Function
