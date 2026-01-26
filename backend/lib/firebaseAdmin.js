@@ -1,41 +1,79 @@
 const admin = require("firebase-admin");
 
+// Helper function to safely format private key
+const formatPrivateKey = (key) => {
+  if (!key) return null;
+  // Handle both escaped and unescaped newlines
+  return key.replace(/\\n/g, '\n').replace(/\n/g, '\n');
+};
+
 if (!admin.apps.length) {
   try {
-    const serviceAccount = {
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\\\n/g, '\n'),
-    };
+    // Load environment variables explicitly
+    require('dotenv').config();
+    
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
-    if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-      console.error('❌ Missing required Firebase Admin environment variables');
-      console.error('Please check if FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are properly set');
-      process.exit(1);
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-      }),
-      databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
+    console.log('🔧 Initializing Firebase Admin with:', {
+      projectId: projectId ? '✅ Set' : '❌ Missing',
+      clientEmail: clientEmail ? '✅ Set' : '❌ Missing',
+      privateKey: privateKey ? '✅ Set' : '❌ Missing',
+      privateKeyPreview: privateKey ? `...${privateKey.substring(privateKey.length - 20)}` : 'N/A'
     });
 
-    console.log('✅ Firebase Admin initialized with project:', admin.app().options.projectId);
+    if (!projectId || !clientEmail || !privateKey) {
+      const missing = [];
+      if (!projectId) missing.push('FIREBASE_PROJECT_ID');
+      if (!clientEmail) missing.push('FIREBASE_CLIENT_EMAIL');
+      if (!privateKey) missing.push('FIREBASE_PRIVATE_KEY');
+      
+      throw new Error(`Missing required Firebase Admin environment variables: ${missing.join(', ')}`);
+    }
+
+    // Initialize Firebase Admin
+    const firebaseConfig = {
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey
+      }),
+      databaseURL: `https://${projectId}.firebaseio.com`
+    };
+
+    admin.initializeApp(firebaseConfig);
+
+    // Verify the admin connection
+    admin.auth().listUsers(1)
+      .then(() => console.log('✅ Firebase Admin connection verified'))
+      .catch(err => {
+        console.error('❌ Failed to verify Firebase Admin connection:', err.message);
+        throw err;
+      });
+
+    console.log('✅ Firebase Admin successfully initialized with project:', admin.app().options.projectId);
+    
   } catch (error) {
-    console.error('❌ Firebase Admin initialization failed:');
-    console.error(error.message);
+    console.error('❌ Firebase Admin initialization failed:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     
     if (error.message.includes('private key')) {
       console.error('\n⚠️  Common issues with private key:');
       console.error('1. Make sure to include the full key with BEGIN and END PRIVATE KEY lines');
       console.error('2. Ensure newlines are properly escaped (use \\n in .env)');
-      console.error('3. Verify the key is not corrupted or missing any characters');
+      console.error('3. Verify the key is correctly copied from Firebase Console');
+      console.error('4. Check for any invisible characters or spaces');
+      console.error('5. Current private key format:', process.env.FIREBASE_PRIVATE_KEY ? 'Present' : 'Missing');
     }
     
-    process.exit(1);
+    // Don't exit in production to allow for graceful degradation
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
   }
 }
 
