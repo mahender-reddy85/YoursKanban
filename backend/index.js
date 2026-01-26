@@ -1,8 +1,8 @@
 require('dotenv').config();
 
 // Debug environment variables
-console.log("DATABASE_URL exists?", !!process.env.DATABASE_URL);
-console.log("DATABASE_URL preview:", process.env.DATABASE_URL?.slice(0, 30));
+console.log("Starting server with environment:", process.env.NODE_ENV || 'development');
+console.log("Database connected:", !!process.env.DATABASE_URL);
 
 const express = require('express');
 const cors = require('cors');
@@ -12,9 +12,9 @@ const { createServer } = require('http');
 const { Pool } = require('pg');
 
 // Import API routes and middleware
-const meHandler = require('./api/me');
-const tasksRouter = require('./api/tasks').router;
 const firebaseAuth = require('./middleware/firebaseAuth');
+const { globalErrorHandler, notFoundHandler } = require('./utils/errorHandler');
+const createV1Router = require('./api/v1');
 
 // Initialize express app
 const app = express();
@@ -210,26 +210,23 @@ app.get('/api/health', async (req, res) => {
 
 // API Routes
 
-// User profile endpoints (protected by Firebase Auth)
-app.get('/api/me', firebaseAuth, meHandler);
+// Mount versioned API routes
+app.use('/api/v1', firebaseAuth, createV1Router(pool));
 
-// Task routes (protected by Firebase Auth)
-app.use('/api/tasks', firebaseAuth, tasksRouter);
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ message: 'Not Found' });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Internal Server Error' 
-      : err.message
+// Legacy API routes (temporary, for backward compatibility)
+app.use('/api/tasks', firebaseAuth, (req, res, next) => {
+  res.status(410).json({
+    success: false,
+    message: 'This API version is deprecated. Please use /api/v1/tasks instead',
+    code: 'DEPRECATED_API_VERSION'
   });
 });
+
+// 404 handler - must be after all other routes
+app.use(notFoundHandler);
+
+// Global error handler - must be after all other middleware
+app.use(globalErrorHandler);
 
 // Start the server and handle any startup errors
 startServer().catch(error => {
