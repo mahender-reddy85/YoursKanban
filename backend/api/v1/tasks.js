@@ -91,13 +91,28 @@ const createTasksRouter = (pool) => {
   // Create a new task
   const createTask = catchAsync(async (req, res) => {
     const { id: userId } = req.user;
-    const { title, description, status, priority, dueDate } = req.body;
+    const { title, description, status, priority, dueDate, position } = req.body;
+
+    // Get the current maximum position for the user's tasks to set a default position
+    const maxPositionResult = await pool.query(
+      'SELECT COALESCE(MAX(position), 0) as max_position FROM tasks WHERE user_id = $1',
+      [userId]
+    );
+    const defaultPosition = position || maxPositionResult.rows[0].max_position + 1;
 
     const result = await pool.query(
-      `INSERT INTO tasks (user_id, title, description, status, priority, due_date)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [userId, title, description || null, status || 'todo', priority || 'medium', dueDate || null]
+      [
+        userId, 
+        title, 
+        description || null, 
+        status || 'todo', 
+        priority || 'medium', 
+        dueDate || null,
+        defaultPosition
+      ]
     );
 
     res.status(201).json({
