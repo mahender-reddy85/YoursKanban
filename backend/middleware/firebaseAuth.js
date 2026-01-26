@@ -1,5 +1,5 @@
 const admin = require("../config/firebase");
-const { pool } = require("../lib/db");
+const pool = require("../lib/db").pool;
 
 module.exports = async function firebaseAuth(req, res, next) {
   try {
