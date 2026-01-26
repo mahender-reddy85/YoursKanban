@@ -26,27 +26,39 @@ const firebaseAuth = async (req, res, next) => {
     }
 
     // Verify the ID token using admin.auth()
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    
-    // Check if token is expired
-    const currentTime = Math.floor(Date.now() / 1000);
-    if (decodedToken.exp < currentTime) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication token has expired' 
+    console.log('🔍 Verifying token...');
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(token, true); // true to check if token is revoked
+      console.log('✅ Token verified successfully');
+      
+      // Check if token is expired
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (decodedToken.exp < currentTime) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Authentication token has expired' 
+        });
+      }
+
+      // Add the decoded token to the request object
+      req.user = {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        email_verified: decodedToken.email_verified,
+        name: decodedToken.name || '',
+        picture: decodedToken.picture || ''
+      };
+
+      next();
+    } catch (verifyError) {
+      console.error('❌ Token verification failed:', {
+        message: verifyError.message,
+        code: verifyError.code,
+        errorInfo: verifyError.errorInfo
       });
+      throw verifyError; // Re-throw to be caught by our main error handler
     }
-
-    // Add the decoded token to the request object
-    req.user = {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      email_verified: decodedToken.email_verified,
-      name: decodedToken.name || '',
-      picture: decodedToken.picture || ''
-    };
-
-    next();
   } catch (error) {
     console.error(' Authentication error:', {
       message: error.message,
