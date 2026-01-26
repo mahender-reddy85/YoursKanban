@@ -666,19 +666,16 @@ function attachDragEvents() {
     // Add drag events to cards
     document.querySelectorAll('.task-card').forEach(card => {
         card.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
             e.dataTransfer.setData('text/plain', card.dataset.id);
             setTimeout(() => {
                 card.classList.add('dragging');
             }, 0);
         });
 
-        card.addEventListener('dragend', async () => {
+        card.addEventListener('dragend', (e) => {
+            e.stopPropagation();
             card.classList.remove('dragging');
-            // Update task status based on the new column
-            const newStatus = card.closest('.task-list')?.dataset.status;
-            if (newStatus) {
-                await updateTaskStatus(card.dataset.id, newStatus);
-            }
         });
     });
 
@@ -705,27 +702,35 @@ function attachDragEvents() {
 
         zone.addEventListener('drop', async (e) => {
             e.preventDefault();
-            const taskId = e.dataTransfer.getData('text/plain');
-            const status = zone.dataset.status;
-            const task = state.tasks.find(t => t.id === taskId);
+            e.stopPropagation();
             
-            if (task) {
-                // Update the task's status
-                task.status = status;
+            const taskId = e.dataTransfer.getData('text/plain');
+            const newStatus = zone.dataset.status;
+            
+            // Find the task in the state
+            const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+            
+            // Update the task status
+            const task = state.tasks[taskIndex];
+            const oldStatus = task.status;
+            
+            // Only update if status changed
+            if (oldStatus !== newStatus) {
+                task.status = newStatus;
                 
-                // Reorder tasks in the new column
-                const newOrder = Array.from(zone.querySelectorAll('.task-card'))
-                    .map(card => card.dataset.id);
-                
-                // Update positions in the state
-                newOrder.forEach((taskId, index) => {
-                    const t = state.tasks.find(t => t.id === taskId);
-                    if (t) t.position = index;
-                });
-                
-                // Save the updated state
-                await saveState();
-                renderBoard();
+                // Save to backend
+                try {
+                    await tasksAPI.updateTask(taskId, { status: newStatus });
+                    saveState();
+                    renderBoard();
+                } catch (error) {
+                    console.error('Error updating task status:', error);
+                    // Revert on error
+                    task.status = oldStatus;
+                    renderBoard();
+                    showToast('Failed to move task', 'error');
+                }
             }
         });
     });
@@ -880,47 +885,39 @@ function setupEventListeners() {
     // Export button
     document.getElementById('exportBoard')?.addEventListener('click', exportBoard);
 
-    // Setup event listeners for task actions
+    // Handle task actions with event delegation
     document.addEventListener('click', async (e) => {
+        // Find the closest action button
+        const actionBtn = e.target.closest('.pin-btn, .duplicate-btn, .edit-btn, .delete-btn');
+        if (!actionBtn) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const taskId = actionBtn.dataset.id;
+        if (!taskId) return;
+        
+        // Find the task to ensure it exists
+        const task = state.tasks.find(t => t.id === taskId);
+        if (!task) {
+            console.error('Task not found:', taskId);
+            return;
+        }
+        
+        // Handle different actions
         try {
-            // Pin/Unpin Task
-            const pinBtn = e.target.closest('.pin-btn');
-            if (pinBtn) {
-                e.stopPropagation();
-                e.preventDefault();
-                await togglePin(pinBtn.dataset.id);
-                return;
-            }
-
-            // Duplicate Task
-            const duplicateBtn = e.target.closest('.duplicate-btn');
-            if (duplicateBtn) {
-                e.stopPropagation();
-                e.preventDefault();
-                await duplicateTask(duplicateBtn.dataset.id);
-                return;
-            }
-
-            // Delete Task
-            const deleteBtn = e.target.closest('.delete-btn');
-            if (deleteBtn) {
-                e.stopPropagation();
-                e.preventDefault();
-                showDeleteConfirmation(deleteBtn.dataset.id);
-                return;
-            }
-
-            // Edit Task
-            const editBtn = e.target.closest('.edit-btn');
-            if (editBtn) {
-                e.stopPropagation();
-                e.preventDefault();
-                openModal(editBtn.dataset.id);
-                return;
+            if (actionBtn.classList.contains('pin-btn')) {
+                await togglePin(taskId);
+            } else if (actionBtn.classList.contains('duplicate-btn')) {
+                await duplicateTask(taskId);
+            } else if (actionBtn.classList.contains('edit-btn')) {
+                openModal(taskId);
+            } else if (actionBtn.classList.contains('delete-btn')) {
+                showDeleteConfirmation(taskId);
             }
         } catch (error) {
             console.error('Error handling task action:', error);
-            showToast('An error occurred. Please try again.', 'error');
+            showToast('Failed to perform action', 'error');
         }
     });
 
@@ -1384,118 +1381,102 @@ function hideDeleteConfirmation() {
 
 // Toggle task pinned status
 async function togglePin(id) {
+    const task = state.tasks.find(t => t.id === id);
+    if (!task) {
+        console.error('Task not found for pinning:', id);
+        return;
+    }
+    
+    const newPinnedState = !task.pinned;
+    
     try {
-        const task = state.tasks.find(t => t.id === id);
-        if (!task) return;
-        
-        // Optimistic UI update
-        const newPinnedState = !task.pinned;
+        // Optimistic update
         task.pinned = newPinnedState;
-        renderBoard();
+        saveState();
         
-        try {
-            // Update backend
-            const response = await tasksAPI.updateTask(id, { 
-                pinned: newPinnedState,
-                status: task.status // Ensure status is preserved
-            });
-            
-            if (response && response.success && response.data) {
-                // Update task with server data
-                const taskIndex = state.tasks.findIndex(t => t.id === id);
-                if (taskIndex !== -1) {
-                    state.tasks[taskIndex] = { 
-                        ...state.tasks[taskIndex], 
-                        ...response.data 
-                    };
-                    saveState();
-                }
-                showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
-            } else {
-                throw new Error('Failed to update task');
-            }
-        } catch (error) {
-            console.error('Error toggling pin status:', error);
-            throw error; // Re-throw to be caught by the outer catch
+        // Update backend
+        const response = await tasksAPI.updateTask(id, { 
+            pinned: newPinnedState 
+        });
+        
+        if (response?.success) {
+            showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
+        } else {
+            throw new Error('Failed to update task');
         }
     } catch (error) {
-        console.error('Error in togglePin:', error);
+        console.error('Error toggling pin:', error);
+        // Revert on error
+        task.pinned = !newPinnedState;
+        saveState();
         showToast('Failed to update task', 'error');
-        // Re-render to revert optimistic update
+    } finally {
         renderBoard();
     }
 }
 
 async function duplicateTask(id) {
-    try {
-        const taskToDuplicate = state.tasks.find(task => task.id === id);
-        if (!taskToDuplicate) {
-            console.error('Task not found:', id);
-            return;
-        }
-        
-        // Show loading state
-        const originalButton = document.querySelector(`.duplicate-btn[data-id="${id}"]`);
-        const originalHTML = originalButton?.innerHTML;
-        if (originalButton) {
-            originalButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            originalButton.disabled = true;
-        }
+    const taskToDuplicate = state.tasks.find(task => task.id === id);
+    if (!taskToDuplicate) {
+        console.error('Task not found for duplication:', id);
+        return;
+    }
+    
+    // Show loading state
+    const button = document.querySelector(`.duplicate-btn[data-id="${id}"]`);
+    const originalHTML = button?.innerHTML;
+    if (button) {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+    }
 
         // Create a deep copy of the task with a new ID and updated title
-        const newTask = {
-            ...JSON.parse(JSON.stringify(taskToDuplicate)),
-            id: `temp-${Date.now()}`,
-            title: taskToDuplicate.title.includes(' (Copy)') 
-                ? taskToDuplicate.title 
-                : `${taskToDuplicate.title} (Copy)`,
-            pinned: false, // Don't pin duplicated tasks by default
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
+        const newTask = JSON.parse(JSON.stringify(taskToDuplicate));
+        newTask.id = `temp-${Date.now()}`;
+        newTask.title = taskToDuplicate.title.includes(' (Copy)') 
+            ? taskToDuplicate.title 
+            : `${taskToDuplicate.title} (Copy)`;
+        newTask.pinned = false; // Don't pin duplicated tasks by default
+        newTask.createdAt = new Date().toISOString();
+        newTask.updatedAt = new Date().toISOString();
         
-        // Remove the ID to let the server generate a new one
-        const { id: _, ...taskToCreate } = newTask;
+        // Create task data for the server (without the temporary ID)
+        const taskToCreate = { ...newTask };
+        delete taskToCreate.id; // Let the server generate a new ID
 
         // Optimistic UI update
         state.tasks.unshift(newTask);
         saveState();
-        renderBoard();
         
         try {
             // Create task in the backend
             const response = await tasksAPI.createTask(taskToCreate);
             
-            if (response && response.success && response.data) {
+            if (response?.success && response.data) {
                 // Replace the temporary task with the one from the server
                 const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
                 if (taskIndex !== -1) {
                     state.tasks[taskIndex] = response.data;
                     saveState();
-                    renderBoard();
                     showToast('Task duplicated', 'success');
                 }
             } else {
                 throw new Error('Failed to create duplicate task');
             }
         } catch (error) {
+            console.error('Error duplicating task:', error);
             // Revert optimistic update on error
             state.tasks = state.tasks.filter(t => t.id !== newTask.id);
             saveState();
+            showToast('Failed to duplicate task', 'error');
+        } finally {
+            // Always restore button state and re-render
+            if (button) {
+                button.innerHTML = originalHTML || '<i class="fas fa-copy"></i>';
+                button.disabled = false;
+            }
             renderBoard();
-            throw error;
         }
-    } catch (error) {
-        console.error('Error duplicating task:', error);
-        showToast('Failed to duplicate task', 'error');
-    } finally {
-        // Restore button state
-        const button = document.querySelector(`.duplicate-btn[data-id="${id}"]`);
-        if (button && originalHTML) {
-            button.innerHTML = originalHTML;
-            button.disabled = false;
-        }
-    }
 }
 
 async function deleteTask(id) {
