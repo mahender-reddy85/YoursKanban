@@ -99,9 +99,10 @@ function getCurrentUser() {
  * @param {Object} options - Fetch options
  * @returns {Promise<any>} - Response data
  */
-async function request(endpoint, options = {}) {
+async function request(endpoint, options = {}, retryCount = 0) {
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = Date.now();
+  const MAX_RETRIES = 1; // Maximum number of retry attempts
   
   const log = (message, data) => {
     console.log(`[${requestId}] ${message}`, data || '');
@@ -118,14 +119,16 @@ async function request(endpoint, options = {}) {
   try {
     log(`📡 Starting ${options.method || 'GET'} request to ${endpoint}`);
     
-    // Get a fresh token for each request
-    const token = await getFirebaseToken();
-    
-    if (!token && !endpoint.includes('/public/')) {
+    // Get the current user
+    const user = auth.currentUser;
+    if (!user && !endpoint.includes('/public/')) {
       const error = new Error('Authentication required');
       error.code = 'AUTH_REQUIRED';
       throw error;
     }
+    
+    // Get a fresh token for each request
+    const token = user ? await user.getIdToken(true) : null;
     
     // Prepare headers
     const headers = {
@@ -136,7 +139,8 @@ async function request(endpoint, options = {}) {
     
     log('Request headers:', {
       'Content-Type': headers['Content-Type'],
-      'Authorization': headers['Authorization'] ? 'Bearer [TOKEN]' : 'None'
+      'Authorization': headers['Authorization'] ? 'Bearer [TOKEN]' : 'None',
+      'Endpoint': endpoint
     });
     
     // Make the request
