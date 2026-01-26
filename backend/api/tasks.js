@@ -390,4 +390,9 @@ const createTasksRouter = (pool) => {
   return router;
 };
 
-module.exports = { createTasksRouter };
+// Create a default router instance for backward compatibility
+const pool = require('../lib/db').pool;
+const router = createTasksRouter(pool);
+
+// Export both the router and the factory function
+module.exports = { router, createTasksRouter };

@@ -13,7 +13,7 @@ const { Pool } = require('pg');
 
 // Import API routes and middleware
 const meHandler = require('./api/me');
-const { router: tasksRouter } = require('./api/tasks');
+const tasksRouter = require('./api/tasks').router;
 const firebaseAuth = require('./middleware/firebaseAuth');
 
 // Initialize express app
