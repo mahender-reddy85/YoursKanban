@@ -153,28 +153,28 @@ async function request(endpoint, options = {}, retryCount = 0) {
     const responseTime = Date.now() - startTime;
     log(`↩️ Response received in ${responseTime}ms`, {
       status: response.status,
-      statusText: response.statusText
+      statusText: response.statusText,
+      url: response.url
     });
     
-    // Handle 401 Unauthorized with token refresh
+    // Handle 401 Unauthorized with token refresh and retry
     if (response.status === 401) {
-      log('🔄 Received 401, attempting token refresh...');
-      const newToken = await getFirebaseToken();
-      
-      if (newToken && newToken !== token) {
-        log('🆕 Got new token, retrying request...');
-        const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
-          ...options,
-          headers: {
-            ...headers,
-            'Authorization': `Bearer ${newToken}`
-          }
-        });
-        return await handleResponse(retryResponse, requestId);
+      if (retryCount < MAX_RETRIES) {
+        log(`🔄 Received 401, refreshing token and retrying (${retryCount + 1}/${MAX_RETRIES})...`);
+        
+        // Force token refresh
+        if (user) {
+          await user.getIdToken(true); // Force refresh
+        }
+        
+        // Retry the request with the new token
+        return request(endpoint, options, retryCount + 1);
       }
       
+      // If we've already retried, throw an error
       const error = new Error('Session expired. Please log in again.');
       error.code = 'SESSION_EXPIRED';
+      error.status = 401;
       throw error;
     }
     
