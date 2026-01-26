@@ -91,7 +91,7 @@ const createTasksRouter = (pool) => {
   // Create a new task
   const createTask = catchAsync(async (req, res) => {
     const { id: userId } = req.user;
-    const { title, description, status, priority, dueDate } = req.body;
+    const { title, description, status, priority, dueDate, position } = req.body;
 
     // Handle dueDate conversion
     let formattedDueDate = null;
@@ -116,9 +116,19 @@ const createTasksRouter = (pool) => {
       }
     }
 
+    // Get the next position for the task if not provided
+    let taskPosition = position;
+    if (taskPosition === undefined) {
+      const positionResult = await pool.query(
+        'SELECT COALESCE(MAX(position), 0) + 1 as next_position FROM tasks WHERE user_id = $1',
+        [userId]
+      );
+      taskPosition = positionResult.rows[0].next_position;
+    }
+
     const result = await pool.query(
-      `INSERT INTO tasks (user_id, title, description, status, priority, due_date)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [
         userId, 
@@ -126,7 +136,8 @@ const createTasksRouter = (pool) => {
         description || null, 
         status || 'todo', 
         priority || 'medium', 
-        formattedDueDate
+        formattedDueDate,
+        taskPosition
       ]
     );
 
