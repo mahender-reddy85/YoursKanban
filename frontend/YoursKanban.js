@@ -1033,33 +1033,48 @@ async function handleFormSubmit(e) {
     
     // Find existing task or create new one
     const existingTaskIndex = state.tasks.findIndex(t => t.id === id);
-    const existingTask = existingTaskIndex !== -1 ? state.tasks[existingTaskIndex] : null;
+    const isNewTask = existingTaskIndex === -1;
+    const existingTask = !isNewTask ? state.tasks[existingTaskIndex] : null;
     
     // Prepare task data
     const taskData = {
-        id,
         title,
         description,
         priority,
         status,
         dueDate: dueDate ? new Date(dueDate).getTime() : null,
-        pinned: existingTask?.pinned || false,
-        subtasks: currentSubtasks.length > 0 ? currentSubtasks : (existingTask?.subtasks || []),
-        files: existingTask?.files || [],
-        updatedAt: Date.now(),
-        createdAt: existingTask?.createdAt || Date.now()
+        // Only include these fields if they exist in the existing task
+        ...(existingTask && {
+            pinned: existingTask.pinned,
+            subtasks: currentSubtasks.length > 0 ? currentSubtasks : (existingTask.subtasks || []),
+            files: existingTask.files || [],
+            createdAt: existingTask.createdAt
+        })
     };
 
     try {
         let updatedTask;
         
-        if (existingTask) {
-            // Update existing task
-            updatedTask = await tasksAPI.updateTask(id, taskData);
+        if (!isNewTask) {
+            // Update existing task - only send updated fields
+            const updateData = { ...taskData };
+            // Remove fields that shouldn't be updated
+            delete updateData.subtasks;
+            delete updateData.files;
+            delete updateData.createdAt;
+            
+            updatedTask = await tasksAPI.updateTask(id, updateData);
             showToast('Task updated', 'success');
         } else {
-            // Add new task
-            updatedTask = await tasksAPI.createTask(taskData);
+            // Add new task - include all fields
+            const newTaskData = {
+                ...taskData,
+                pinned: false,
+                subtasks: currentSubtasks,
+                files: [],
+                createdAt: Date.now()
+            };
+            updatedTask = await tasksAPI.createTask(newTaskData);
             showToast('Task created', 'success');
         }
 
