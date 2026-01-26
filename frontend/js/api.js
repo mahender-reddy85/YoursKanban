@@ -1,5 +1,11 @@
 // API Utility Functions
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const auth = getAuth();
 const API_BASE = "https://yourskanban.onrender.com/api";
@@ -64,25 +70,26 @@ onAuthStateChanged(auth, (user) => {
  * Check if user is logged in using Firebase Auth
  * @returns {boolean} - True if user is logged in
  */
-export function isLoggedIn() {
-  return !!getAuth().currentUser;
+function isLoggedIn() {
+    return auth.currentUser !== null;
 }
 
 /**
  * Get current user from Firebase Auth
  * @returns {Object|null} - Current user object or null if not logged in
  */
-export function getCurrentUser() {
-  const user = getAuth().currentUser;
-  if (!user) return null;
-  
-  return {
-    uid: user.uid,
-    email: user.email,
-    displayName: user.displayName,
-    photoURL: user.photoURL,
-    emailVerified: user.emailVerified
-  };
+function getCurrentUser() {
+    const user = auth.currentUser;
+    if (!user) return null;
+    
+    return {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        emailVerified: user.emailVerified,
+        photoURL: user.photoURL,
+        // Add any other user properties you need
+    };
 }
 
 
@@ -368,96 +375,50 @@ const tasksAPI = {
 
 // Auth-related API calls
 const authAPI = {
-    /**
-     * Login user
-     * @param {string} email 
-     * @param {string} password 
-     * @returns {Promise<Object>} - User data and token
-     */
-    async login(email, password) {
-        try {
-            const response = await fetch('https://yourskanban.onrender.com/api/auth/login', {
-                method: 'POST',
-                credentials: 'include', // Important for cookies
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ email, password })
-            });
-            
-            const data = await handleResponse(response);
-            
-            if (data.user) {
-                // Store user data in localStorage (excluding sensitive info)
-                const { password_hash, ...userData } = data.user;
-                localStorage.setItem('user', JSON.stringify(userData));
-                
-                // Check if there are guest tasks to sync
-                const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
-                if (guestTasks.length > 0) {
-                    try {
-                        await tasksAPI.syncGuestTasks();
-                    } catch (syncError) {
-                        console.error('Failed to sync guest tasks:', syncError);
-                    }
-                }
-                return userData;
-            }
-            throw new Error('No user data received from server');
-        } catch (error) {
-            console.error('Login error:', error);
-            throw new Error(error.message || 'Login failed. Please check your credentials.');
-        }
-    },
+  /**
+   * Login user with Firebase
+   * @param {string} email 
+   * @param {string} password 
+   * @returns {Promise<UserCredential>} - Firebase UserCredential
+   */
+  login(email, password) {
+    return signInWithEmailAndPassword(auth, email, password);
+  },
 
-    /**
-     * Register new user
-     * @param {Object} userData - User registration data
-     * @returns {Promise<Object>} - User data and token
-     */
-    async register(userData) {
-        try {
-            const response = await request('/auth/register', {
-                method: 'POST',
-                body: JSON.stringify(userData)
-            });
-            
-            if (response.token) {
-                localStorage.setItem('token', response.token);
-                return response.user || {};
-            }
-            throw new Error('Registration failed. Please try again.');
-        } catch (error) {
-            console.error('Registration error:', error);
-            throw new Error(error.message || 'Registration failed. Please try again.');
-        }
-    },
+  /**
+   * Register new user with Firebase
+   * @param {string} email 
+   * @param {string} password 
+   * @returns {Promise<UserCredential>} - Firebase UserCredential
+   */
+  register(email, password) {
+    return createUserWithEmailAndPassword(auth, email, password);
+  },
 
-    /**
-     * Logout user
-     * @returns {Promise<boolean>} - Whether logout was successful
-     */
-    async logout() {
-        try {
-            // Sign out from Firebase
-            if (window.firebaseAuth) {
-                await window.firebaseAuth.signOut();
-            }
-            return true;
-        } catch (error) {
-            console.error('Logout error:', error);
-            return false;
-        }
-    },
+  /**
+   * Logout user
+   * @returns {Promise<void>}
+   */
+  logout() {
+    return signOut(auth);
+  },
 
-    /**
-     * Get current user data
-     * @returns {Promise<Object|null>} - User data or null if not authenticated
-     */
-    async getCurrentUser() {
-        return getCurrentUser();
-    }
+  /**
+   * Get current user
+   * @returns {User|null} - Current Firebase user or null if not authenticated
+   */
+  getCurrentUser() {
+    return auth.currentUser;
+  },
+
+  /**
+   * Listen for auth state changes
+   * @param {Function} callback - Callback function that receives the user object
+   * @returns {Function} - Unsubscribe function
+   */
+  onAuthStateChanged(callback) {
+    return onAuthStateChanged(auth, callback);
+  }
 };
 
 // Export the API objects
