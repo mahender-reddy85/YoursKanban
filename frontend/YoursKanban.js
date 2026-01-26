@@ -919,64 +919,27 @@ function initTaskForm() {
         return;
     }
     
-    // Add a test button for debugging
-    const testButton = document.createElement('button');
-    testButton.textContent = 'Test Save';
-    testButton.type = 'button';
-    testButton.style.marginTop = '10px';
-    testButton.style.padding = '8px 16px';
-    testButton.style.backgroundColor = '#4CAF50';
-    testButton.style.color = 'white';
-    testButton.style.border = 'none';
-    testButton.style.borderRadius = '4px';
-    testButton.style.cursor = 'pointer';
-    
-    testButton.addEventListener('click', () => {
-        console.log('Test button clicked');
-        // Manually trigger form submission
-        const form = document.getElementById('taskForm');
-        if (form) {
-            console.log('Form found, submitting...');
-            handleFormSubmit({ target: form });
-        } else {
-            console.error('Form not found');
-        }
-    });
-    
-    // Add test button after the form
-    taskForm.parentNode.insertBefore(testButton, taskForm.nextSibling);
-    
+    // Removed test button as it's no longer needed
     // Remove any existing listeners to prevent duplicates
     taskForm.removeEventListener('submit', handleFormSubmit);
     
     // Add the submit handler
-    taskForm.addEventListener('submit', (e) => {
-        console.log('Form submit event fired');
-        handleFormSubmit(e);
-    });
+    taskForm.onsubmit = handleFormSubmit;
     
-    // Also add click handler to the save button
+    // Add click handler to the save button
     const saveButton = taskForm.querySelector('button[type="submit"]');
     if (saveButton) {
-        saveButton.addEventListener('click', (e) => {
+        saveButton.onclick = (e) => {
+            e.preventDefault();
             console.log('Save button clicked');
-            // Let the form submission handle it
-        });
+            handleFormSubmit(e);
+        };
     } else {
         console.error('Save button not found in form');
     }
     
     isFormInitialized = true;
     console.log('Task form initialized');
-    
-    // Log form elements for debugging
-    console.log('Form elements:', {
-        title: taskForm.elements['title'],
-        description: taskForm.elements['description'],
-        priority: taskForm.elements['priority'],
-        status: taskForm.elements['status'],
-        dueDate: taskForm.elements['dueDate']
-    });
 }
 
 function openModal(taskId = null, status = 'todo') {
@@ -1049,10 +1012,10 @@ async function handleFormSubmit(e) {
         e.stopPropagation();
     }
     
-    // Double check if we're handling a form submission
-    const form = e?.target || document.getElementById('taskForm');
-    if (!form || (e && e.target.id !== 'taskForm')) {
-        console.error('Invalid form submission target:', e?.target);
+    // Get the form element
+    const form = document.getElementById('taskForm');
+    if (!form) {
+        console.error('Task form not found');
         return;
     }
     
