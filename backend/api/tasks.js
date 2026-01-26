@@ -5,34 +5,54 @@ const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
 const createTasksRouter = (pool) => {
   const router = express.Router();
   
-  // Middleware to add db to request
-  router.use((req, res, next) => {
+  // Middleware to add db to request and handle unauthenticated users
+  router.use(async (req, res, next) => {
     req.db = pool;
+    
+    // If user is not authenticated, create a guest user
+    if (!req.user) {
+      try {
+        // Check if guest user exists
+        const guestUser = await pool.query(
+          'SELECT id FROM users WHERE email = $1', 
+          ['guest@yourskanban.com']
+        );
+        
+        if (guestUser.rows.length === 0) {
+          // Create guest user if doesn't exist
+          const newGuest = await pool.query(
+            `INSERT INTO users (email, name, is_guest) 
+             VALUES ($1, 'Guest User', true) 
+             RETURNING id`,
+            ['guest@yourskanban.com']
+          );
+          req.user = { id: newGuest.rows[0].id, isGuest: true };
+        } else {
+          req.user = { id: guestUser.rows[0].id, isGuest: true };
+        }
+      } catch (error) {
+        console.error('Error setting up guest user:', error);
+        return res.status(500).json({ message: 'Error setting up guest session' });
+      }
+    }
+    
     next();
   });
   
-  // Authentication middleware
+  // Authentication middleware - allow all requests through
   const withAuth = (req, res, next) => {
-    // For GET requests, allow unauthenticated access
-    if (req.method === 'GET') {
-      if (req.headers.authorization) {
-        // If there's a token, try to authenticate but don't fail if it's invalid
-        return verifyFirebaseToken(req, res, () => next());
-      }
-      return next();
-    }
-    // For other methods, require authentication
-    return verifyFirebaseToken(req, res, next);
+    // Always continue to next middleware
+    next();
   };
 
   // Get all tasks (works for both authenticated and unauthenticated users)
   const getTasks = async (req, res) => {
-    console.log('getTasks called, user:', req.user ? `authenticated (${req.user.uid})` : 'unauthenticated');
+    console.log('getTasks called, user:', req.user ? `user (${req.user.id})` : 'unauthenticated');
     
+    // At this point, req.user should always exist due to our middleware
     if (!req.user) {
-      // For unauthenticated users, return an empty array
-      console.log('Returning empty array for unauthenticated user');
-      return res.status(200).json([]);
+      console.error('Unexpected: No user object in request');
+      return res.status(500).json({ message: 'Internal server error' });
     }
     
     // First, check if the tasks table exists
