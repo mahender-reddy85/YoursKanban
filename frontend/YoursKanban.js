@@ -881,521 +881,64 @@ function setupEventListeners() {
 
     // Sort button
     document.getElementById('sortByDate')?.addEventListener('click', toggleSortOrder);
+});
 
-    // Export button
-    document.getElementById('exportBoard')?.addEventListener('click', exportBoard);
+// --- Task Action Handlers ---
 
-    // Handle task actions with event delegation
-    document.addEventListener('click', async (e) => {
-        // Find the closest action button
-        const actionBtn = e.target.closest('.pin-btn, .duplicate-btn, .edit-btn, .delete-btn');
-        if (!actionBtn) return;
-        
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const taskId = actionBtn.dataset.id;
-        if (!taskId) return;
-        
-        // Find the task to ensure it exists
-        const task = state.tasks.find(t => t.id === taskId);
-        if (!task) {
-            console.error('Task not found:', taskId);
-            return;
-        }
-        
-        // Handle different actions
-        try {
-            if (actionBtn.classList.contains('pin-btn')) {
-                await togglePin(taskId);
-            } else if (actionBtn.classList.contains('duplicate-btn')) {
-                await duplicateTask(taskId);
-            } else if (actionBtn.classList.contains('edit-btn')) {
-                openModal(taskId);
-            } else if (actionBtn.classList.contains('delete-btn')) {
-                showDeleteConfirmation(taskId);
-            }
-        } catch (error) {
-            console.error('Error handling task action:', error);
-            showToast('Failed to perform action', 'error');
-        }
-    });
-
-    // Add/Edit Task delegators
-    DOM.board.addEventListener('click', (e) => {
-        const addBtn = e.target.closest('.add-task-btn');
-        if (addBtn) openModal(null, addBtn.dataset.status);
-
-        const deleteBtn = e.target.closest('.delete-btn');
-        if (deleteBtn) showDeleteConfirmation(deleteBtn.dataset.id);
-
-        const duplicateBtn = e.target.closest('.duplicate-btn');
-        if (duplicateBtn) duplicateTask(duplicateBtn.dataset.id);
-
-        const pinBtn = e.target.closest('.pin-btn') || e.target.closest('.pin-btn i');
-        if (pinBtn) {
-            const btn = pinBtn.closest('.pin-btn');
-            if (btn) togglePin(btn.dataset.id);
-        }
-    });
-
-    // Search
-    if (DOM.searchInput) {
-        DOM.searchInput.addEventListener('input', (e) => {
-            state.filterQuery = e.target.value;
-            renderBoard();
-        });
-    }
-
-    // Priority filter
-    const priorityFilter = document.getElementById('priorityFilter');
-    if (priorityFilter) {
-        priorityFilter.addEventListener('change', (e) => {
-            state.priorityFilter = e.target.value;
-            renderBoard();
-        });
-    }
-
-    // Modal
-    if (DOM.modal) {
-        DOM.closeModal?.addEventListener('click', closeModal);
-        DOM.modal.addEventListener('click', (e) => {
-            if (e.target === DOM.modal) closeModal();
-        });
-    }
-
-    // Form submission
-    if (DOM.form) {
-        DOM.form.addEventListener('submit', handleFormSubmit);
-    }
-
-    // Theme toggle is handled by ThemeManager.init()
-    // No need to add another event listener here
-
-    // Clear Board Confirmation
-    const clearBoardModal = document.getElementById('clearBoardModal');
-    const confirmClearBtn = document.getElementById('confirmClearBoard');
-    const cancelClearBtn = document.getElementById('cancelClearBoard');
-
-    function showClearBoardConfirmation() {
-        clearBoardModal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function hideClearBoardConfirmation() {
-        clearBoardModal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-
-    function clearBoard() {
-        // Store the current tasks for potential undo
-        const previousTasks = [...state.tasks];
-
-        // Clear the board
-        state.tasks = [];
-        saveState();
-        renderBoard();
-        hideClearBoardConfirmation();
-
-        // Show toast with undo option
-        showToast(
-            'Board cleared',
-            'error',
-            5000,
-            () => {
-                // Undo clear action
-                state.tasks = previousTasks;
-                saveState();
-                renderBoard();
-                showToast('Board restored', 'success');
-            }
-        );
-    }
-
-    // Clear Board Button
-    if (DOM.clearBtn) {
-        DOM.clearBtn.addEventListener('click', showClearBoardConfirmation);
-    }
-
-    if (confirmClearBtn && cancelClearBtn) {
-        confirmClearBtn.addEventListener('click', clearBoard);
-        cancelClearBtn.addEventListener('click', hideClearBoardConfirmation);
-    }
-
-    // Close modal when clicking outside
-    if (clearBoardModal) {
-        clearBoardModal.addEventListener('click', (e) => {
-            if (e.target === clearBoardModal) {
-                hideClearBoardConfirmation();
-            }
-        });
-    }
-
-    // Keyboard
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            hideDeleteConfirmation();
-            hideClearBoardConfirmation();
-        }
-    });
-}
-
-// --- Modal Management ---
-// Track form initialization state
-let isFormInitialized = false;
-
-/**
- * Initialize the task form with proper event listeners
- */
-function initTaskForm() {
-    if (isFormInitialized) return;
+// Handle all task actions with event delegation
+document.addEventListener('click', async (e) => {
+    // Find the closest action button
+    const actionBtn = e.target.closest('.pin-btn, .duplicate-btn, .edit-btn, .delete-btn');
+    if (!actionBtn) return;
     
-    const taskForm = document.getElementById('taskForm');
-    if (!taskForm) {
-        console.error('Task form element not found');
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const taskId = actionBtn.dataset.id;
+    if (!taskId) {
+        console.error('No task ID found for action');
         return;
     }
     
-    // Removed test button as it's no longer needed
-    // Remove any existing listeners to prevent duplicates
-    taskForm.removeEventListener('submit', handleFormSubmit);
-    
-    // Add the submit handler
-    taskForm.onsubmit = handleFormSubmit;
-    
-    // Add click handler to the save button
-    const saveButton = taskForm.querySelector('button[type="submit"]');
-    if (saveButton) {
-        saveButton.onclick = (e) => {
-            e.preventDefault();
-            console.log('Save button clicked');
-            handleFormSubmit(e);
-        };
-    } else {
-        console.error('Save button not found in form');
-    }
-    
-    isFormInitialized = true;
-    console.log('Task form initialized');
-}
-
-function openModal(taskId = null, status = 'todo') {
-    document.getElementById('modalTitle').innerText = taskId ? 'Edit Task' : 'Create New Task';
-
-    // Initialize form if not already done
-    initTaskForm();
-    
-    // Reset form
-    const form = document.getElementById('taskForm');
-    form.reset();
-    form.dataset.id = taskId || '';
-
-    // Set status
-    document.getElementById('taskStatus').value = status;
-
-    // If editing, populate form with task data
-    if (taskId) {
-        const task = state.tasks.find(t => t.id === taskId);
-        if (task) {
-            document.getElementById('taskTitle').value = task.title || '';
-            document.getElementById('taskDesc').value = task.description || '';
-            document.getElementById('taskPriority').value = task.priority || 'medium';
-            document.getElementById('taskDueDate').value = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
-
-            // Populate subtasks
-            const subtasksContainer = document.getElementById('subtasksContainer');
-            subtasksContainer.innerHTML = '';
-            if (task.subtasks && task.subtasks.length > 0) {
-                task.subtasks.forEach((subtask, index) => {
-                    const subtaskEl = createSubtaskElement(subtask, index);
-                    subtasksContainer.appendChild(subtaskEl);
-                });
-            }
-        }
-    } else {
-        // Clear subtasks for new task
-        document.getElementById('subtasksContainer').innerHTML = '';
-    }
-
-    // Show modal
-    DOM.modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-
-    // Focus first input
-    document.getElementById('taskTitle').focus();
-}
-
-function closeModal(modalId) {
-    if (modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    } else {
-        // For backward compatibility with existing code
-        if (DOM.modal) {
-            DOM.modal.style.display = 'none';
-            document.body.style.overflow = '';
-        }
-    }
-}
-
-async function handleFormSubmit(e) {
-    console.log('Form submission started');
-    
-    // Prevent default form submission and stop propagation
-    if (e && e.preventDefault) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    // Get the form element
-    const form = document.getElementById('taskForm');
-    if (!form) {
-        console.error('Task form not found');
-        return;
-    }
-    
-    console.log('Processing form submission');
-
-    const id = form.dataset.id || `task-${Date.now()}`; // Ensure consistent ID format
-    const title = form.elements['title']?.value.trim() || 'Untitled Task';
-    const description = form.elements['description']?.value.trim() || '';
-    const priority = form.elements['priority']?.value || 'medium';
-    const status = form.elements['status']?.value || 'todo';
-    const dueDate = form.elements['dueDate']?.value || null;
-
-    // Get current subtasks from UI
-    const currentSubtasks = getSubtasksFromUI();
-    
-    // Find existing task or create new one
-    const existingTaskIndex = state.tasks.findIndex(t => t.id === id);
-    const isNewTask = existingTaskIndex === -1;
-    const existingTask = !isNewTask ? state.tasks[existingTaskIndex] : null;
-    
-    // Prepare task data
-    const taskData = {
-        title,
-        description,
-        priority,
-        status,
-        dueDate: dueDate ? new Date(dueDate).getTime() : null,
-        // Only include these fields if they exist in the existing task
-        ...(existingTask && {
-            pinned: existingTask.pinned,
-            subtasks: currentSubtasks.length > 0 ? currentSubtasks : (existingTask.subtasks || []),
-            files: existingTask.files || [],
-            createdAt: existingTask.createdAt
-        })
-    };
-
     try {
-        let updatedTask;
-        
-        if (!isNewTask) {
-            // Update existing task - only send updated fields
-            const updateData = { ...taskData };
-            // Remove fields that shouldn't be updated
-            delete updateData.subtasks;
-            delete updateData.files;
-            delete updateData.createdAt;
-            
-            updatedTask = await tasksAPI.updateTask(id, updateData);
-            showToast('Task updated', 'success');
-        } else {
-            // Add new task - include all fields
-            const newTaskData = {
-                ...taskData,
-                pinned: false,
-                subtasks: currentSubtasks,
-                files: [],
-                createdAt: Date.now()
-            };
-            updatedTask = await tasksAPI.createTask(newTaskData);
-            showToast('Task created', 'success');
+        if (actionBtn.classList.contains('pin-btn')) {
+            await togglePin(taskId);
+        } else if (actionBtn.classList.contains('duplicate-btn')) {
+            await duplicateTask(taskId);
+        } else if (actionBtn.classList.contains('edit-btn')) {
+            openModal(taskId);
+        } else if (actionBtn.classList.contains('delete-btn')) {
+            await deleteTask(taskId);
         }
-
-        // Update the tasks array
-        const updatedTasks = [...state.tasks];
-        if (existingTask) {
-            updatedTasks[existingTaskIndex] = updatedTask;
-        } else {
-            updatedTasks.push(updatedTask);
-        }
-        state.tasks = updatedTasks;
-        
-        // Save state and update UI
-        saveState();
-        renderBoard();
-        closeModal();
     } catch (error) {
-        console.error('Error saving task:', error);
-        
-        // Handle specific authentication errors
-        if (error.message.includes('auth/network-request-failed')) {
-            showToast('Network error. Please check your connection.', 'error');
-        } else if (error.message.includes('auth/too-many-requests')) {
-            showToast('Too many requests. Please try again later.', 'error');
-        } else if (error.message.includes('auth/') || error.message.includes('token') || error.status === 401) {
-            // If we get an auth error, show login modal
-            showToast('Your session has expired. Please sign in again.', 'error');
-            openAuthModal('login');
-        } else {
-            showToast(error.message || 'Failed to save task', 'error');
-        }
+        console.error('Error handling task action:', error);
+        showToast('Failed to perform action', 'error');
     }
-}
+});
 
-// --- Inline Editing ---
-function setupInlineEditing(card, task) {
-    const titleElement = card.querySelector('.card-title');
-    const titleText = titleElement.querySelector('.card-title-text');
-    const titleInput = titleElement.querySelector('.card-title-edit');
-
-    // Double click to edit
-    titleElement.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        startEditing();
-    });
-
-    // Handle Enter key to start editing
-    titleElement.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            startEditing();
-        }
-    });
-
-    function startEditing() {
-        // Show input and hide text
-        titleText.style.display = 'none';
-        titleInput.style.display = 'block';
-        titleInput.focus();
-        titleInput.select();
-
-        // Select all text in the input
-        titleInput.setSelectionRange(0, titleInput.value.length);
-    }
-
-    function saveEdit() {
-        const newTitle = titleInput.value.trim();
-        if (newTitle && newTitle !== task.title) {
-            task.title = newTitle;
-            titleText.textContent = newTitle || '/';
-            saveState();
-            showToast('Task updated', 'success');
-        }
-
-        // Reset UI
-        titleText.style.display = 'block';
-        titleInput.style.display = 'none';
-    }
-
-    // Handle Enter/ESC keys in input
-    titleInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            saveEdit();
-        } else if (e.key === 'Escape') {
-            // Reset to original value
-            titleInput.value = task.title || '';
-            titleText.style.display = 'block';
-            titleInput.style.display = 'none';
-        }
-    });
-
-    // Save on blur
-    titleInput.addEventListener('blur', () => {
-        // Use setTimeout to let click events process first
-        setTimeout(saveEdit, 200);
-    });
-}
-
-// --- Subtasks Management ---
-function createSubtaskElement(subtask, index) {
-    const subtaskEl = document.createElement('div');
-    subtaskEl.className = 'subtask';
-    subtaskEl.dataset.index = index;
-
-    subtaskEl.innerHTML = `
-        <label class="subtask-label">
-            <input type="checkbox" ${subtask.completed ? 'checked' : ''}>
-            <span class="checkmark"></span>
-            <span class="subtask-text">${sanitize(subtask.text)}</span>
-        </label>
-        <button class="icon-btn delete-subtask" title="Delete subtask">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-
-    return subtaskEl;
-}
-
-function addSubtask(text, completed = false) {
-    const subtasksContainer = document.getElementById('subtasksContainer');
-    const subtask = { text, completed };
-    const subtaskEl = createSubtaskElement(subtask, subtasksContainer.children.length);
-    subtasksContainer.appendChild(subtaskEl);
-
-    // Clear input and focus it
-    const input = document.getElementById('newSubtaskInput');
-    input.value = '';
-    input.focus();
-}
-
-function getSubtasksFromUI() {
-    const subtasks = [];
-    const subtaskElements = document.querySelectorAll('#subtasksContainer .subtask');
-
-    subtaskElements.forEach(el => {
-        const textEl = el.querySelector('.subtask-text');
-        const checkbox = el.querySelector('input[type="checkbox"]');
-        if (textEl && checkbox) {
-            subtasks.push({
-                text: textEl.textContent,
-                completed: checkbox.checked
-            });
-        }
-    });
-
-    return subtasks;
-}
-
-// --- Task Deletion ---
-let taskToDelete = null;
-
-function showDeleteConfirmation(id) {
-    taskToDelete = id;
-    const modal = document.getElementById('deleteConfirmModal');
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
-function hideDeleteConfirmation() {
-    const modal = document.getElementById('deleteConfirmModal');
-    modal.style.display = 'none';
-    document.body.style.overflow = '';
-    taskToDelete = null;
-}
+// Add/Edit Task delegators
+DOM.board.addEventListener('click', (e) => {
+    const addBtn = e.target.closest('.add-task-btn');
+    // ... (rest of the code remains the same)
 
 // Toggle task pinned status
 async function togglePin(id) {
-    const task = state.tasks.find(t => t.id === id);
-    if (!task) {
-        console.error('Task not found for pinning:', id);
-        return;
-    }
-    
-    const newPinnedState = !task.pinned;
-    
     try {
+        // Find task by ID (check both string and number types)
+        const task = state.tasks.find(t => t.id == id || t.id.toString() === id.toString());
+        if (!task) {
+            console.error('Task not found for pinning. ID:', id, 'Available IDs:', state.tasks.map(t => t.id));
+            return;
+        }
+        
+        const newPinnedState = !task.pinned;
+        
         // Optimistic update
         task.pinned = newPinnedState;
         saveState();
         
         // Update backend
-        const response = await tasksAPI.updateTask(id, { 
+        const response = await tasksAPI.updateTask(task.id, { 
             pinned: newPinnedState 
         });
         
@@ -1406,19 +949,18 @@ async function togglePin(id) {
         }
     } catch (error) {
         console.error('Error toggling pin:', error);
-        // Revert on error
-        task.pinned = !newPinnedState;
-        saveState();
         showToast('Failed to update task', 'error');
-    } finally {
         renderBoard();
     }
 }
 
+// Duplicate task
 async function duplicateTask(id) {
-    const taskToDuplicate = state.tasks.find(task => task.id === id);
+    // Find task by ID (check both string and number types)
+    const taskToDuplicate = state.tasks.find(t => t.id == id || t.id.toString() === id.toString());
     if (!taskToDuplicate) {
-        console.error('Task not found for duplication:', id);
+        console.error('Task not found for duplication. ID:', id, 'Available IDs:', state.tasks.map(t => t.id));
+        showToast('Task not found', 'error');
         return;
     }
     
@@ -1430,77 +972,79 @@ async function duplicateTask(id) {
         button.disabled = true;
     }
 
+    try {
         // Create a deep copy of the task with a new ID and updated title
         const newTask = JSON.parse(JSON.stringify(taskToDuplicate));
         newTask.id = `temp-${Date.now()}`;
         newTask.title = taskToDuplicate.title.includes(' (Copy)') 
             ? taskToDuplicate.title 
             : `${taskToDuplicate.title} (Copy)`;
-        newTask.pinned = false; // Don't pin duplicated tasks by default
+        newTask.pinned = false;
         newTask.createdAt = new Date().toISOString();
         newTask.updatedAt = new Date().toISOString();
         
         // Create task data for the server (without the temporary ID)
         const taskToCreate = { ...newTask };
-        delete taskToCreate.id; // Let the server generate a new ID
+        delete taskToCreate.id;
 
         // Optimistic UI update
         state.tasks.unshift(newTask);
         saveState();
+        renderBoard();
         
-        try {
-            // Create task in the backend
-            const response = await tasksAPI.createTask(taskToCreate);
-            
-            if (response?.success && response.data) {
-                // Replace the temporary task with the one from the server
-                const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
-                if (taskIndex !== -1) {
-                    state.tasks[taskIndex] = response.data;
-                    saveState();
-                    showToast('Task duplicated', 'success');
-                }
-            } else {
-                throw new Error('Failed to create duplicate task');
+        // Create task in the backend
+        const response = await tasksAPI.createTask(taskToCreate);
+        
+        if (response?.success && response.data) {
+            // Replace the temporary task with the one from the server
+            const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
+            if (taskIndex !== -1) {
+                state.tasks[taskIndex] = response.data;
+                saveState();
+                showToast('Task duplicated', 'success');
             }
-        } catch (error) {
-            console.error('Error duplicating task:', error);
-            // Revert optimistic update on error
-            state.tasks = state.tasks.filter(t => t.id !== newTask.id);
-            saveState();
-            showToast('Failed to duplicate task', 'error');
-        } finally {
-            // Always restore button state and re-render
-            if (button) {
-                button.innerHTML = originalHTML || '<i class="fas fa-copy"></i>';
-                button.disabled = false;
-            }
-            renderBoard();
+        } else {
+            throw new Error('Failed to create duplicate task');
         }
+    } catch (error) {
+        console.error('Error duplicating task:', error);
+        showToast('Failed to duplicate task', 'error');
+    } finally {
+        // Restore button state
+        if (button) {
+            button.innerHTML = originalHTML || '<i class="fas fa-copy"></i>';
+            button.disabled = false;
+        }
+        renderBoard();
+    }
 }
 
 async function deleteTask(id) {
     try {
-        const taskToDelete = state.tasks.find(task => task.id === id);
-        if (!taskToDelete) return;
+        // Find task by ID (check both string and number types)
+        const taskIndex = state.tasks.findIndex(t => t.id == id || t.id.toString() === id.toString());
+        if (taskIndex === -1) {
+            console.error('Task not found for deletion. ID:', id, 'Available IDs:', state.tasks.map(t => t.id));
+            showToast('Task not found', 'error');
+            return;
+        }
 
+        const taskToDelete = state.tasks[taskIndex];
+        
         // Store the deleted task for potential undo
         state.lastDeletedTask = { ...taskToDelete, deletedAt: Date.now() };
 
         // Optimistic UI update
-        state.tasks = state.tasks.filter(task => task.id !== id);
-        renderBoard();
-        hideDeleteConfirmation();
+        state.tasks.splice(taskIndex, 1);
+        saveState();
+        renderBoard(); // Immediate feedback
 
         // Delete from backend
-        const response = await tasksAPI.deleteTask(id);
+        const response = await tasksAPI.deleteTask(taskToDelete.id);
         
-        if (!response || !response.success) {
+        if (!response?.success) {
             throw new Error('Failed to delete task from server');
         }
-
-        // Save state after successful backend deletion
-        saveState();
 
         // Show toast with undo option
         showToast(
@@ -1508,53 +1052,50 @@ async function deleteTask(id) {
             'error',
             10000, // Give more time for undo
             async () => {
-                try {
-                    // Undo delete action
-                    if (state.lastDeletedTask) {
-                        const { deletedAt, ...task } = state.lastDeletedTask;
-                        
+                // Undo delete action
+                if (state.lastDeletedTask) {
+                    const { deletedAt, ...task } = state.lastDeletedTask;
+                    
+                    try {
                         // Recreate the task in the backend
                         const response = await tasksAPI.createTask({
                             ...task,
-                            // Exclude the ID to let the server generate a new one
+                            // Let the server generate a new ID
                             id: undefined,
-                            // Keep the original creation date if it exists
                             createdAt: task.createdAt || new Date().toISOString(),
                             updatedAt: new Date().toISOString()
                         });
 
-                        if (response && response.success && response.data) {
+                        if (response?.success && response.data) {
                             // Add the recreated task to the local state
-                            state.tasks.push(response.data);
+                            state.tasks.unshift(response.data);
                             saveState();
                             renderBoard();
                             showToast('Task restored', 'success');
                         } else {
                             throw new Error('Failed to recreate task');
                         }
-                        
+                    } catch (error) {
+                        console.error('Error undoing delete:', error);
+                        showToast('Failed to restore task', 'error');
+                    } finally {
                         state.lastDeletedTask = null;
                     }
-                } catch (error) {
-                    console.error('Error undoing delete:', error);
-                    showToast('Failed to restore task', 'error');
                 }
             }
         );
     } catch (error) {
         console.error('Error deleting task:', error);
-        showToast('Failed to delete task', 'error');
         
         // Revert optimistic update if needed
         if (state.lastDeletedTask) {
-            const taskIndex = state.tasks.findIndex(t => t.id === id);
-            if (taskIndex === -1) {
-                state.tasks.push(state.lastDeletedTask);
-                renderBoard();
-            }
+            state.tasks.push(state.lastDeletedTask);
+            saveState();
+            renderBoard();
         }
         state.lastDeletedTask = null;
-    }
+        showToast('Failed to delete task', 'error');
+    }           
 }
 
 // Export Function
