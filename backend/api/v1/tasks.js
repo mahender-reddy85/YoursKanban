@@ -16,12 +16,13 @@ const createTasksRouter = (pool) => {
                   (SELECT json_agg(
                     json_build_object(
                       'id', st.id,
-                      'title', st.title,
+                      'title', st.description,  -- Using description as title
                       'is_completed', st.is_completed,
-                      'order_index', st.order_index,
+                      'order_index', st.position,  -- Using position instead of order_index
                       'created_at', st.created_at,
-                      'updated_at', st.updated_at
-                    ) ORDER BY st.order_index
+                      'updated_at', st.updated_at,
+                      'description', st.description  -- Including description for backward compatibility
+                    ) ORDER BY st.position
                   )
                   FROM subtasks st 
                   WHERE st.task_id = t.id),
@@ -58,12 +59,13 @@ const createTasksRouter = (pool) => {
                 (SELECT json_agg(
                   json_build_object(
                     'id', st.id,
-                    'title', st.title,
+                    'title', st.description,  -- Using description as title
                     'is_completed', st.is_completed,
-                    'order_index', st.order_index,
+                    'order_index', st.position,  -- Using position instead of order_index
                     'created_at', st.created_at,
-                    'updated_at', st.updated_at
-                  ) ORDER BY st.order_index
+                    'updated_at', st.updated_at,
+                    'description', st.description  -- Including description for backward compatibility
+                  ) ORDER BY st.position
                 )
                 FROM subtasks st 
                 WHERE st.task_id = t.id),
