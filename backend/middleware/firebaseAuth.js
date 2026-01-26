@@ -1,4 +1,4 @@
-const admin = require("../lib/firebaseAdmin");
+const admin = require("../config/firebase");
 
 module.exports = async function firebaseAuth(req, res, next) {
   try {
@@ -9,10 +9,14 @@ module.exports = async function firebaseAuth(req, res, next) {
     }
 
     const token = header.split("Bearer ")[1];
+    const decodedToken = await admin.auth().verifyIdToken(token);
 
-    const decoded = await admin.auth().verifyIdToken(token);
+    // Set user object with only the necessary fields
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email
+    };
 
-    req.user = decoded;
     next();
 
   } catch (error) {

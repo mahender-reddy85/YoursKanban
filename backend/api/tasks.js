@@ -19,7 +19,7 @@ const withAuth = (req, res, next) => {
 
 // Get all tasks (works for both authenticated and unauthenticated users)
 const getTasks = async (req, res) => {
-  console.log('getTasks called, user:', req.user ? `authenticated (${req.user.id})` : 'unauthenticated');
+  console.log('getTasks called, user:', req.user ? `authenticated (${req.user.uid})` : 'unauthenticated');
   
   if (!req.user) {
     // For unauthenticated users, return an empty array
@@ -56,14 +56,29 @@ const getTasks = async (req, res) => {
       waitingCount: req.db.waitingCount
     });
     
-    // First, verify the user exists
-    const userCheck = await req.db.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
+    // Get or create user in the database
+    const firebaseUid = req.user.uid;
+    let dbUserId;
+    
+    // Check if user exists in database
+    const userCheck = await req.db.query(
+      'SELECT id FROM users WHERE firebase_uid = $1', 
+      [firebaseUid]
+    );
+    
     if (userCheck.rows.length === 0) {
-      console.error('User not found in database:', req.user.id);
-      return res.status(404).json({ message: 'User not found' });
+      // Create new user if they don't exist
+      console.log('Creating new user for Firebase UID:', firebaseUid);
+      const newUser = await req.db.query(
+        'INSERT INTO users (firebase_uid, email) VALUES ($1, $2) RETURNING id',
+        [firebaseUid, req.user.email]
+      );
+      dbUserId = newUser.rows[0].id;
+    } else {
+      dbUserId = userCheck.rows[0].id;
     }
     
-    console.log('Querying tasks for user:', req.user.id);
+    console.log('Querying tasks for user ID:', dbUserId);
     const queryText = `
       SELECT t.*, 
              (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id) as subtask_count,
@@ -73,11 +88,11 @@ const getTasks = async (req, res) => {
       ORDER BY t."order_index" ASC, t.created_at DESC`;
     
     console.log('Executing query:', queryText);
-    const userId = req.user.id;
+    const userId = dbUserId;
     
     try {
       const result = await req.db.query(queryText, [userId]);
-      console.log(`Found ${result.rows.length} tasks for user ${req.user.id}`);
+      console.log(`Found ${result.rows.length} tasks for user ${dbUserId}`);
       return res.status(200).json(result.rows);
     } catch (queryError) {
       console.error('Database query error details:', {
@@ -152,24 +167,34 @@ const createTask = async (req, res) => {
     if (!priority) return res.status(400).json({ message: 'Priority is required' });
 
     // Ensure user is authenticated for task creation
-    if (!req.user || !req.user.id) {
-      console.error('No user ID found in createTask');
+    if (!req.user || !req.user.uid) {
+      console.error('No user UID found in createTask');
       return res.status(401).json({ message: 'User not authenticated' });
     }
     
-    // Verify user exists in database
-    try {
-      const userCheck = await req.db.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
-      if (userCheck.rows.length === 0) {
-        console.error('User not found in database:', req.user.id);
-        return res.status(404).json({ message: 'User not found' });
-      }
-    } catch (userCheckError) {
-      console.error('Error checking user existence:', userCheckError);
-      // Continue with task creation even if user check fails
+    // Get or create user in the database
+    const firebaseUid = req.user.uid;
+    let dbUserId;
+    
+    // Check if user exists in database
+    const userCheck = await req.db.query(
+      'SELECT id FROM users WHERE firebase_uid = $1', 
+      [firebaseUid]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      // Create new user if they don't exist
+      console.log('Creating new user for Firebase UID:', firebaseUid);
+      const newUser = await req.db.query(
+        'INSERT INTO users (firebase_uid, email) VALUES ($1, $2) RETURNING id',
+        [firebaseUid, req.user.email]
+      );
+      dbUserId = newUser.rows[0].id;
+    } else {
+      dbUserId = userCheck.rows[0].id;
     }
-
-    console.log(`Creating task for user ${req.user.id}`, {
+    
+    console.log(`Creating task for user ID ${dbUserId}`, {
       title,
       status,
       priority,
@@ -182,10 +207,10 @@ const createTask = async (req, res) => {
     let order = order_index;
     if (order === undefined) {
       try {
-        console.log('Getting next order index for user:', req.user.id);
+        console.log('Getting next order index for user ID:', dbUserId);
         const result = await req.db.query(
           'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
-          [req.user.id]
+          [dbUserId]
         );
         order = result.rows[0]?.next_order || 1;
         console.log('Next order index:', order);
@@ -193,7 +218,7 @@ const createTask = async (req, res) => {
         console.error('Error getting next order index:', {
           error: error.message,
           stack: error.stack,
-          userId: req.user.id
+          userId: req.user.uid
         });
         order = 1; // Default to 1 if there's an error
       }
@@ -201,7 +226,7 @@ const createTask = async (req, res) => {
 
     try {
       console.log('Executing database query with params:', {
-        user_id: req.user.id,
+        user_id: dbUserId,
         title,
         description: description || null,
         status,
@@ -217,7 +242,7 @@ const createTask = async (req, res) => {
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
                RETURNING *`,
         values: [
-          req.user.id,
+          dbUserId,
           title,
           description || null,
           status,
@@ -241,7 +266,7 @@ const createTask = async (req, res) => {
         });
       }
       
-      console.log(`Successfully created task for user ${req.user.id}:`, result.rows[0].id);
+      console.log(`Successfully created task for user ID ${dbUserId}:`, result.rows[0].id);
       return res.status(201).json(result.rows[0]);
       
     } catch (dbError) {
@@ -279,7 +304,7 @@ const createTask = async (req, res) => {
     console.error('Unexpected error in createTask:', {
       error: error.message,
       stack: error.stack,
-      user: req.user ? { id: req.user.id } : 'no user',
+      user: req.user ? { uid: req.user.uid, email: req.user.email } : 'no user',
       requestBody: req.body
     });
     
@@ -299,11 +324,22 @@ const updateTask = async (req, res) => {
     const taskId = req.params.id;
     const { title, description, status, priority, due_date, order_index, is_pinned } = req.body;
 
+    // Get user ID from Firebase UID
+    const userResult = await req.db.query(
+      'SELECT id FROM users WHERE firebase_uid = $1',
+      [req.user.uid]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    const dbUserId = userResult.rows[0].id;
+
     // First, verify the task exists and belongs to the user
-    const userId = req.user.id;
     const taskResult = await req.db.query(
       'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
-      [taskId, userId]
+      [taskId, dbUserId]
     );
 
     if (taskResult.rows.length === 0) {
@@ -332,7 +368,7 @@ const updateTask = async (req, res) => {
         order_index,
         is_pinned,
         taskId,
-        req.user.id
+        dbUserId
       ]
     );
 
@@ -352,11 +388,22 @@ const deleteTask = async (req, res) => {
   try {
     const taskId = req.params.id;
 
+    // Get user ID from Firebase UID
+    const userResult = await req.db.query(
+      'SELECT id FROM users WHERE firebase_uid = $1',
+      [req.user.uid]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    const dbUserId = userResult.rows[0].id;
+
     // First, verify the task exists and belongs to the user
-    const userId = req.user.id;
     const taskResult = await req.db.query(
       'SELECT * FROM tasks WHERE id = $1 AND user_id = $2',
-      [taskId, userId]
+      [taskId, dbUserId]
     );
 
     if (taskResult.rows.length === 0) {
@@ -364,7 +411,7 @@ const deleteTask = async (req, res) => {
     }
 
     // Delete the task (cascade will handle subtasks)
-    await req.db.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [taskId, req.user.id]);
+    await req.db.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [taskId, dbUserId]);
     
     res.status(200).json({ message: 'Task deleted successfully' });
   } catch (error) {
