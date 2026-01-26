@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const admin = require('../lib/firebaseAdmin');
 
 /**
  * Firebase Authentication Middleware
@@ -48,19 +48,12 @@ const firebaseAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.split(' ')[1] || '';
-    
-    console.error('Authentication error:', {
+    console.error(' Authentication error:', {
       message: error.message,
       code: error.code,
       stack: error.stack,
-      tokenInfo: token ? `Token length: ${token.length}, starts with: ${token.substring(0, 10)}...` : 'No token provided',
-      headers: {
-        authorization: req.headers.authorization ? 'Present' : 'Missing',
-        'content-type': req.headers['content-type']
-      },
-      method: req.method,
+      headers: req.headers,
+      tokenPresent: !!req.headers.authorization,
       url: req.originalUrl
     });
     
