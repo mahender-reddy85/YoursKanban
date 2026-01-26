@@ -493,53 +493,56 @@ function getFileIcon(filename) {
 
 function createTaskCard(task) {
     const card = document.createElement('div');
-    card.className = `task-card ${task.pinned ? 'pinned' : ''}`;
-    card.draggable = true;
-    card.dataset.taskId = task.id;
-
+    
+    // Base classes
+    const classes = ['task-card'];
+    if (task.pinned) classes.push('pinned');
+    
     // Check if task is overdue
-    if (task.dueDate && task.status !== 'done') {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const dueDate = new Date(task.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        
-        if (dueDate < today) {
-            card.classList.add('overdue');
-        }
+    const dueDate = task.due_date || task.dueDate;
+    const isOverdue = dueDate && task.status !== 'done' && new Date(dueDate) < new Date();
+    if (isOverdue) {
+        classes.push('overdue');
     }
-
+    
+    card.className = classes.join(' ');
     card.draggable = true;
     card.dataset.id = task.id;
+    card.dataset.status = task.status;
 
     // Set up inline editing after card is created
     setTimeout(() => {
         setupInlineEditing(card, task);
     }, 0);
 
-    // Format due date
-    let dueDateText = '';
-    if (task.dueDate) {
-        const date = new Date(task.dueDate);
-        dueDateText = `• Due ${date.toLocaleDateString()}`;
-    }
+    // Format due date for task card
+    const taskDueDate = task.due_date || task.dueDate;
+    const formattedDueDate = taskDueDate 
+        ? new Date(taskDueDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          })
+        : null;
 
     // Calculate progress for subtasks
     let progressHTML = '';
-    if (task.subtasks && task.subtasks.length > 0) {
-        const completedCount = task.subtasks.filter(st => st.is_completed || st.completed).length;
-        const progressPercent = (completedCount / task.subtasks.length) * 100;
+    const subtasks = task.subtasks || [];
+    if (subtasks.length > 0) {
+        const completedCount = subtasks.filter(st => st.is_completed || st.completed).length;
+        const progressPercent = Math.round((completedCount / subtasks.length) * 100);
+        
         progressHTML = `
             <div class="subtask-progress">
                 <div class="progress-bar">
                     <div class="progress" style="width: ${progressPercent}%"></div>
                 </div>
                 <div class="progress-text">
-                    ${completedCount} of ${task.subtasks.length} tasks
+                    ${completedCount} of ${subtasks.length} tasks
                 </div>
             </div>
             <div class="subtask-list">
-                ${task.subtasks.map(subtask => `
+                ${subtasks.slice(0, 3).map(subtask => `
                     <div class="subtask-preview">
                         <span class="subtask-checkbox ${(subtask.is_completed || subtask.completed) ? 'completed' : ''}">
                             ${(subtask.is_completed || subtask.completed) ? '✓' : ''}
@@ -549,25 +552,24 @@ function createTaskCard(task) {
                         </span>
                     </div>
                 `).join('')}
+                ${subtasks.length > 3 ? `
+                    <div class="subtask-more">+${subtasks.length - 3} more</div>
+                ` : ''}
             </div>
         `;
     }
 
     // Calculate progress for the progress bar
-    const hasSubtasks = task.subtasks && task.subtasks.length > 0;
-    const completedSubtasks = hasSubtasks ? task.subtasks.filter(st => st.is_completed || st.completed).length : 0;
-    const totalSubtasks = hasSubtasks ? task.subtasks.length : 0;
+    const hasSubtasks = subtasks && subtasks.length > 0;
+    const completedSubtasks = hasSubtasks ? subtasks.filter(st => st.is_completed || st.completed).length : 0;
+    const totalSubtasks = hasSubtasks ? subtasks.length : 0;
     const progressPercent = hasSubtasks ? (completedSubtasks / totalSubtasks) * 100 : 0;
 
-    // Format due date
-    const dueDate = task.due_date || task.dueDate;
-    const formattedDueDate = dueDate ? new Date(dueDate).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-    }) : null;
-
-    card.innerHTML = `
+    // Build the task card HTML
+    const cardHTML = [];
+    
+    // Card header with title and actions
+    cardHTML.push(`
         <div class="card-header">
             <div class="card-title" tabindex="0">
                 <span class="card-title-text">${sanitize(task.title) || '/'}</span>
@@ -588,42 +590,64 @@ function createTaskCard(task) {
                 </button>
             </div>
         </div>
-        ${task.description ? `<div class="card-desc">${sanitize(task.description)}</div>` : ''}
-        
-        <!-- Subtask Progress -->
-        ${hasSubtasks ? `
-        <div class="subtask-progress">
-            <div class="progress-bar">
-                <div class="progress" style="width: ${progressPercent}%"></div>
-            </div>
-            <div class="progress-text">
-                ${completedSubtasks} of ${totalSubtasks} tasks
-            </div>
-        </div>` : ''}
-        
-        ${task.files && task.files.length > 0 ? `
-        <div class="file-preview">
-            ${task.files.map(file => `
-                <div class="file-item">
-                    <i class="fas ${getFileIcon(file.name)} file-icon"></i>
-                    <span>${file.name}</span>
-                    <a href="${file.url || '#'}" target="_blank" class="file-link">
-                        <i class="fas fa-external-link-alt file-icon"></i>
-                    </a>
+    `);
+    
+    // Task description
+    if (task.description) {
+        cardHTML.push(`<div class="card-desc">${sanitize(task.description)}</div>`);
+    }
+    
+    // Subtask progress
+    if (hasSubtasks) {
+        cardHTML.push(`
+            <div class="subtask-progress">
+                <div class="progress-bar">
+                    <div class="progress" style="width: ${progressPercent}%"></div>
                 </div>
-            `).join('')}
-        </div>` : ''}
-        <div class="card-footer">
-            <span class="priority-badge priority-${task.priority || 'medium'}">
-                ${(task.priority || 'medium').toUpperCase()}
-            </span>
-            ${formattedDueDate ? `
+                <div class="progress-text">
+                    ${completedSubtasks} of ${totalSubtasks} tasks
+                </div>
+            </div>
+        `);
+    }
+    
+    // File attachments
+    if (task.files?.length > 0) {
+        const filesHTML = task.files.map(file => `
+            <div class="file-item">
+                <i class="fas ${getFileIcon(file.name)} file-icon"></i>
+                <span>${file.name}</span>
+                <a href="${file.url || '#'}" target="_blank" class="file-link">
+                    <i class="fas fa-external-link-alt file-icon"></i>
+                </a>
+            </div>
+        `).join('');
+        
+        cardHTML.push(`<div class="file-preview">${filesHTML}</div>`);
+    }
+    
+    // Card footer with priority and due date
+    cardHTML.push('<div class="card-footer">');
+    
+    // Priority badge
+    const priority = task.priority || 'medium';
+    cardHTML.push(`<span class="priority-badge priority-${priority}">${priority.toUpperCase()}</span>`);
+    
+    // Due date
+    if (formattedDueDate) {
+        cardHTML.push(`
             <div class="card-date">
                 <i class="far fa-calendar-alt"></i>
                 ${formattedDueDate}
-            </div>` : ''}
-        </div>
-    `;
+            </div>
+        `);
+    }
+    
+    // Close footer
+    cardHTML.push('</div>');
+    
+    // Set the card HTML
+    card.innerHTML = cardHTML.join('');
 
     return card;
 }
@@ -633,7 +657,14 @@ function attachDragEvents() {
     const cards = document.querySelectorAll('.task-card');
     const dropzones = document.querySelectorAll('.task-list');
 
+    // Remove any existing event listeners to prevent duplicates
     cards.forEach(card => {
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+    });
+
+    // Add drag events to cards
+    document.querySelectorAll('.task-card').forEach(card => {
         card.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', card.dataset.id);
             setTimeout(() => {
@@ -641,30 +672,61 @@ function attachDragEvents() {
             }, 0);
         });
 
-        card.addEventListener('dragend', () => {
+        card.addEventListener('dragend', async () => {
             card.classList.remove('dragging');
-            renderBoard(); // Cleanup and persist
+            // Update task status based on the new column
+            const newStatus = card.closest('.task-list')?.dataset.status;
+            if (newStatus) {
+                await updateTaskStatus(card.dataset.id, newStatus);
+            }
         });
     });
 
+    // Add drop events to zones
     dropzones.forEach(zone => {
         zone.addEventListener('dragover', (e) => {
             e.preventDefault();
             const afterElement = getDragAfterElement(zone, e.clientY);
             const card = document.querySelector('.dragging');
-
+            
+            if (!card) return;
+            
             if (afterElement) {
                 zone.insertBefore(card, afterElement);
             } else {
                 zone.appendChild(card);
             }
+            
+            // Update visual feedback
+            zone.querySelectorAll('.task-card').forEach((c, index) => {
+                c.style.order = index;
+            });
         });
 
-        zone.addEventListener('drop', (e) => {
+        zone.addEventListener('drop', async (e) => {
             e.preventDefault();
             const taskId = e.dataTransfer.getData('text/plain');
             const status = zone.dataset.status;
-            updateTaskStatus(taskId, status);
+            const task = state.tasks.find(t => t.id === taskId);
+            
+            if (task) {
+                // Update the task's status
+                task.status = status;
+                
+                // Reorder tasks in the new column
+                const newOrder = Array.from(zone.querySelectorAll('.task-card'))
+                    .map(card => card.dataset.id);
+                
+                // Update positions in the state
+                newOrder.forEach((taskId, index) => {
+                    const t = state.tasks.find(t => t.id === taskId);
+                    if (t) t.position = index;
+                });
+                
+                // Save the updated state
+                await saveState();
+                renderBoard();
+            }
         });
     });
 }
@@ -684,12 +746,36 @@ function getDragAfterElement(container, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-function updateTaskStatus(id, status) {
-    const task = state.tasks.find(t => t.id === id);
-    if (task) {
+async function updateTaskStatus(id, status) {
+    try {
+        const task = state.tasks.find(t => t.id === id);
+        if (!task) return;
+        
+        // Update local state immediately for instant feedback
+        const oldStatus = task.status;
         task.status = status;
+        
+        // Update the task in the backend
+        const response = await tasksAPI.updateTask(id, { status });
+        
+        if (!response || !response.success) {
+            // Revert if update fails
+            task.status = oldStatus;
+            throw new Error('Failed to update task status');
+        }
+        
+        // Update local state with server response
+        if (response.data) {
+            Object.assign(task, response.data);
+        }
+        
         saveState();
-        renderBoard();
+        return task;
+    } catch (error) {
+        console.error('Error updating task status:', error);
+        showToast('Failed to update task status', 'error');
+        renderBoard(); // Re-render to ensure UI consistency
+        throw error;
     }
 }
 
@@ -794,13 +880,54 @@ function setupEventListeners() {
     // Export button
     document.getElementById('exportBoard')?.addEventListener('click', exportBoard);
 
+    // Setup event listeners for task actions
+    document.addEventListener('click', async (e) => {
+        try {
+            // Pin/Unpin Task
+            const pinBtn = e.target.closest('.pin-btn');
+            if (pinBtn) {
+                e.stopPropagation();
+                e.preventDefault();
+                await togglePin(pinBtn.dataset.id);
+                return;
+            }
+
+            // Duplicate Task
+            const duplicateBtn = e.target.closest('.duplicate-btn');
+            if (duplicateBtn) {
+                e.stopPropagation();
+                e.preventDefault();
+                await duplicateTask(duplicateBtn.dataset.id);
+                return;
+            }
+
+            // Delete Task
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (deleteBtn) {
+                e.stopPropagation();
+                e.preventDefault();
+                showDeleteConfirmation(deleteBtn.dataset.id);
+                return;
+            }
+
+            // Edit Task
+            const editBtn = e.target.closest('.edit-btn');
+            if (editBtn) {
+                e.stopPropagation();
+                e.preventDefault();
+                openModal(editBtn.dataset.id);
+                return;
+            }
+        } catch (error) {
+            console.error('Error handling task action:', error);
+            showToast('An error occurred. Please try again.', 'error');
+        }
+    });
+
     // Add/Edit Task delegators
     DOM.board.addEventListener('click', (e) => {
         const addBtn = e.target.closest('.add-task-btn');
         if (addBtn) openModal(null, addBtn.dataset.status);
-
-        const editBtn = e.target.closest('.edit-btn');
-        if (editBtn) openModal(editBtn.dataset.id);
 
         const deleteBtn = e.target.closest('.delete-btn');
         if (deleteBtn) showDeleteConfirmation(deleteBtn.dataset.id);
@@ -1266,22 +1393,33 @@ async function togglePin(id) {
         task.pinned = newPinnedState;
         renderBoard();
         
-        // Update backend
-        const response = await tasksAPI.updateTask(id, { pinned: newPinnedState });
-        
-        if (response && response.success && response.data) {
-            // Update task with server data
-            const taskIndex = state.tasks.findIndex(t => t.id === id);
-            if (taskIndex !== -1) {
-                state.tasks[taskIndex] = { ...state.tasks[taskIndex], ...response.data };
-                saveState();
+        try {
+            // Update backend
+            const response = await tasksAPI.updateTask(id, { 
+                pinned: newPinnedState,
+                status: task.status // Ensure status is preserved
+            });
+            
+            if (response && response.success && response.data) {
+                // Update task with server data
+                const taskIndex = state.tasks.findIndex(t => t.id === id);
+                if (taskIndex !== -1) {
+                    state.tasks[taskIndex] = { 
+                        ...state.tasks[taskIndex], 
+                        ...response.data 
+                    };
+                    saveState();
+                }
+                showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
+            } else {
+                throw new Error('Failed to update task');
             }
-            showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
-        } else {
-            throw new Error('Failed to update task');
+        } catch (error) {
+            console.error('Error toggling pin status:', error);
+            throw error; // Re-throw to be caught by the outer catch
         }
     } catch (error) {
-        console.error('Error toggling pin status:', error);
+        console.error('Error in togglePin:', error);
         showToast('Failed to update task', 'error');
         // Re-render to revert optimistic update
         renderBoard();
@@ -1291,56 +1429,72 @@ async function togglePin(id) {
 async function duplicateTask(id) {
     try {
         const taskToDuplicate = state.tasks.find(task => task.id === id);
-        if (!taskToDuplicate) return;
-
-        // Create a deep copy of the task
-        const newTask = JSON.parse(JSON.stringify(taskToDuplicate));
+        if (!taskToDuplicate) {
+            console.error('Task not found:', id);
+            return;
+        }
         
-        // Generate a temporary ID for optimistic update
-        const tempId = `temp-${Date.now()}`;
-        
-        // Prepare the new task
-        const taskToCreate = {
-            title: newTask.title.includes(' (Copy)') ? newTask.title : `${newTask.title} (Copy)`,
-            description: newTask.description,
-            status: newTask.status,
-            priority: newTask.priority,
-            dueDate: newTask.dueDate,
-            pinned: false // Don't pin duplicated tasks by default
-        };
+        // Show loading state
+        const originalButton = document.querySelector(`.duplicate-btn[data-id="${id}"]`);
+        const originalHTML = originalButton?.innerHTML;
+        if (originalButton) {
+            originalButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            originalButton.disabled = true;
+        }
 
-        // Optimistic UI update with temporary task
-        const optimisticTask = {
-            ...taskToCreate,
-            id: tempId,
+        // Create a deep copy of the task with a new ID and updated title
+        const newTask = {
+            ...JSON.parse(JSON.stringify(taskToDuplicate)),
+            id: `temp-${Date.now()}`,
+            title: taskToDuplicate.title.includes(' (Copy)') 
+                ? taskToDuplicate.title 
+                : `${taskToDuplicate.title} (Copy)`,
+            pinned: false, // Don't pin duplicated tasks by default
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            subtasks: newTask.subtasks ? [...newTask.subtasks] : []
+            updatedAt: new Date().toISOString()
         };
         
-        state.tasks.unshift(optimisticTask);
-        renderBoard();
+        // Remove the ID to let the server generate a new one
+        const { id: _, ...taskToCreate } = newTask;
 
-        // Create task in the backend
-        const response = await tasksAPI.createTask(taskToCreate);
+        // Optimistic UI update
+        state.tasks.unshift(newTask);
+        saveState();
+        renderBoard();
         
-        if (response && response.success && response.data) {
-            // Replace the temporary task with the one from the server
-            const taskIndex = state.tasks.findIndex(t => t.id === tempId);
-            if (taskIndex !== -1) {
-                state.tasks[taskIndex] = response.data;
-                saveState();
-                renderBoard();
-                showToast('Task duplicated', 'success');
+        try {
+            // Create task in the backend
+            const response = await tasksAPI.createTask(taskToCreate);
+            
+            if (response && response.success && response.data) {
+                // Replace the temporary task with the one from the server
+                const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
+                if (taskIndex !== -1) {
+                    state.tasks[taskIndex] = response.data;
+                    saveState();
+                    renderBoard();
+                    showToast('Task duplicated', 'success');
+                }
+            } else {
+                throw new Error('Failed to create duplicate task');
             }
-        } else {
-            throw new Error('Failed to create duplicate task');
+        } catch (error) {
+            // Revert optimistic update on error
+            state.tasks = state.tasks.filter(t => t.id !== newTask.id);
+            saveState();
+            renderBoard();
+            throw error;
         }
     } catch (error) {
         console.error('Error duplicating task:', error);
         showToast('Failed to duplicate task', 'error');
-        // Re-render to revert optimistic update
-        renderBoard();
+    } finally {
+        // Restore button state
+        const button = document.querySelector(`.duplicate-btn[data-id="${id}"]`);
+        if (button && originalHTML) {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }
     }
 }
 
