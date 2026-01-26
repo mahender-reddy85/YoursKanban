@@ -54,20 +54,23 @@ const createTasksRouter = (pool) => {
 
     const result = await pool.query(
       `SELECT t.*, 
-              json_agg(
-                json_build_object(
-                  'id', s.id,
-                  'title', s.title,
-                  'is_completed', s.is_completed,
-                  'order_index', s.order_index,
-                  'created_at', s.created_at,
-                  'updated_at', s.updated_at
-                ) ORDER BY s.order_index
+              COALESCE(
+                (SELECT json_agg(
+                  json_build_object(
+                    'id', st.id,
+                    'title', st.title,
+                    'is_completed', st.is_completed,
+                    'order_index', st.order_index,
+                    'created_at', st.created_at,
+                    'updated_at', st.updated_at
+                  ) ORDER BY st.order_index
+                )
+                FROM subtasks st 
+                WHERE st.task_id = t.id),
+                '[]'::json
               ) as subtasks
        FROM tasks t
-       LEFT JOIN subtasks s ON t.id = s.task_id
-       WHERE t.id = $1 AND t.user_id = $2
-       GROUP BY t.id`,
+       WHERE t.id = $1 AND t.user_id = $2`,
       [id, userId]
     );
 
