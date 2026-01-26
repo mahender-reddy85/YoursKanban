@@ -42,45 +42,35 @@ const firebaseAuth = async (req, res, next) => {
         });
       }
 
-      // Get or create user in our database
-      const { uid, email, name = '', picture = '' } = decodedToken;
+      // Get user info from token
+      const firebaseUid = decodedToken.uid;
+      const email = decodedToken.email || null;
       
-      try {
-        // Try to find existing user
-        const userResult = await pool.query(
-          'SELECT * FROM users WHERE firebase_uid = $1',
-          [uid]
+      // Check if user exists in our database
+      let result = await pool.query(
+        "SELECT * FROM users WHERE firebase_uid = $1",
+        [firebaseUid]
+      );
+
+      let user;
+
+      if (result.rows.length === 0) {
+        // Create user automatically if they don't exist
+        console.log(" Creating new user:", { firebaseUid, email });
+        const insert = await pool.query(
+          "INSERT INTO users (firebase_uid, email) VALUES ($1, $2) RETURNING *",
+          [firebaseUid, email]
         );
-        
-        let user;
-        
-        if (userResult.rows.length === 0) {
-          // Create new user if doesn't exist
-          console.log(` Creating new user for ${email} (${uid})`);
-          const newUserResult = await pool.query(
-            `INSERT INTO users 
-             (firebase_uid, email, name, avatar_url) 
-             VALUES ($1, $2, $3, $4) 
-             RETURNING *`,
-            [uid, email, name, picture]
-          );
-          user = newUserResult.rows[0];
-        } else {
-          // Use existing user
-          user = userResult.rows[0];
-        }
-        
-        // Attach user to request object
-        req.user = user;
-        next();
-      } catch (dbError) {
-        console.error('Database error in auth middleware:', dbError);
-        return res.status(500).json({
-          success: false,
-          message: 'Error accessing user database',
-          code: 'DATABASE_ERROR'
-        });
+        user = insert.rows[0];
+        console.log(" New user created:", user.id);
+      } else {
+        // Use existing user
+        user = result.rows[0];
       }
+      
+      // Attach user to request object and continue
+      req.user = user;
+      next();
     } catch (verifyError) {
       console.error('❌ Token verification failed:', {
         message: verifyError.message,
