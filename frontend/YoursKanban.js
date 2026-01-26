@@ -1026,16 +1026,8 @@ async function handleFormSubmit(e) {
     };
 
     try {
-        // Check if user is authenticated
-        const auth = getAuth();
-        if (!auth.currentUser) {
-            throw new Error('Please sign in to save tasks');
-        }
-
-        // Force token refresh before making the request
-        await auth.currentUser.getIdToken(true);
-        
         let updatedTask;
+        
         if (existingTask) {
             // Update existing task
             updatedTask = await tasksAPI.updateTask(id, taskData);
