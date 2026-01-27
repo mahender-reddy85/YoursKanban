@@ -33,6 +33,9 @@ const state = {
     isAuthenticated: false
 };
 
+// Global variable for delete confirmation
+let taskToDelete = null;
+
 // Toast Notification System
 function showToast(message, type = 'info', duration = 5000, undoAction = null) {
     const container = document.getElementById('toastContainer');
@@ -1030,7 +1033,9 @@ async function deleteTask(id) {
             return;
         }
 
-        const taskToDelete = state.tasks[taskIndex];
+        // Show confirmation dialog instead of deleting directly
+        showDeleteConfirmation(id);
+        return;
         
         // Store the deleted task for potential undo
         state.lastDeletedTask = { ...taskToDelete, deletedAt: Date.now() };
@@ -1267,6 +1272,77 @@ async function fetchTasks() {
         renderBoard();
         return state.tasks;
     }
+}
+
+// Delete Confirmation Modal
+function showDeleteConfirmation(taskId) {
+    taskToDelete = taskId;
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function hideDeleteConfirmation() {
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    taskToDelete = null;
+}
+
+async function performDelete() {
+    if (!taskToDelete) return;
+    
+    try {
+        // Find task by ID
+        const taskIndex = state.tasks.findIndex(t => t.id == taskToDelete || t.id.toString() === taskToDelete.toString());
+        if (taskIndex === -1) {
+            console.error('Task not found for deletion. ID:', taskToDelete);
+            showToast('Task not found', 'error');
+            hideDeleteConfirmation();
+            return;
+        }
+
+        const taskToDeleteObj = state.tasks[taskIndex];
+        
+        // Store the deleted task for potential undo
+        state.lastDeletedTask = { ...taskToDeleteObj, deletedAt: Date.now() };
+
+        // Optimistic UI update
+        state.tasks.splice(taskIndex, 1);
+        saveState();
+        renderBoard(); // Immediate feedback
+
+        // Delete from backend
+        const response = await tasksAPI.deleteTask(taskToDelete);
+        
+        if (!response?.success) {
+            throw new Error('Failed to delete task from server');
+        }
+
+        // Show toast with undo option
+        showToast(
+            'Task deleted',
+            'error',
+            10000, // Give more time for undo
+            async () => {
+                // Undo delete action
+                if (state.lastDeletedTask) {
+                    state.tasks.unshift(state.lastDeletedTask);
+                    saveState();
+                    renderBoard();
+                    state.lastDeletedTask = null;
+                    showToast('Task restored', 'success');
+                }
+            }
+        );
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        showToast('Error deleting task: ' + (error.message || 'Unknown error'), 'error');
+    }
+    
+    hideDeleteConfirmation();
 }
 
 // --- Authentication Modals ---
@@ -1529,8 +1605,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', () => {
             if (taskToDelete) {
-                deleteTask(taskToDelete);
-                hideDeleteConfirmation();
+                performDelete();
             }
         });
     }
