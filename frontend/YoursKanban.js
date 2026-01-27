@@ -1654,6 +1654,7 @@ async function createTask(taskData) {
         // Debug: Log the data being sent
         console.log('Original task data:', taskToCreate);
         console.log('Validated task data:', validatedTask);
+        console.log('DueDate being sent to API:', validatedTask.dueDate);
         console.log('Field lengths:', Object.entries(validatedTask).map(([key, value]) => ({
             field: key,
             length: value ? value.toString().length : 0,
@@ -1677,6 +1678,28 @@ async function createTask(taskData) {
             console.error('Unexpected API response structure:', response);
             throw new Error('Invalid response from server');
         }
+        
+        console.log('Created task received from API:', createdTask);
+        console.log('Created task dueDate:', createdTask.dueDate);
+        console.log('Created task due_date:', createdTask.due_date);
+        
+        // Immediately clean up any invalid dates returned by the API
+        if (createdTask.dueDate) {
+            const date = new Date(createdTask.dueDate);
+            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+                console.warn('API returned invalid dueDate, cleaning it up:', createdTask.dueDate);
+                delete createdTask.dueDate;
+            }
+        }
+        if (createdTask.due_date) {
+            const date = new Date(createdTask.due_date);
+            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+                console.warn('API returned invalid due_date, cleaning it up:', createdTask.due_date);
+                delete createdTask.due_date;
+            }
+        }
+        
+        console.log('Cleaned task data:', createdTask);
         
         // Add the new task to local state
         state.tasks.unshift(createdTask);
