@@ -1072,7 +1072,9 @@ async function togglePin(id) {
             // If backend rejects the pinned field, update locally only
             if (error.message && error.message.includes('No valid fields to update')) {
                 console.warn('Backend rejected pinned field, updating locally only:', task.id);
-                // The optimistic update already happened, so we just confirm it
+                // The optimistic update already happened, but ensure UI is refreshed
+                saveState();
+                renderBoard();
                 showToast(newPinnedState ? 'Task pinned locally' : 'Task unpinned locally', 'warning');
             } else {
                 // Revert the optimistic update on other errors
