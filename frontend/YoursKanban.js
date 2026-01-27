@@ -915,18 +915,24 @@ function setupEventListeners() {
             
             // Clean and validate date
             if (taskData.dueDate) {
-                const dueDate = new Date(taskData.dueDate);
-                // Check if date is valid and not the Unix epoch (1970-01-01)
-                if (isNaN(dueDate.getTime()) || 
-                    dueDate.getFullYear() === 1970 || 
-                    dueDate.getTime() <= 0) {
-                    // Invalid or epoch date, remove it
+                // First, check if it's a valid YYYY-MM-DD format from date input
+                const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (!dateRegex.test(taskData.dueDate)) {
+                    console.warn('Invalid date format, removing dueDate:', taskData.dueDate);
                     delete taskData.dueDate;
-                    console.warn('Invalid or epoch date provided, removing dueDate:', taskData.dueDate);
                 } else {
-                    // Valid date, keep it in YYYY-MM-DD format (date input format)
-                    // The backend should handle this format properly
-                    taskData.dueDate = taskData.dueDate; // Already in YYYY-MM-DD from date input
+                    const dueDate = new Date(taskData.dueDate);
+                    // Check if date is valid and not the Unix epoch (1970-01-01)
+                    if (isNaN(dueDate.getTime()) || 
+                        dueDate.getFullYear() === 1970 || 
+                        dueDate.getTime() <= 0) {
+                        // Invalid or epoch date, remove it
+                        delete taskData.dueDate;
+                        console.warn('Invalid or epoch date provided, removing dueDate:', taskData.dueDate);
+                    } else {
+                        // Valid date, keep it in YYYY-MM-DD format
+                        console.log('Valid date being saved:', taskData.dueDate);
+                    }
                 }
             }
             
@@ -1569,6 +1575,47 @@ function cleanupInvalidDates() {
     }
 }
 
+// Function to fix a specific task by ID
+function fixTaskDate(taskId) {
+    const task = state.tasks.find(t => t.id == taskId || t.id.toString() === taskId.toString());
+    if (!task) {
+        console.error('Task not found:', taskId);
+        return false;
+    }
+    
+    let fixed = false;
+    
+    if (task.dueDate) {
+        const date = new Date(task.dueDate);
+        if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+            console.log('Fixing invalid dueDate for task:', task.id, task.title, 'Original:', task.dueDate);
+            delete task.dueDate;
+            fixed = true;
+        }
+    }
+    
+    if (task.due_date) {
+        const date = new Date(task.due_date);
+        if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+            console.log('Fixing invalid due_date for task:', task.id, task.title, 'Original:', task.due_date);
+            delete task.due_date;
+            fixed = true;
+        }
+    }
+    
+    if (fixed) {
+        task.updatedAt = new Date().toISOString();
+        saveState();
+        renderBoard();
+        showToast(`Fixed invalid date for task: ${task.title}`, 'success');
+        console.log('Task date fixed successfully');
+        return true;
+    } else {
+        console.log('Task', task.title, 'already has valid dates');
+        return false;
+    }
+}
+
 // Task CRUD Operations
 async function createTask(taskData) {
     try {
@@ -2124,6 +2171,7 @@ window.openAuthModal = openAuthModal;
 window.closeModal = closeModal; // For task modal
 window.closeAuthModal = closeAuthModal; // For auth modal
 window.cleanupInvalidDates = cleanupInvalidDates; // For debugging
+window.fixTaskDate = fixTaskDate; // For fixing specific tasks
 
 // --- Initialization ---
 async function init() {
