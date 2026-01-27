@@ -884,6 +884,42 @@ function setupEventListeners() {
 
     // Sort button
     document.getElementById('sortByDate')?.addEventListener('click', toggleSortOrder);
+    
+    // Task form submission
+    if (DOM.form) {
+        DOM.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(DOM.form);
+            const taskData = Object.fromEntries(formData);
+            
+            // Get subtasks
+            taskData.subtasks = getSubtasksFromForm();
+            
+            try {
+                if (taskData.id) {
+                    // Update existing task
+                    await updateTask(taskData.id, taskData);
+                } else {
+                    // Create new task
+                    await createTask(taskData);
+                }
+                closeModal();
+            } catch (error) {
+                console.error('Error saving task:', error);
+                showToast('Error saving task: ' + (error.message || 'Unknown error'), 'error');
+            }
+        });
+    }
+    
+    // Close modal when clicking outside
+    if (DOM.modal) {
+        DOM.modal.addEventListener('click', (e) => {
+            if (e.target === DOM.modal) {
+                closeModal();
+            }
+        });
+    }
 }
 
 // --- Task Action Handlers ---
@@ -922,7 +958,21 @@ document.addEventListener('click', async (e) => {
 // Add/Edit Task delegators
 DOM.board.addEventListener('click', (e) => {
     const addBtn = e.target.closest('.add-task-btn');
-    // ... (rest of the code remains the same)
+    if (addBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const status = addBtn.dataset.status;
+        openModal(); // Open modal for new task
+        
+        // Set the status based on which column button was clicked
+        setTimeout(() => {
+            const statusSelect = document.getElementById('taskStatus');
+            if (statusSelect && status) {
+                statusSelect.value = status;
+            }
+        }, 10);
+    }
 });
 
 // Toggle task pinned status
@@ -1271,6 +1321,161 @@ async function fetchTasks() {
         
         renderBoard();
         return state.tasks;
+    }
+}
+
+// Task CRUD Operations
+async function createTask(taskData) {
+    try {
+        // Remove id from taskData if it exists (let server generate it)
+        const { id, ...taskToCreate } = taskData;
+        
+        // Add timestamps
+        taskToCreate.createdAt = new Date().toISOString();
+        taskToCreate.updatedAt = new Date().toISOString();
+        
+        // Create task in backend
+        const response = await tasksAPI.createTask(taskToCreate);
+        
+        if (response?.success && response.data) {
+            // Add the new task to local state
+            state.tasks.unshift(response.data);
+            saveState();
+            renderBoard();
+            showToast('Task created successfully', 'success');
+        } else {
+            throw new Error('Failed to create task');
+        }
+    } catch (error) {
+        console.error('Error creating task:', error);
+        throw error;
+    }
+}
+
+async function updateTask(taskId, taskData) {
+    try {
+        // Find existing task
+        const taskIndex = state.tasks.findIndex(t => t.id == taskId || t.id.toString() === taskId.toString());
+        if (taskIndex === -1) {
+            throw new Error('Task not found');
+        }
+        
+        // Update timestamp
+        taskData.updatedAt = new Date().toISOString();
+        
+        // Update task in backend
+        const response = await tasksAPI.updateTask(taskId, taskData);
+        
+        if (response?.success && response.data) {
+            // Update task in local state
+            state.tasks[taskIndex] = response.data;
+            saveState();
+            renderBoard();
+            showToast('Task updated successfully', 'success');
+        } else {
+            throw new Error('Failed to update task');
+        }
+    } catch (error) {
+        console.error('Error updating task:', error);
+        throw error;
+    }
+}
+
+// Subtasks Management
+function loadSubtasks(subtasks) {
+    const container = document.getElementById('subtasksContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    subtasks.forEach((subtask, index) => {
+        const subtaskEl = document.createElement('div');
+        subtaskEl.className = 'subtask';
+        subtaskEl.innerHTML = `
+            <input type="text" class="form-control" value="${subtask.text || ''}" data-index="${index}">
+            <button type="button" class="btn btn-sm btn-outline delete-subtask">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(subtaskEl);
+    });
+}
+
+function addSubtask(text) {
+    const container = document.getElementById('subtasksContainer');
+    if (!container) return;
+    
+    const subtaskEl = document.createElement('div');
+    subtaskEl.className = 'subtask';
+    const index = container.children.length;
+    subtaskEl.innerHTML = `
+        <input type="text" class="form-control" value="${text}" data-index="${index}">
+        <button type="button" class="btn btn-sm btn-outline delete-subtask">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    container.appendChild(subtaskEl);
+}
+
+function getSubtasksFromForm() {
+    const container = document.getElementById('subtasksContainer');
+    if (!container) return [];
+    
+    const subtaskInputs = container.querySelectorAll('input[type="text"]');
+    return Array.from(subtaskInputs)
+        .map(input => input.value.trim())
+        .filter(text => text.length > 0)
+        .map(text => ({ text, completed: false }));
+}
+
+// Task Modal Functions
+function openModal(taskId = null) {
+    const modal = DOM.modal;
+    const form = DOM.form;
+    const modalTitle = document.getElementById('modalTitle');
+    
+    if (!modal || !form) {
+        console.error('Modal or form not found');
+        return;
+    }
+    
+    // Reset form
+    form.reset();
+    
+    if (taskId) {
+        // Edit existing task
+        const task = state.tasks.find(t => t.id == taskId || t.id.toString() === taskId.toString());
+        if (!task) {
+            console.error('Task not found:', taskId);
+            return;
+        }
+        
+        modalTitle.textContent = 'Edit Task';
+        document.getElementById('taskId').value = task.id;
+        document.getElementById('taskTitle').value = task.title || '';
+        document.getElementById('taskDesc').value = task.description || '';
+        document.getElementById('taskPriority').value = task.priority || 'medium';
+        document.getElementById('taskStatus').value = task.status || 'todo';
+        document.getElementById('taskDueDate').value = task.dueDate || '';
+        
+        // Load subtasks
+        loadSubtasks(task.subtasks || []);
+    } else {
+        // Create new task
+        modalTitle.textContent = 'New Task';
+        document.getElementById('taskId').value = '';
+        document.getElementById('taskStatus').value = 'todo'; // Default to todo for new tasks
+        loadSubtasks([]);
+    }
+    
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+function closeModal() {
+    const modal = DOM.modal;
+    if (modal) {
+        modal.style.display = 'none';
     }
 }
 
