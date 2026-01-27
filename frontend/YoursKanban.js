@@ -656,12 +656,32 @@ function createTaskCard(task) {
     const priority = task.priority || 'medium';
     cardHTML.push(`<span class="priority-badge priority-${priority}">${priority.toUpperCase()}</span>`);
     
-    // Due date
+    // Due date with overdue detection
     if (formattedDueDate) {
+        const taskDueDate = task.dueDate || task.due_date;
+        let isOverdue = false;
+        
+        if (taskDueDate) {
+            try {
+                const dueDate = new Date(taskDueDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+                dueDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+                
+                isOverdue = dueDate < today && task.status !== 'done';
+            } catch (error) {
+                console.warn('Error checking overdue status:', error);
+            }
+        }
+        
+        const overdueClass = isOverdue ? 'overdue' : '';
+        const overdueIcon = isOverdue ? '<i class="fas fa-exclamation-triangle overdue-icon"></i>' : '<i class="far fa-calendar-alt"></i>';
+        
         cardHTML.push(`
-            <div class="card-date">
-                <i class="far fa-calendar-alt"></i>
+            <div class="card-date ${overdueClass}">
+                ${overdueIcon}
                 ${formattedDueDate}
+                ${isOverdue ? '<span class="overdue-tag">OVERDUE</span>' : ''}
             </div>
         `);
     }

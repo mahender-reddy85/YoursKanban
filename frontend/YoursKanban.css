@@ -2033,3 +2033,53 @@ textarea.form-control {
         display: inline;
     }
 }
+
+/* Overdue Task Styling */
+.card-date.overdue {
+    color: #dc2626;
+    font-weight: 600;
+    border-color: #dc2626;
+}
+
+.overdue-icon {
+    color: #dc2626 !important;
+    animation: pulse 2s infinite;
+}
+
+.overdue-tag {
+    background: #dc2626;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Dark theme overdue styling */
+[data-theme="dark"] .card-date.overdue {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+[data-theme="dark"] .overdue-icon {
+    color: #ef4444 !important;
+}
+
+[data-theme="dark"] .overdue-tag {
+    background: #ef4444;
+}
