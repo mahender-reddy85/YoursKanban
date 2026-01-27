@@ -1270,6 +1270,13 @@ async function fetchTasks() {
 }
 
 // --- Authentication Modals ---
+function closeModal(modalId = 'authModal') {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
 function openAuthModal(type = 'login') {
     // Create modal if it doesn't exist
     let modal = document.getElementById('authModal');
