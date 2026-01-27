@@ -920,6 +920,7 @@ document.addEventListener('click', async (e) => {
 DOM.board.addEventListener('click', (e) => {
     const addBtn = e.target.closest('.add-task-btn');
     // ... (rest of the code remains the same)
+});
 
 // Toggle task pinned status
 async function togglePin(id) {
