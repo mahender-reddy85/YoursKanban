@@ -519,14 +519,24 @@ function createTaskCard(task) {
     }, 0);
 
     // Format due date for task card
-    const taskDueDate = task.due_date || task.dueDate;
-    const formattedDueDate = taskDueDate 
-        ? new Date(taskDueDate).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
-          })
-        : null;
+    const taskDueDate = task.dueDate || task.due_date;
+    let formattedDueDate = null;
+    
+    if (taskDueDate) {
+        try {
+            const date = new Date(taskDueDate);
+            // Check if date is valid
+            if (!isNaN(date.getTime())) {
+                formattedDueDate = date.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+            }
+        } catch (error) {
+            console.warn('Invalid date format:', taskDueDate);
+        }
+    }
 
     // Calculate progress for subtasks
     let progressHTML = '';
@@ -1324,6 +1334,93 @@ async function fetchTasks() {
     }
 }
 
+// Inline Editing Functions
+function setupInlineEditing(card, task) {
+    // Make title editable
+    const titleElement = card.querySelector('.task-title');
+    if (titleElement) {
+        titleElement.contentEditable = false;
+        titleElement.addEventListener('click', () => {
+            titleElement.contentEditable = true;
+            titleElement.focus();
+            
+            // Select all text
+            const range = document.createRange();
+            range.selectNodeContents(titleElement);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+        
+        titleElement.addEventListener('blur', async () => {
+            titleElement.contentEditable = false;
+            const newTitle = titleElement.textContent.trim();
+            
+            if (newTitle !== task.title) {
+                try {
+                    await updateTask(task.id, { ...task, title: newTitle });
+                    task.title = newTitle;
+                } catch (error) {
+                    console.error('Error updating title:', error);
+                    titleElement.textContent = task.title; // Revert on error
+                }
+            }
+        });
+        
+        titleElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                titleElement.blur();
+            } else if (e.key === 'Escape') {
+                titleElement.textContent = task.title;
+                titleElement.blur();
+            }
+        });
+    }
+    
+    // Make description editable
+    const descElement = card.querySelector('.task-description');
+    if (descElement) {
+        descElement.contentEditable = false;
+        descElement.addEventListener('click', () => {
+            descElement.contentEditable = true;
+            descElement.focus();
+            
+            // Select all text
+            const range = document.createRange();
+            range.selectNodeContents(descElement);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+        
+        descElement.addEventListener('blur', async () => {
+            descElement.contentEditable = false;
+            const newDesc = descElement.textContent.trim();
+            
+            if (newDesc !== (task.description || '')) {
+                try {
+                    await updateTask(task.id, { ...task, description: newDesc });
+                    task.description = newDesc;
+                } catch (error) {
+                    console.error('Error updating description:', error);
+                    descElement.textContent = task.description || ''; // Revert on error
+                }
+            }
+        });
+        
+        descElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                descElement.blur();
+            } else if (e.key === 'Escape') {
+                descElement.textContent = task.description || '';
+                descElement.blur();
+            }
+        });
+    }
+}
+
 // Task CRUD Operations
 async function createTask(taskData) {
     try {
@@ -1489,7 +1586,7 @@ function openModal(taskId = null) {
         document.getElementById('taskDesc').value = task.description || '';
         document.getElementById('taskPriority').value = task.priority || 'medium';
         document.getElementById('taskStatus').value = task.status || 'todo';
-        document.getElementById('taskDueDate').value = task.dueDate || '';
+        document.getElementById('taskDueDate').value = task.dueDate || task.due_date || '';
         
         // Load subtasks
         loadSubtasks(task.subtasks || []);
