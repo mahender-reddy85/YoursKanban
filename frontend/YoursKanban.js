@@ -536,9 +536,15 @@ function createTaskCard(task) {
                 });
             } else {
                 console.warn('Invalid or epoch date detected:', taskDueDate);
+                console.warn('Task ID:', task.id, 'Task Title:', task.title);
+                
+                // Show a placeholder for debugging
+                formattedDueDate = 'Invalid Date';
             }
         } catch (error) {
             console.warn('Invalid date format:', taskDueDate);
+            console.warn('Task ID:', task.id, 'Task Title:', task.title);
+            formattedDueDate = 'Invalid Date';
         }
     }
 
@@ -1369,6 +1375,13 @@ function handleKeyboardShortcuts(e) {
         }
         return;
     }
+    
+    // Clean up invalid dates with Ctrl+Shift+
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        cleanupInvalidDates();
+        return;
+    }
 
     // Toggle theme with T
     if (e.key.toLowerCase() === 't') {
@@ -1509,6 +1522,50 @@ function setupInlineEditing(card, task) {
                 descElement.blur();
             }
         });
+    }
+}
+
+// Utility function to clean up invalid dates in existing tasks
+function cleanupInvalidDates() {
+    let cleanedCount = 0;
+    
+    state.tasks.forEach(task => {
+        let needsUpdate = false;
+        
+        // Check and clean dueDate
+        if (task.dueDate) {
+            const date = new Date(task.dueDate);
+            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+                console.log('Cleaning invalid dueDate for task:', task.id, task.title, 'Original:', task.dueDate);
+                delete task.dueDate;
+                needsUpdate = true;
+                cleanedCount++;
+            }
+        }
+        
+        // Check and clean due_date
+        if (task.due_date) {
+            const date = new Date(task.due_date);
+            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+                console.log('Cleaning invalid due_date for task:', task.id, task.title, 'Original:', task.due_date);
+                delete task.due_date;
+                needsUpdate = true;
+                cleanedCount++;
+            }
+        }
+        
+        if (needsUpdate) {
+            task.updatedAt = new Date().toISOString();
+        }
+    });
+    
+    if (cleanedCount > 0) {
+        saveState();
+        renderBoard();
+        showToast(`Cleaned up ${cleanedCount} invalid date(s)`, 'success');
+        console.log(`Cleanup complete. Removed ${cleanedCount} invalid dates.`);
+    } else {
+        showToast('No invalid dates found', 'info');
     }
 }
 
@@ -2066,6 +2123,7 @@ function openAuthModal(type = 'login') {
 window.openAuthModal = openAuthModal;
 window.closeModal = closeModal; // For task modal
 window.closeAuthModal = closeAuthModal; // For auth modal
+window.cleanupInvalidDates = cleanupInvalidDates; // For debugging
 
 // --- Initialization ---
 async function init() {
