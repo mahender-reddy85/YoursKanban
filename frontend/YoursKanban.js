@@ -669,6 +669,16 @@ function createTaskCard(task) {
                 dueDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 
                 isOverdue = dueDate < today && task.status !== 'done';
+                
+                // Debug logging
+                console.log('Overdue check for task:', task.title);
+                console.log('Task due date:', taskDueDate);
+                console.log('Parsed due date:', dueDate.toDateString());
+                console.log('Today:', today.toDateString());
+                console.log('Task status:', task.status);
+                console.log('Is overdue:', isOverdue);
+                console.log('Due date < today:', dueDate < today);
+                console.log('Status !== done:', task.status !== 'done');
             } catch (error) {
                 console.warn('Error checking overdue status:', error);
             }
