@@ -1551,7 +1551,7 @@ async function performDelete() {
 }
 
 // --- Authentication Modals ---
-function closeModal(modalId = 'authModal') {
+function closeAuthModal(modalId = 'authModal') {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
@@ -1613,7 +1613,7 @@ function openAuthModal(type = 'login') {
         // Add event listeners
         const closeBtn = modal.querySelector('.close-btn');
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => closeModal('authModal'));
+            closeBtn.addEventListener('click', () => closeAuthModal('authModal'));
         }
         
         // Handle auth toggle clicks
@@ -1641,7 +1641,7 @@ function openAuthModal(type = 'login') {
                             localStorage.setItem('token', response.token);
                             const user = await authAPI.getCurrentUser();
                             updateUserAvatar(user);
-                            closeModal();
+                            closeAuthModal();
                             showToast('Login successful!', 'success');
                             // Reload the page to ensure all UI is properly updated
                             window.location.reload();
@@ -1650,7 +1650,7 @@ function openAuthModal(type = 'login') {
                         await authAPI.register(data);
                         showToast('Account created successfully! Please log in.', 'success');
                         // Switch to login form after successful registration
-                        closeModal('authModal');
+                        closeAuthModal('authModal');
                         setTimeout(() => openAuthModal('login'), 500);
                     }
                 } catch (error) {
@@ -1689,7 +1689,7 @@ function openAuthModal(type = 'login') {
                 if (type === 'login') {
                     await authAPI.login(data.email, data.password);
                     showToast('Logged in successfully', 'success');
-                    closeModal('authModal');
+                    closeAuthModal('authModal');
                     location.reload(); // Refresh to update UI
                 } else {
                     // Registration flow
@@ -1697,7 +1697,7 @@ function openAuthModal(type = 'login') {
                         await authAPI.register(data);
                         showToast('Account created successfully! Please log in.', 'success');
                         // Switch to login form after successful registration
-                        closeModal('authModal');
+                        closeAuthModal('authModal');
                         setTimeout(() => openAuthModal('login'), 500);
                     } catch (regError) {
                         // Check if this is an email already in use error
@@ -1727,7 +1727,8 @@ function openAuthModal(type = 'login') {
 
 // Make functions globally available
 window.openAuthModal = openAuthModal;
-window.closeModal = closeModal;
+window.closeModal = closeModal; // For task modal
+window.closeAuthModal = closeAuthModal; // For auth modal
 
 // --- Initialization ---
 async function init() {
