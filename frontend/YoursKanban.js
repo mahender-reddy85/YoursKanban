@@ -1475,8 +1475,42 @@ async function createTask(taskData) {
         taskToCreate.createdAt = new Date().toISOString();
         taskToCreate.updatedAt = new Date().toISOString();
         
+        // Validate field lengths to prevent VARCHAR(255) errors
+        const MAX_LENGTH = 255;
+        const validatedTask = {};
+        
+        Object.entries(taskToCreate).forEach(([key, value]) => {
+            if (value === null || value === undefined) {
+                validatedTask[key] = value;
+            } else if (key === 'subtasks' && Array.isArray(value)) {
+                // Keep subtasks as array, but validate individual items
+                validatedTask[key] = value.map(subtask => ({
+                    ...subtask,
+                    text: subtask.text ? subtask.text.substring(0, MAX_LENGTH) : ''
+                }));
+            } else if (typeof value === 'string') {
+                if (value.length > MAX_LENGTH) {
+                    console.warn(`Field ${key} truncated from ${value.length} to ${MAX_LENGTH} characters`);
+                    validatedTask[key] = value.substring(0, MAX_LENGTH);
+                } else {
+                    validatedTask[key] = value;
+                }
+            } else {
+                validatedTask[key] = value;
+            }
+        });
+        
+        // Debug: Log the data being sent
+        console.log('Original task data:', taskToCreate);
+        console.log('Validated task data:', validatedTask);
+        console.log('Field lengths:', Object.entries(validatedTask).map(([key, value]) => ({
+            field: key,
+            length: value ? value.toString().length : 0,
+            value: value ? value.toString().substring(0, 50) + (value.toString().length > 50 ? '...' : '') : null
+        })));
+        
         // Create task in backend
-        const response = await tasksAPI.createTask(taskToCreate);
+        const response = await tasksAPI.createTask(validatedTask);
         
         console.log('API Response:', response); // Debug log
         
@@ -1515,8 +1549,35 @@ async function updateTask(taskId, taskData) {
         // Update timestamp
         taskData.updatedAt = new Date().toISOString();
         
+        // Validate field lengths to prevent VARCHAR(255) errors
+        const MAX_LENGTH = 255;
+        const validatedTask = {};
+        
+        Object.entries(taskData).forEach(([key, value]) => {
+            if (value === null || value === undefined) {
+                validatedTask[key] = value;
+            } else if (key === 'subtasks' && Array.isArray(value)) {
+                // Keep subtasks as array, but validate individual items
+                validatedTask[key] = value.map(subtask => ({
+                    ...subtask,
+                    text: subtask.text ? subtask.text.substring(0, MAX_LENGTH) : ''
+                }));
+            } else if (typeof value === 'string') {
+                if (value.length > MAX_LENGTH) {
+                    console.warn(`Field ${key} truncated from ${value.length} to ${MAX_LENGTH} characters`);
+                    validatedTask[key] = value.substring(0, MAX_LENGTH);
+                } else {
+                    validatedTask[key] = value;
+                }
+            } else {
+                validatedTask[key] = value;
+            }
+        });
+        
+        console.log('Update data being sent:', validatedTask);
+        
         // Update task in backend
-        const response = await tasksAPI.updateTask(taskId, taskData);
+        const response = await tasksAPI.updateTask(taskId, validatedTask);
         
         console.log('Update API Response:', response); // Debug log
         
