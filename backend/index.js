@@ -24,8 +24,7 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   'https://yourskanban.vercel.app',
   'https://yourskanban-git-main-likki-mahender-reddys-projects.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:3001'
+  'http://localhost:3000'
 ];
 
 const corsOptions = {
