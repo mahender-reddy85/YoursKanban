@@ -1683,23 +1683,26 @@ async function createTask(taskData) {
         console.log('Created task dueDate:', createdTask.dueDate);
         console.log('Created task due_date:', createdTask.due_date);
         
+        // Preserve the original valid date if API returns invalid date
+        const originalDueDate = validatedTask.dueDate;
+        
         // Immediately clean up any invalid dates returned by the API
         if (createdTask.dueDate) {
             const date = new Date(createdTask.dueDate);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.warn('API returned invalid dueDate, cleaning it up:', createdTask.dueDate);
-                delete createdTask.dueDate;
+                console.warn('API returned invalid dueDate, restoring original:', createdTask.dueDate, '->', originalDueDate);
+                createdTask.dueDate = originalDueDate; // Restore the original valid date
             }
         }
         if (createdTask.due_date) {
             const date = new Date(createdTask.due_date);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.warn('API returned invalid due_date, cleaning it up:', createdTask.due_date);
-                delete createdTask.due_date;
+                console.warn('API returned invalid due_date, restoring original:', createdTask.due_date, '->', originalDueDate);
+                createdTask.due_date = originalDueDate; // Restore the original valid date
             }
         }
         
-        console.log('Cleaned task data:', createdTask);
+        console.log('Final task data after date restoration:', createdTask);
         
         // Add the new task to local state
         state.tasks.unshift(createdTask);
