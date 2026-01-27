@@ -1023,9 +1023,11 @@ async function togglePin(id) {
         saveState();
         
         // Update backend
-        const response = await tasksAPI.updateTask(task.id, { 
-            pinned: newPinnedState 
-        });
+        const updateData = { pinned: newPinnedState };
+        console.log('Pin toggle data being sent:', updateData);
+        console.log('Task ID:', task.id);
+        
+        const response = await tasksAPI.updateTask(task.id, updateData);
         
         console.log('Pin toggle API Response:', response); // Debug log
         
@@ -1092,8 +1094,42 @@ async function duplicateTask(id) {
         }
         
         // Create task data for the server (without the temporary ID)
-        const taskToCreate = { ...newTask };
+        let taskToCreate = { ...newTask };
         delete taskToCreate.id;
+        
+        // Apply the same field length validation as createTask
+        const MAX_LENGTH = 255;
+        const validatedTask = {};
+        
+        Object.entries(taskToCreate).forEach(([key, value]) => {
+            if (value === null || value === undefined) {
+                validatedTask[key] = value;
+            } else if (key === 'subtasks' && Array.isArray(value)) {
+                // Keep subtasks as array, but validate individual items
+                validatedTask[key] = value.map(subtask => ({
+                    ...subtask,
+                    text: subtask.text ? subtask.text.substring(0, MAX_LENGTH) : ''
+                }));
+            } else if (typeof value === 'string') {
+                if (value.length > MAX_LENGTH) {
+                    console.warn(`Duplicate task field ${key} truncated from ${value.length} to ${MAX_LENGTH} characters`);
+                    validatedTask[key] = value.substring(0, MAX_LENGTH);
+                } else {
+                    validatedTask[key] = value;
+                }
+            } else {
+                validatedTask[key] = value;
+            }
+        });
+        
+        console.log('Duplicate task data being sent:', validatedTask);
+        console.log('Duplicate field lengths:', Object.entries(validatedTask).map(([key, value]) => ({
+            field: key,
+            length: value ? value.toString().length : 0,
+            value: value ? value.toString().substring(0, 50) + (value.toString().length > 50 ? '...' : '') : null
+        })));
+        
+        taskToCreate = validatedTask;
 
         // Optimistic UI update
         state.tasks.unshift(newTask);
@@ -1787,41 +1823,61 @@ async function performDelete() {
         saveState();
         renderBoard(); // Immediate feedback
 
-        // Delete from backend
-        try {
-            const response = await tasksAPI.deleteTask(taskToDelete);
-            console.log('Delete API Response:', response); // Debug log
-            
-            // Handle different response structures - some APIs return success: true, others just return status
-            if (response === null || response === undefined || 
-                (response && (response.success !== false && response.code !== 'NOT_FOUND'))) {
-                // Success - task deleted or didn't exist on server
-                // Show toast with undo option
-                showToast(
-                    'Task deleted',
-                    'error',
-                    10000, // Give more time for undo
-                    async () => {
-                        // Undo delete action
-                        if (state.lastDeletedTask) {
-                            state.tasks.unshift(state.lastDeletedTask);
-                            saveState();
-                            renderBoard();
-                            state.lastDeletedTask = null;
-                            showToast('Task restored', 'success');
+        // Delete from backend - only if it's not a temporary task
+        if (!taskToDelete.toString().startsWith('temp-')) {
+            try {
+                const response = await tasksAPI.deleteTask(taskToDelete);
+                console.log('Delete API Response:', response); // Debug log
+                
+                // Handle different response structures - some APIs return success: true, others just return status
+                if (response === null || response === undefined || 
+                    (response && (response.success !== false && response.code !== 'NOT_FOUND'))) {
+                    // Success - task deleted or didn't exist on server
+                    // Show toast with undo option
+                    showToast(
+                        'Task deleted',
+                        'error',
+                        10000, // Give more time for undo
+                        async () => {
+                            // Undo delete action
+                            if (state.lastDeletedTask) {
+                                state.tasks.unshift(state.lastDeletedTask);
+                                saveState();
+                                renderBoard();
+                                state.lastDeletedTask = null;
+                                showToast('Task restored', 'success');
+                            }
                         }
-                    }
-                );
-            } else {
-                // Failed to delete
-                throw new Error('Failed to delete task from server');
+                    );
+                } else {
+                    // Failed to delete
+                    throw new Error('Failed to delete task from server');
+                }
+            } catch (error) {
+                // If delete fails, revert the optimistic update
+                state.tasks.splice(taskIndex, 0, taskToDeleteObj);
+                saveState();
+                renderBoard();
+                throw error;
             }
-        } catch (error) {
-            // If delete fails, revert the optimistic update
-            state.tasks.splice(taskIndex, 0, taskToDeleteObj);
-            saveState();
-            renderBoard();
-            throw error;
+        } else {
+            // Temporary task - just show undo option without backend deletion
+            console.log('Skipping backend deletion for temporary task:', taskToDelete);
+            showToast(
+                'Task deleted',
+                'error',
+                10000, // Give more time for undo
+                async () => {
+                    // Undo delete action
+                    if (state.lastDeletedTask) {
+                        state.tasks.unshift(state.lastDeletedTask);
+                        saveState();
+                        renderBoard();
+                        state.lastDeletedTask = null;
+                        showToast('Task restored', 'success');
+                    }
+                }
+            );
         }
     } catch (error) {
         console.error('Error deleting task:', error);
