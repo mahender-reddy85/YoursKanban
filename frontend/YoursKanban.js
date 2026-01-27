@@ -1797,7 +1797,21 @@ async function updateTask(taskId, taskData) {
                 console.warn('Task not found on backend, updating locally only:', taskId);
                 const taskIndex = state.tasks.findIndex(t => t.id == taskId || t.id.toString() === taskId.toString());
                 if (taskIndex !== -1) {
-                    state.tasks[taskIndex] = { ...state.tasks[taskIndex], ...validatedTask };
+                    console.log('Current task data before local update:', state.tasks[taskIndex]);
+                    console.log('Validated task data for local update:', validatedTask);
+                    
+                    // Merge the updates, preserving the correct date
+                    const updatedTask = { ...state.tasks[taskIndex], ...validatedTask };
+                    
+                    // Ensure the dueDate is preserved correctly
+                    if (validatedTask.dueDate) {
+                        updatedTask.dueDate = validatedTask.dueDate;
+                        console.log('Preserving dueDate in local update:', validatedTask.dueDate);
+                    }
+                    
+                    console.log('Final task data after local update:', updatedTask);
+                    
+                    state.tasks[taskIndex] = updatedTask;
                     saveState();
                     renderBoard();
                     showToast('Task updated locally (not synced with server)', 'warning');
