@@ -525,13 +525,17 @@ function createTaskCard(task) {
     if (taskDueDate) {
         try {
             const date = new Date(taskDueDate);
-            // Check if date is valid
-            if (!isNaN(date.getTime())) {
+            // Check if date is valid and not the Unix epoch (1970-01-01)
+            if (!isNaN(date.getTime()) && 
+                date.getFullYear() !== 1970 && 
+                date.getTime() > 0) {
                 formattedDueDate = date.toLocaleDateString('en-US', { 
                     month: 'short', 
                     day: 'numeric', 
                     year: 'numeric' 
                 });
+            } else {
+                console.warn('Invalid or epoch date detected:', taskDueDate);
             }
         } catch (error) {
             console.warn('Invalid date format:', taskDueDate);
@@ -906,10 +910,13 @@ function setupEventListeners() {
             // Clean and validate date
             if (taskData.dueDate) {
                 const dueDate = new Date(taskData.dueDate);
-                if (isNaN(dueDate.getTime())) {
-                    // Invalid date, remove it
+                // Check if date is valid and not the Unix epoch (1970-01-01)
+                if (isNaN(dueDate.getTime()) || 
+                    dueDate.getFullYear() === 1970 || 
+                    dueDate.getTime() <= 0) {
+                    // Invalid or epoch date, remove it
                     delete taskData.dueDate;
-                    console.warn('Invalid date provided, removing dueDate:', taskData.dueDate);
+                    console.warn('Invalid or epoch date provided, removing dueDate:', taskData.dueDate);
                 } else {
                     // Valid date, keep it in YYYY-MM-DD format (date input format)
                     // The backend should handle this format properly
@@ -1067,16 +1074,20 @@ async function duplicateTask(id) {
         // Clean up invalid dates
         if (newTask.dueDate) {
             const dueDate = new Date(newTask.dueDate);
-            if (isNaN(dueDate.getTime())) {
+            if (isNaN(dueDate.getTime()) || 
+                dueDate.getFullYear() === 1970 || 
+                dueDate.getTime() <= 0) {
                 delete newTask.dueDate;
-                console.warn('Invalid date in duplicate task, removing dueDate:', newTask.dueDate);
+                console.warn('Invalid or epoch date in duplicate task, removing dueDate:', newTask.dueDate);
             }
         }
         if (newTask.due_date) {
             const dueDate = new Date(newTask.due_date);
-            if (isNaN(dueDate.getTime())) {
+            if (isNaN(dueDate.getTime()) || 
+                dueDate.getFullYear() === 1970 || 
+                dueDate.getTime() <= 0) {
                 delete newTask.due_date;
-                console.warn('Invalid date in duplicate task, removing due_date:', newTask.due_date);
+                console.warn('Invalid or epoch date in duplicate task, removing due_date:', newTask.due_date);
             }
         }
         
@@ -1697,10 +1708,14 @@ function openModal(taskId = null) {
         if (taskDueDate) {
             try {
                 const date = new Date(taskDueDate);
-                if (!isNaN(date.getTime())) {
+                // Check if date is valid and not the Unix epoch (1970-01-01)
+                if (!isNaN(date.getTime()) && 
+                    date.getFullYear() !== 1970 && 
+                    date.getTime() > 0) {
                     // Convert to YYYY-MM-DD format for the date input
                     document.getElementById('taskDueDate').value = date.toISOString().split('T')[0];
                 } else {
+                    console.warn('Invalid or epoch date detected, clearing:', taskDueDate);
                     document.getElementById('taskDueDate').value = '';
                 }
             } catch (error) {
