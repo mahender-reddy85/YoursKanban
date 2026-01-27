@@ -2043,7 +2043,6 @@ textarea.form-control {
 
 .overdue-icon {
     color: #dc2626 !important;
-    animation: pulse 2s infinite;
 }
 
 .overdue-tag {

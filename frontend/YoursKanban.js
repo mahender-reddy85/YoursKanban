@@ -681,7 +681,6 @@ function createTaskCard(task) {
             <div class="card-date ${overdueClass}">
                 ${overdueIcon}
                 ${formattedDueDate}
-                ${isOverdue ? '<span class="overdue-tag">OVERDUE</span>' : ''}
             </div>
         `);
     }
