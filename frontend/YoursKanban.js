@@ -881,7 +881,7 @@ function setupEventListeners() {
 
     // Sort button
     document.getElementById('sortByDate')?.addEventListener('click', toggleSortOrder);
-});
+}
 
 // --- Task Action Handlers ---
 
