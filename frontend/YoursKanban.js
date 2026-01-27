@@ -1753,29 +1753,59 @@ async function updateTask(taskId, taskData) {
         
         console.log('Update data being sent:', validatedTask);
         
-        // Update task in backend
-        const response = await tasksAPI.updateTask(taskId, validatedTask);
-        
-        console.log('Update API Response:', response); // Debug log
-        
-        // Handle different response structures
-        let updatedTask;
-        if (response && response.data) {
-            updatedTask = response.data;
-        } else if (response && response.id) {
-            updatedTask = response;
-        } else if (response && typeof response === 'object') {
-            updatedTask = response;
-        } else {
-            console.error('Unexpected API response structure:', response);
-            throw new Error('Invalid response from server');
+        // Check if this is a temporary task that doesn't exist on backend
+        if (taskId.toString().startsWith('temp-')) {
+            console.log('Skipping backend update for temporary task:', taskId);
+            // Just update locally
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId || t.id.toString() === taskId.toString());
+            if (taskIndex !== -1) {
+                state.tasks[taskIndex] = { ...state.tasks[taskIndex], ...validatedTask };
+                saveState();
+                renderBoard();
+                showToast('Task updated locally', 'success');
+            }
+            return;
         }
         
-        // Update task in local state
-        state.tasks[taskIndex] = updatedTask;
-        saveState();
-        renderBoard();
-        showToast('Task updated successfully', 'success');
+        // Update task in backend
+        try {
+            const response = await tasksAPI.updateTask(taskId, validatedTask);
+            console.log('Update API Response:', response); // Debug log
+            
+            // Handle different response structures
+            let updatedTask;
+            if (response && response.data) {
+                updatedTask = response.data;
+            } else if (response && response.id) {
+                updatedTask = response;
+            } else if (response && typeof response === 'object') {
+                updatedTask = response;
+            } else {
+                console.error('Unexpected API response structure:', response);
+                throw new Error('Invalid response from server');
+            }
+            
+            // Update task in local state
+            state.tasks[taskIndex] = updatedTask;
+            saveState();
+            renderBoard();
+            showToast('Task updated successfully', 'success');
+            
+        } catch (error) {
+            // If task not found on backend, update locally only
+            if (error.message && error.message.includes('Task not found')) {
+                console.warn('Task not found on backend, updating locally only:', taskId);
+                const taskIndex = state.tasks.findIndex(t => t.id == taskId || t.id.toString() === taskId.toString());
+                if (taskIndex !== -1) {
+                    state.tasks[taskIndex] = { ...state.tasks[taskIndex], ...validatedTask };
+                    saveState();
+                    renderBoard();
+                    showToast('Task updated locally (not synced with server)', 'warning');
+                }
+            } else {
+                throw error;
+            }
+        }
     } catch (error) {
         console.error('Error updating task:', error);
         throw error;
