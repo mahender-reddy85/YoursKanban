@@ -903,6 +903,19 @@ function setupEventListeners() {
             const formData = new FormData(DOM.form);
             const taskData = Object.fromEntries(formData);
             
+            // Clean and validate date
+            if (taskData.dueDate) {
+                const dueDate = new Date(taskData.dueDate);
+                if (isNaN(dueDate.getTime())) {
+                    // Invalid date, remove it
+                    delete taskData.dueDate;
+                    console.warn('Invalid date provided, removing dueDate:', taskData.dueDate);
+                } else {
+                    // Valid date, ensure it's in ISO format
+                    taskData.dueDate = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+                }
+            }
+            
             // Get subtasks
             taskData.subtasks = getSubtasksFromForm();
             
@@ -1047,6 +1060,22 @@ async function duplicateTask(id) {
         newTask.createdAt = new Date().toISOString();
         newTask.updatedAt = new Date().toISOString();
         
+        // Clean up invalid dates
+        if (newTask.dueDate) {
+            const dueDate = new Date(newTask.dueDate);
+            if (isNaN(dueDate.getTime())) {
+                delete newTask.dueDate;
+                console.warn('Invalid date in duplicate task, removing dueDate:', newTask.dueDate);
+            }
+        }
+        if (newTask.due_date) {
+            const dueDate = new Date(newTask.due_date);
+            if (isNaN(dueDate.getTime())) {
+                delete newTask.due_date;
+                console.warn('Invalid date in duplicate task, removing due_date:', newTask.due_date);
+            }
+        }
+        
         // Create task data for the server (without the temporary ID)
         const taskToCreate = { ...newTask };
         delete taskToCreate.id;
@@ -1059,16 +1088,27 @@ async function duplicateTask(id) {
         // Create task in the backend
         const response = await tasksAPI.createTask(taskToCreate);
         
-        if (response?.success && response.data) {
-            // Replace the temporary task with the one from the server
-            const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
-            if (taskIndex !== -1) {
-                state.tasks[taskIndex] = response.data;
-                saveState();
-                showToast('Task duplicated', 'success');
-            }
+        console.log('Duplicate API Response:', response); // Debug log
+        
+        // Handle different response structures
+        let createdTask;
+        if (response && response.data) {
+            createdTask = response.data;
+        } else if (response && response.id) {
+            createdTask = response;
+        } else if (response && typeof response === 'object') {
+            createdTask = response;
         } else {
-            throw new Error('Failed to create duplicate task');
+            console.error('Unexpected API response structure:', response);
+            throw new Error('Invalid response from server');
+        }
+        
+        // Replace the temporary task with the one from the server
+        const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
+        if (taskIndex !== -1) {
+            state.tasks[taskIndex] = createdTask;
+            saveState();
+            showToast('Task duplicated', 'success');
         }
     } catch (error) {
         console.error('Error duplicating task:', error);
