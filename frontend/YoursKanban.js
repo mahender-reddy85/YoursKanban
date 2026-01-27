@@ -1337,15 +1337,26 @@ async function createTask(taskData) {
         // Create task in backend
         const response = await tasksAPI.createTask(taskToCreate);
         
-        if (response?.success && response.data) {
-            // Add the new task to local state
-            state.tasks.unshift(response.data);
-            saveState();
-            renderBoard();
-            showToast('Task created successfully', 'success');
+        console.log('API Response:', response); // Debug log
+        
+        // Handle different response structures
+        let createdTask;
+        if (response && response.data) {
+            createdTask = response.data;
+        } else if (response && response.id) {
+            createdTask = response;
+        } else if (response && typeof response === 'object') {
+            createdTask = response;
         } else {
-            throw new Error('Failed to create task');
+            console.error('Unexpected API response structure:', response);
+            throw new Error('Invalid response from server');
         }
+        
+        // Add the new task to local state
+        state.tasks.unshift(createdTask);
+        saveState();
+        renderBoard();
+        showToast('Task created successfully', 'success');
     } catch (error) {
         console.error('Error creating task:', error);
         throw error;
@@ -1366,15 +1377,26 @@ async function updateTask(taskId, taskData) {
         // Update task in backend
         const response = await tasksAPI.updateTask(taskId, taskData);
         
-        if (response?.success && response.data) {
-            // Update task in local state
-            state.tasks[taskIndex] = response.data;
-            saveState();
-            renderBoard();
-            showToast('Task updated successfully', 'success');
+        console.log('Update API Response:', response); // Debug log
+        
+        // Handle different response structures
+        let updatedTask;
+        if (response && response.data) {
+            updatedTask = response.data;
+        } else if (response && response.id) {
+            updatedTask = response;
+        } else if (response && typeof response === 'object') {
+            updatedTask = response;
         } else {
-            throw new Error('Failed to update task');
+            console.error('Unexpected API response structure:', response);
+            throw new Error('Invalid response from server');
         }
+        
+        // Update task in local state
+        state.tasks[taskIndex] = updatedTask;
+        saveState();
+        renderBoard();
+        showToast('Task updated successfully', 'success');
     } catch (error) {
         console.error('Error updating task:', error);
         throw error;
@@ -1392,7 +1414,8 @@ function loadSubtasks(subtasks) {
         const subtaskEl = document.createElement('div');
         subtaskEl.className = 'subtask';
         subtaskEl.innerHTML = `
-            <input type="text" class="form-control" value="${subtask.text || ''}" data-index="${index}">
+            <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} data-index="${index}">
+            <input type="text" class="form-control" value="${subtask.text || ''}" data-index="${index}" placeholder="Add an item...">
             <button type="button" class="btn btn-sm btn-outline delete-subtask">
                 <i class="fas fa-times"></i>
             </button>
@@ -1409,7 +1432,8 @@ function addSubtask(text) {
     subtaskEl.className = 'subtask';
     const index = container.children.length;
     subtaskEl.innerHTML = `
-        <input type="text" class="form-control" value="${text}" data-index="${index}">
+        <input type="checkbox" class="subtask-checkbox" data-index="${index}">
+        <input type="text" class="form-control" value="${text}" data-index="${index}" placeholder="Add an item...">
         <button type="button" class="btn btn-sm btn-outline delete-subtask">
             <i class="fas fa-times"></i>
         </button>
@@ -1421,11 +1445,20 @@ function getSubtasksFromForm() {
     const container = document.getElementById('subtasksContainer');
     if (!container) return [];
     
-    const subtaskInputs = container.querySelectorAll('input[type="text"]');
-    return Array.from(subtaskInputs)
-        .map(input => input.value.trim())
-        .filter(text => text.length > 0)
-        .map(text => ({ text, completed: false }));
+    const subtaskElements = container.querySelectorAll('.subtask');
+    return Array.from(subtaskElements)
+        .map(subtaskEl => {
+            const textInput = subtaskEl.querySelector('input[type="text"]');
+            const checkbox = subtaskEl.querySelector('input[type="checkbox"]');
+            const text = textInput ? textInput.value.trim() : '';
+            if (text.length === 0) return null;
+            
+            return {
+                text,
+                completed: checkbox ? checkbox.checked : false
+            };
+        })
+        .filter(subtask => subtask !== null);
 }
 
 // Task Modal Functions
