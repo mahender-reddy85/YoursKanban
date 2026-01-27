@@ -1058,15 +1058,29 @@ async function togglePin(id) {
         console.log('Pin toggle data being sent:', updateData);
         console.log('Task ID:', task.id);
         
-        const response = await tasksAPI.updateTask(task.id, updateData);
-        
-        console.log('Pin toggle API Response:', response); // Debug log
-        
-        // Handle different response structures
-        if (response && (response.data || response.id || typeof response === 'object')) {
-            showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
-        } else {
-            throw new Error('Failed to update task');
+        try {
+            const response = await tasksAPI.updateTask(task.id, updateData);
+            console.log('Pin toggle API Response:', response); // Debug log
+            
+            // Handle different response structures
+            if (response && (response.data || response.id || typeof response === 'object')) {
+                showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
+            } else {
+                throw new Error('Failed to update task');
+            }
+        } catch (error) {
+            // If backend rejects the pinned field, update locally only
+            if (error.message && error.message.includes('No valid fields to update')) {
+                console.warn('Backend rejected pinned field, updating locally only:', task.id);
+                // The optimistic update already happened, so we just confirm it
+                showToast(newPinnedState ? 'Task pinned locally' : 'Task unpinned locally', 'warning');
+            } else {
+                // Revert the optimistic update on other errors
+                task.pinned = !newPinnedState;
+                saveState();
+                renderBoard();
+                throw error;
+            }
         }
     } catch (error) {
         console.error('Error toggling pin:', error);
