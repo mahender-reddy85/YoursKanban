@@ -911,8 +911,9 @@ function setupEventListeners() {
                     delete taskData.dueDate;
                     console.warn('Invalid date provided, removing dueDate:', taskData.dueDate);
                 } else {
-                    // Valid date, ensure it's in ISO format
-                    taskData.dueDate = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+                    // Valid date, keep it in YYYY-MM-DD format (date input format)
+                    // The backend should handle this format properly
+                    taskData.dueDate = taskData.dueDate; // Already in YYYY-MM-DD from date input
                 }
             }
             
@@ -1019,7 +1020,10 @@ async function togglePin(id) {
             pinned: newPinnedState 
         });
         
-        if (response?.success) {
+        console.log('Pin toggle API Response:', response); // Debug log
+        
+        // Handle different response structures
+        if (response && (response.data || response.id || typeof response === 'object')) {
             showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
         } else {
             throw new Error('Failed to update task');
@@ -1626,7 +1630,25 @@ function openModal(taskId = null) {
         document.getElementById('taskDesc').value = task.description || '';
         document.getElementById('taskPriority').value = task.priority || 'medium';
         document.getElementById('taskStatus').value = task.status || 'todo';
-        document.getElementById('taskDueDate').value = task.dueDate || task.due_date || '';
+        
+        // Handle date format conversion
+        const taskDueDate = task.dueDate || task.due_date;
+        if (taskDueDate) {
+            try {
+                const date = new Date(taskDueDate);
+                if (!isNaN(date.getTime())) {
+                    // Convert to YYYY-MM-DD format for the date input
+                    document.getElementById('taskDueDate').value = date.toISOString().split('T')[0];
+                } else {
+                    document.getElementById('taskDueDate').value = '';
+                }
+            } catch (error) {
+                console.warn('Invalid date format:', taskDueDate);
+                document.getElementById('taskDueDate').value = '';
+            }
+        } else {
+            document.getElementById('taskDueDate').value = '';
+        }
         
         // Load subtasks
         loadSubtasks(task.subtasks || []);
@@ -1690,28 +1712,41 @@ async function performDelete() {
         renderBoard(); // Immediate feedback
 
         // Delete from backend
-        const response = await tasksAPI.deleteTask(taskToDelete);
-        
-        if (!response?.success) {
-            throw new Error('Failed to delete task from server');
-        }
-
-        // Show toast with undo option
-        showToast(
-            'Task deleted',
-            'error',
-            10000, // Give more time for undo
-            async () => {
-                // Undo delete action
-                if (state.lastDeletedTask) {
-                    state.tasks.unshift(state.lastDeletedTask);
-                    saveState();
-                    renderBoard();
-                    state.lastDeletedTask = null;
-                    showToast('Task restored', 'success');
-                }
+        try {
+            const response = await tasksAPI.deleteTask(taskToDelete);
+            console.log('Delete API Response:', response); // Debug log
+            
+            // Handle different response structures - some APIs return success: true, others just return status
+            if (response === null || response === undefined || 
+                (response && (response.success !== false && response.code !== 'NOT_FOUND'))) {
+                // Success - task deleted or didn't exist on server
+                // Show toast with undo option
+                showToast(
+                    'Task deleted',
+                    'error',
+                    10000, // Give more time for undo
+                    async () => {
+                        // Undo delete action
+                        if (state.lastDeletedTask) {
+                            state.tasks.unshift(state.lastDeletedTask);
+                            saveState();
+                            renderBoard();
+                            state.lastDeletedTask = null;
+                            showToast('Task restored', 'success');
+                        }
+                    }
+                );
+            } else {
+                // Failed to delete
+                throw new Error('Failed to delete task from server');
             }
-        );
+        } catch (error) {
+            // If delete fails, revert the optimistic update
+            state.tasks.splice(taskIndex, 0, taskToDeleteObj);
+            saveState();
+            renderBoard();
+            throw error;
+        }
     } catch (error) {
         console.error('Error deleting task:', error);
         showToast('Error deleting task: ' + (error.message || 'Unknown error'), 'error');
