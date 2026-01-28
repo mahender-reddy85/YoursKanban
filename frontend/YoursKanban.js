@@ -668,6 +668,7 @@ function createTaskCard(task) {
                 today.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 dueDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 
+                // Only mark as overdue if due date is BEFORE today (not today itself)
                 isOverdue = dueDate < today && task.status !== 'done';
                 
                 // Debug logging
