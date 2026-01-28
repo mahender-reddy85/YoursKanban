@@ -670,20 +670,6 @@ function createTaskCard(task) {
                 
                 // Only mark as overdue if due date is BEFORE today (not today itself)
                 isOverdue = dueDate < today && task.status !== 'done';
-                
-                // Debug logging
-                console.log('=== OVERDUE DEBUG ===');
-                console.log('Task title:', task.title);
-                console.log('Raw taskDueDate:', taskDueDate);
-                console.log('Parsed dueDate:', dueDate);
-                console.log('Parsed today:', today);
-                console.log('dueDate.getTime():', dueDate.getTime());
-                console.log('today.getTime():', today.getTime());
-                console.log('dueDate < today:', dueDate < today);
-                console.log('task.status:', task.status);
-                console.log('task.status !== "done":', task.status !== 'done');
-                console.log('Final isOverdue:', isOverdue);
-                console.log('==================');
             } catch (error) {
                 console.warn('Error checking overdue status:', error);
             }
@@ -691,9 +677,6 @@ function createTaskCard(task) {
         
         const overdueClass = isOverdue ? 'overdue' : '';
         const overdueIcon = isOverdue ? '<span class="overdue-icon">⚠️</span>' : '<i class="far fa-calendar-alt"></i>';
-        
-        console.log('Overdue icon HTML:', overdueIcon);
-        console.log('Is overdue:', isOverdue);
         
         cardHTML.push(`
             <div class="card-date ${overdueClass}">
@@ -1253,6 +1236,11 @@ async function duplicateTask(id) {
             saveState();
             showToast('Task duplicated', 'success');
         }
+        
+        // Force a complete board refresh to ensure UI updates
+        setTimeout(() => {
+            renderBoard();
+        }, 100);
     } catch (error) {
         console.error('Error duplicating task:', error);
         showToast('Failed to duplicate task', 'error');
