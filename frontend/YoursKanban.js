@@ -678,6 +678,11 @@ function createTaskCard(task) {
         const overdueClass = isOverdue ? 'overdue' : '';
         const overdueIcon = isOverdue ? '<span class="overdue-icon">⚠️</span>' : '<i class="far fa-calendar-alt"></i>';
         
+        // Debug check
+        if (task.title.includes('(Copy)')) {
+            console.log('Duplicate task debug:', task.title, 'isOverdue:', isOverdue, 'overdueClass:', overdueClass);
+        }
+        
         cardHTML.push(`
             <div class="card-date ${overdueClass}">
                 ${overdueIcon}
