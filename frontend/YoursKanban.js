@@ -2123,7 +2123,14 @@ async function performDelete() {
         }
     } catch (error) {
         console.error('Error deleting task:', error);
-        showToast('Error deleting task: ' + (error.message || 'Unknown error'), 'error');
+        
+        // If task not found on backend, it's already been deleted locally
+        if (error.message && error.message.includes('Task not found')) {
+            console.warn('Task not found on backend, but already deleted locally:', taskToDelete);
+            showToast('Task deleted locally', 'warning');
+        } else {
+            showToast('Error deleting task: ' + (error.message || 'Unknown error'), 'error');
+        }
     }
     
     hideDeleteConfirmation();
