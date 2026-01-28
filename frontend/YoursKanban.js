@@ -685,7 +685,10 @@ function createTaskCard(task) {
         }
         
         const overdueClass = isOverdue ? 'overdue' : '';
-        const overdueIcon = isOverdue ? '<i class="fas fa-exclamation-triangle overdue-icon"></i>' : '<i class="far fa-calendar-alt"></i>';
+        const overdueIcon = isOverdue ? '<span class="overdue-icon">⚠️</span>' : '<i class="far fa-calendar-alt"></i>';
+        
+        console.log('Overdue icon HTML:', overdueIcon);
+        console.log('Is overdue:', isOverdue);
         
         cardHTML.push(`
             <div class="card-date ${overdueClass}">
