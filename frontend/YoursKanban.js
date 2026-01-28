@@ -1217,7 +1217,32 @@ async function duplicateTask(id) {
             throw new Error('Invalid response from server');
         }
         
-        // Replace the temporary task with the one from the server
+        console.log('Created duplicate task received from API:', createdTask);
+        console.log('Created duplicate task dueDate:', createdTask.dueDate);
+        console.log('Created duplicate task due_date:', createdTask.due_date);
+        
+        // Preserve the original valid date if API returns invalid date
+        const originalDueDate = validatedTask.dueDate;
+        
+        // Immediately clean up any invalid dates returned by the API
+        if (createdTask.dueDate) {
+            const date = new Date(createdTask.dueDate);
+            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+                console.warn('API returned invalid dueDate in duplicate, restoring original:', createdTask.dueDate, '->', originalDueDate);
+                createdTask.dueDate = originalDueDate; // Restore the original valid date
+            }
+        }
+        if (createdTask.due_date) {
+            const date = new Date(createdTask.due_date);
+            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
+                console.warn('API returned invalid due_date in duplicate, restoring original:', createdTask.due_date, '->', originalDueDate);
+                createdTask.due_date = originalDueDate; // Restore the original valid date
+            }
+        }
+        
+        console.log('Final duplicate task data after date restoration:', createdTask);
+        
+        // Replace the optimistic task with the real one from the server
         const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
         if (taskIndex !== -1) {
             state.tasks[taskIndex] = createdTask;
