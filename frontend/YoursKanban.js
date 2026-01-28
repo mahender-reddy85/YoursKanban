@@ -976,6 +976,8 @@ function setupEventListeners() {
                     // Create new task
                     await createTask(taskData);
                 }
+                // Ensure board is re-rendered to update overdue status
+                renderBoard();
                 closeModal();
             } catch (error) {
                 console.error('Error saving task:', error);
