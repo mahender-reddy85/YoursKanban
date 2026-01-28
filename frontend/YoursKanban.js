@@ -2128,6 +2128,8 @@ async function performDelete() {
         if (error.message && error.message.includes('Task not found')) {
             console.warn('Task not found on backend, but already deleted locally:', taskToDelete);
             showToast('Task deleted locally', 'warning');
+            // Force board refresh to ensure UI is updated
+            renderBoard();
         } else {
             showToast('Error deleting task: ' + (error.message || 'Unknown error'), 'error');
         }
