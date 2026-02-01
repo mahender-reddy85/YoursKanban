@@ -7,7 +7,7 @@ const createTasksRouter = (pool) => {
 
   // Get all tasks for the current user
   const getTasks = catchAsync(async (req, res) => {
-    const { uid: userId, isGuest } = req.user;
+    const { id: userId, isGuest } = req.user;
     
     const query = isGuest 
       ? 'SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC'
@@ -55,7 +55,7 @@ const createTasksRouter = (pool) => {
 
   // Get a single task by ID
   const getTask = catchAsync(async (req, res) => {
-    const { uid: userId } = req.user;
+    const { id: userId } = req.user;
     const { id } = req.params;
 
     const result = await pool.query(
@@ -95,6 +95,12 @@ const createTasksRouter = (pool) => {
   // Create a new task
   const createTask = catchAsync(async (req, res) => {
     const { id: userId, isGuest } = req.user;
+    
+    // Safety check to prevent future broken tasks
+    if (!userId) {
+      throw new Error("User ID missing in createTask");
+    }
+    
     console.log('Creating task for user ID:', userId, 'isGuest:', isGuest);
     const { title, description, status, priority, dueDate, position, subtasks, pinned } = req.body;
 
@@ -172,7 +178,7 @@ const createTasksRouter = (pool) => {
 
   // Update a task
   const updateTask = catchAsync(async (req, res) => {
-    const { uid: userId } = req.user;
+    const { id: userId } = req.user;
     const { id } = req.params;
     const updates = req.body;
 
@@ -238,7 +244,7 @@ const createTasksRouter = (pool) => {
 
   // Delete a task
   const deleteTask = catchAsync(async (req, res) => {
-    const { uid: userId } = req.user;
+    const { id: userId } = req.user;
     const { id } = req.params;
 
     const result = await pool.query(

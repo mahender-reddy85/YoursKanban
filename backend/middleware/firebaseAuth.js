@@ -25,24 +25,40 @@ const firebaseAuth = catchAsync(async (req, res, next) => {
     return next();
   }
 
-  // Verify Firebase token
-  const token = header.split("Bearer ")[1];
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    
-    if (!decodedToken.uid) {
-      throw new AppError('Invalid authentication token', 401, errorTypes.INVALID_TOKEN);
-    }
+    // Verify Firebase token
+    const token = header.split("Bearer ")[1];
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      
+      if (!decodedToken.uid) {
+        throw new AppError('Invalid authentication token', 401, errorTypes.INVALID_TOKEN);
+      }
 
-    // Attach user info to request
-    req.user = {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      emailVerified: decodedToken.email_verified || false,
-      isGuest: false
-    };
-    
-    return next();
+      // Look up user in database to get integer ID
+      const pool = require("../config/database");
+      const userResult = await pool.query(
+        'SELECT id, email FROM users WHERE firebase_uid = $1 LIMIT 1',
+        [decodedToken.uid]
+      );
+
+      if (userResult.rows.length === 0) {
+        // User not found in database, continue as guest
+        req.user = { isGuest: true };
+        return next();
+      }
+
+      const dbUser = userResult.rows[0];
+
+      // Attach user info to request with database integer ID
+      req.user = {
+        id: dbUser.id,           // Database integer ID
+        uid: decodedToken.uid,   // Firebase UID (for reference)
+        email: dbUser.email,
+        emailVerified: decodedToken.email_verified || false,
+        isGuest: false
+      };
+      
+      return next();
   } catch (tokenError) {
     console.error('Token verification failed:', tokenError);
     
