@@ -501,9 +501,13 @@ function createTaskCard(task) {
     const classes = ['task-card'];
     if (task.pinned) classes.push('pinned');
     
-    // Check if task is overdue
+    // Check if task is overdue (today or before)
     const dueDate = task.due_date || task.dueDate;
-    const isOverdue = dueDate && task.status !== 'done' && new Date(dueDate) < new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDueDateObj = new Date(dueDate);
+    taskDueDateObj.setHours(0, 0, 0, 0);
+    const isOverdue = dueDate && task.status !== 'done' && taskDueDateObj <= today;
     if (isOverdue) {
         classes.push('overdue');
     }
@@ -668,8 +672,8 @@ function createTaskCard(task) {
                 today.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 dueDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 
-                // Only mark as overdue if due date is BEFORE today (not today itself)
-                isOverdue = dueDate < today && task.status !== 'done';
+                // Mark as overdue if due date is today or before
+                isOverdue = dueDate <= today && task.status !== 'done';
             } catch (error) {
                 console.warn('Error checking overdue status:', error);
             }
