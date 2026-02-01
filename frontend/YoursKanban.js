@@ -501,36 +501,16 @@ function createTaskCard(task) {
     const classes = ['task-card'];
     if (task.pinned) classes.push('pinned');
     
-    // Check if task is overdue (today or before)
-    const dueDate = task.due_date || task.dueDate;
-    let isOverdue = false;
-    
-    if (dueDate) {
-        try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            // Handle different date formats
-            let taskDueDate;
-            if (typeof dueDate === 'string' && dueDate.includes('-')) {
-                // If it's already a date string like "2026-02-02"
-                taskDueDate = new Date(dueDate + 'T00:00:00');
-            } else {
-                // If it's a timestamp or other format
-                taskDueDate = new Date(dueDate);
-            }
-            
-            taskDueDate.setHours(0, 0, 0, 0);
-            
-            // Only mark as overdue if task is not done and due date is before today (not today itself)
-            isOverdue = task.status !== 'done' && taskDueDate < today;
-        } catch (error) {
-            console.warn('Error checking overdue status:', error);
-            isOverdue = false;
+    // Check if task is overdue (before today, not including today)
+    if (task.dueDate && task.status !== 'done') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        if (dueDate < today) {
+            classes.push('overdue');
         }
-    }
-    if (isOverdue) {
-        classes.push('overdue');
     }
     
     card.className = classes.join(' ');
@@ -578,15 +558,9 @@ function createTaskCard(task) {
     let progressHTML = '';
     const hasSubtasks = subtasks && subtasks.length > 0;
     
-    // Debug logging
-    console.log('Task ID:', task.id, 'Task Title:', task.title);
-    console.log('Subtasks found:', subtasks.length, subtasks);
-    
     if (hasSubtasks) {
         const completedCount = subtasks.filter(st => st.is_done || st.is_completed || st.completed).length;
         const progressPercent = Math.round((completedCount / subtasks.length) * 100);
-        
-        console.log('Completed count:', completedCount, 'Progress:', progressPercent + '%');
         
         progressHTML = `
             <div class="subtask-progress">
@@ -613,8 +587,6 @@ function createTaskCard(task) {
                 ` : ''}
             </div>
         `;
-    } else {
-        console.log('No subtasks found for task:', task.title);
     }
 
     // Build the task card HTML
@@ -649,9 +621,21 @@ function createTaskCard(task) {
         cardHTML.push(`<div class="card-desc">${sanitize(task.description)}</div>`);
     }
     
-    // Subtask progress
-    if (progressHTML) {
-        cardHTML.push(progressHTML);
+    // Subtask Progress - simplified and cleaner
+    if (task.subtasks?.length > 0) {
+        const completedCount = task.subtasks.filter(st => st.is_done || st.is_completed || st.completed).length;
+        const progressPercent = (completedCount / task.subtasks.length) * 100;
+        
+        cardHTML.push(`
+            <div class="subtask-progress">
+                <div class="progress-bar">
+                    <div class="progress" style="width: ${progressPercent}%"></div>
+                </div>
+                <div class="progress-text">
+                    ${completedCount} of ${task.subtasks.length} tasks
+                </div>
+            </div>
+        `);
     }
     
     // File attachments
@@ -676,43 +660,12 @@ function createTaskCard(task) {
     const priority = task.priority || 'medium';
     cardHTML.push(`<span class="priority-badge priority-${priority}">${priority.toUpperCase()}</span>`);
     
-    // Due date with overdue detection
-    if (formattedDueDate) {
-        const taskDueDate = task.dueDate || task.due_date;
-        let isOverdue = false;
-        
-        if (taskDueDate) {
-            try {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                // Handle different date formats
-                let dueDate;
-                if (typeof taskDueDate === 'string' && taskDueDate.includes('-')) {
-                    // If it's already a date string like "2026-02-02"
-                    dueDate = new Date(taskDueDate + 'T00:00:00');
-                } else {
-                    // If it's a timestamp or other format
-                    dueDate = new Date(taskDueDate);
-                }
-                
-                dueDate.setHours(0, 0, 0, 0);
-                
-                // Mark as overdue if due date is before today (not today itself)
-                isOverdue = task.status !== 'done' && dueDate < today;
-            } catch (error) {
-                console.warn('Error checking overdue status:', error);
-                isOverdue = false;
-            }
-        }
-        
-        const overdueClass = isOverdue ? 'overdue' : '';
-        const overdueIcon = isOverdue ? '<span class="overdue-icon">⚠️</span>' : '<i class="far fa-calendar-alt"></i>';
-        
+    // Due date with simple formatting
+    if (task.dueDate) {
         cardHTML.push(`
-            <div class="card-date ${overdueClass}">
-                ${overdueIcon}
-                ${formattedDueDate}
+            <div class="card-date">
+                <i class="far fa-calendar-alt"></i>
+                ${new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
         `);
     }
