@@ -741,11 +741,13 @@ function attachDragEvents() {
             const newStatus = zone.dataset.status;
             
             console.log('Dropped task ID:', taskId, 'New status:', newStatus);
+            console.log('Current state tasks:', state.tasks.map(t => ({ id: t.id, title: t.title })));
             
-            // Find the task in the state
-            const task = state.tasks.find(t => t.id === taskId);
+            // Find the task in the state (handle both string and number IDs)
+            const task = state.tasks.find(t => t.id == taskId || t.id === taskId);
             if (!task) {
                 console.error('Task not found in state:', taskId);
+                console.error('Available task IDs:', state.tasks.map(t => t.id));
                 return;
             }
             

@@ -16,7 +16,7 @@ const createTasksRouter = (pool) => {
                   (SELECT json_agg(
                     json_build_object(
                       'id', st.id,
-                      'text', st.text,
+                      'text', COALESCE(st.text, st.description::text),
                       'completed', st.is_done,
                       'is_completed', st.is_done,
                       'order_index', st.order_index,
