@@ -522,8 +522,8 @@ function createTaskCard(task) {
             
             taskDueDate.setHours(0, 0, 0, 0);
             
-            // Only mark as overdue if task is not done and due date is today or before
-            isOverdue = task.status !== 'done' && taskDueDate <= today;
+            // Only mark as overdue if task is not done and due date is before today (not today itself)
+            isOverdue = task.status !== 'done' && taskDueDate < today;
         } catch (error) {
             console.warn('Error checking overdue status:', error);
             isOverdue = false;
@@ -703,8 +703,8 @@ function createTaskCard(task) {
                 
                 dueDate.setHours(0, 0, 0, 0);
                 
-                // Mark as overdue if due date is today or before
-                isOverdue = task.status !== 'done' && dueDate <= today;
+                // Mark as overdue if due date is before today (not today itself)
+                isOverdue = task.status !== 'done' && dueDate < today;
             } catch (error) {
                 console.warn('Error checking overdue status:', error);
                 isOverdue = false;
