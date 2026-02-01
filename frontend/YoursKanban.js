@@ -703,6 +703,10 @@ function attachDragEvents() {
         card.addEventListener('dragend', (e) => {
             e.stopPropagation();
             card.classList.remove('dragging');
+            // Ensure board is re-rendered to maintain consistency
+            setTimeout(() => {
+                renderBoard();
+            }, 50);
         });
     });
 
@@ -720,11 +724,6 @@ function attachDragEvents() {
             } else {
                 zone.appendChild(card);
             }
-            
-            // Update visual feedback
-            zone.querySelectorAll('.task-card').forEach((c, index) => {
-                c.style.order = index;
-            });
         });
 
         zone.addEventListener('drop', async (e) => {
@@ -735,22 +734,21 @@ function attachDragEvents() {
             const newStatus = zone.dataset.status;
             
             // Find the task in the state
-            const taskIndex = state.tasks.findIndex(t => t.id === taskId);
-            if (taskIndex === -1) return;
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
             
-            // Update the task status
-            const task = state.tasks[taskIndex];
             const oldStatus = task.status;
             
             // Only update if status changed
             if (oldStatus !== newStatus) {
+                // Update local state immediately for instant feedback
                 task.status = newStatus;
                 
                 // Save to backend
                 try {
                     await tasksAPI.updateTask(taskId, { status: newStatus });
                     saveState();
-                    renderBoard();
+                    renderBoard(); // Re-render to ensure consistency
                 } catch (error) {
                     console.error('Error updating task status:', error);
                     // Revert on error
@@ -758,6 +756,9 @@ function attachDragEvents() {
                     renderBoard();
                     showToast('Failed to move task', 'error');
                 }
+            } else {
+                // Even if status didn't change, re-render to ensure proper placement
+                renderBoard();
             }
         });
     });
@@ -778,38 +779,6 @@ function getDragAfterElement(container, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-async function updateTaskStatus(id, status) {
-    try {
-        const task = state.tasks.find(t => t.id === id);
-        if (!task) return;
-        
-        // Update local state immediately for instant feedback
-        const oldStatus = task.status;
-        task.status = status;
-        
-        // Update the task in the backend
-        const response = await tasksAPI.updateTask(id, { status });
-        
-        if (!response || !response.success) {
-            // Revert if update fails
-            task.status = oldStatus;
-            throw new Error('Failed to update task status');
-        }
-        
-        // Update local state with server response
-        if (response.data) {
-            Object.assign(task, response.data);
-        }
-        
-        saveState();
-        return task;
-    } catch (error) {
-        console.error('Error updating task status:', error);
-        showToast('Failed to update task status', 'error');
-        renderBoard(); // Re-render to ensure UI consistency
-        throw error;
-    }
-}
 
 // File Handling
 function handleFileDrop(e) {
