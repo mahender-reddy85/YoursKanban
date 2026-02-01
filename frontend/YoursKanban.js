@@ -2194,7 +2194,7 @@ async function performDelete() {
                 renderBoard();
             }
             
-            showToast('Task removed from local view', 'info');
+            showToast('Task deleted ', 'info');
         } else {
             showToast('Error deleting task: ' + (error.message || 'Unknown error'), 'error');
         }
