@@ -36,6 +36,9 @@ const state = {
 // Global variable for delete confirmation
 let taskToDelete = null;
 
+// Global flag to prevent re-rendering during drag operations
+let isDragging = false;
+
 // Toast Notification System
 function showToast(message, type = 'info', duration = 5000, undoAction = null) {
     const container = document.getElementById('toastContainer');
@@ -394,6 +397,12 @@ function toggleSortOrder() {
 }
 
 function renderBoard() {
+    // Don't re-render if we're in the middle of a drag operation
+    if (isDragging) {
+        console.log('Skipping render during drag operation');
+        return;
+    }
+    
     DOM.board.innerHTML = '';
 
     COLUMNS.forEach(col => {
@@ -697,6 +706,7 @@ function attachDragEvents() {
         card.addEventListener('dragstart', (e) => {
             console.log('Drag start on card:', card.dataset.id);
             e.stopPropagation();
+            isDragging = true; // Set dragging flag
             e.dataTransfer.setData('text/plain', card.dataset.id);
             setTimeout(() => {
                 card.classList.add('dragging');
@@ -707,10 +717,7 @@ function attachDragEvents() {
             console.log('Drag end on card:', card.dataset.id);
             e.stopPropagation();
             card.classList.remove('dragging');
-            // Ensure board is re-rendered to maintain consistency
-            setTimeout(() => {
-                renderBoard();
-            }, 50);
+            isDragging = false; // Clear dragging flag
         });
     });
 
