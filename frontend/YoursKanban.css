@@ -1189,11 +1189,12 @@ body {
 }
 
 .progress-bar {
-    height: 6px;
+    height: 8px;
     background-color: var(--border-color);
-    border-radius: 3px;
+    border-radius: 4px;
     margin-bottom: 0.25rem;
     overflow: hidden;
+    border: 1px solid var(--border-color);
 }
 
 .progress {
@@ -1201,12 +1202,14 @@ body {
     background-color: var(--primary);
     border-radius: 3px;
     transition: width 0.3s ease;
+    min-height: 6px;
 }
 
 .progress-text {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-top: 0.25rem;
+    font-weight: 500;
     display: flex;
     justify-content: space-between;
     align-items: center;

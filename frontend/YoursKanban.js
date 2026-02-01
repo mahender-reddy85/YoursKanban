@@ -574,9 +574,11 @@ function createTaskCard(task) {
     }
 
     // Calculate progress for subtasks
-    let progressHTML = '';
     const subtasks = task.subtasks || [];
-    if (subtasks.length > 0) {
+    let progressHTML = '';
+    const hasSubtasks = subtasks && subtasks.length > 0;
+    
+    if (hasSubtasks) {
         const completedCount = subtasks.filter(st => st.is_completed || st.completed).length;
         const progressPercent = Math.round((completedCount / subtasks.length) * 100);
         
@@ -606,12 +608,6 @@ function createTaskCard(task) {
             </div>
         `;
     }
-
-    // Calculate progress for the progress bar
-    const hasSubtasks = subtasks && subtasks.length > 0;
-    const completedSubtasks = hasSubtasks ? subtasks.filter(st => st.is_completed || st.completed).length : 0;
-    const totalSubtasks = hasSubtasks ? subtasks.length : 0;
-    const progressPercent = hasSubtasks ? (completedSubtasks / totalSubtasks) * 100 : 0;
 
     // Build the task card HTML
     const cardHTML = [];
@@ -646,17 +642,8 @@ function createTaskCard(task) {
     }
     
     // Subtask progress
-    if (hasSubtasks) {
-        cardHTML.push(`
-            <div class="subtask-progress">
-                <div class="progress-bar">
-                    <div class="progress" style="width: ${progressPercent}%"></div>
-                </div>
-                <div class="progress-text">
-                    ${completedSubtasks} of ${totalSubtasks} tasks
-                </div>
-            </div>
-        `);
+    if (progressHTML) {
+        cardHTML.push(progressHTML);
     }
     
     // File attachments
