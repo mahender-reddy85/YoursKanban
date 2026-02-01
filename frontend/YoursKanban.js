@@ -507,6 +507,12 @@ function createTaskCard(task) {
     today.setHours(0, 0, 0, 0);
     const taskDueDateObj = new Date(dueDate);
     taskDueDateObj.setHours(0, 0, 0, 0);
+    
+    // Debug logging for card creation
+    console.log('CARD - Task Due Date:', dueDate, '-> Parsed:', taskDueDateObj.toISOString());
+    console.log('CARD - Today:', today.toISOString());
+    console.log('CARD - Comparison:', taskDueDateObj <= today, 'Status:', task.status);
+    
     const isOverdue = dueDate && task.status !== 'done' && taskDueDateObj <= today;
     if (isOverdue) {
         classes.push('overdue');
@@ -671,6 +677,11 @@ function createTaskCard(task) {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 dueDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+                
+                // Debug logging
+                console.log('Task Due Date:', taskDueDate, '-> Parsed:', dueDate.toISOString());
+                console.log('Today:', today.toISOString());
+                console.log('Comparison:', dueDate <= today, 'Status:', task.status);
                 
                 // Mark as overdue if due date is today or before
                 isOverdue = dueDate <= today && task.status !== 'done';
