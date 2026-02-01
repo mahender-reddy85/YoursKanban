@@ -131,14 +131,14 @@ const createTasksRouter = (pool) => {
     let taskPosition = position;
     if (taskPosition === undefined) {
       const positionResult = await pool.query(
-        'SELECT COALESCE(MAX(order_index), 0) + 1 as next_position FROM tasks WHERE user_id = $1',
+        'SELECT COALESCE(MAX(position), 0) + 1 as next_position FROM tasks WHERE user_id = $1',
         [userId]
       );
       taskPosition = positionResult.rows[0].next_position;
     }
 
     const result = await pool.query(
-      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, order_index, is_pinned)
+      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, position, is_pinned)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [

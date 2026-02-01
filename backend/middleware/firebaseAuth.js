@@ -36,10 +36,22 @@ const firebaseAuth = catchAsync(async (req, res, next) => {
 
       // Look up user in database to get integer ID
       const pool = require("../config/database");
-      const userResult = await pool.query(
-        'SELECT id, email FROM users WHERE firebase_uid = $1 LIMIT 1',
-        [decodedToken.uid]
-      );
+      let userResult;
+      
+      try {
+        // Try to lookup by firebase_uid first (preferred)
+        userResult = await pool.query(
+          'SELECT id, email FROM users WHERE firebase_uid = $1 LIMIT 1',
+          [decodedToken.uid]
+        );
+      } catch (error) {
+        // If firebase_uid column doesn't exist, fall back to email lookup
+        console.log('firebase_uid column not found, falling back to email lookup');
+        userResult = await pool.query(
+          'SELECT id, email FROM users WHERE email = $1 LIMIT 1',
+          [decodedToken.email]
+        );
+      }
 
       if (userResult.rows.length === 0) {
         // User not found in database, continue as guest
