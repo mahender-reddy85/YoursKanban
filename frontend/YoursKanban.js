@@ -1504,6 +1504,27 @@ function handleKeyboardShortcuts(e) {
     }
 }
 
+// --- Task Cleanup Functions ---
+async function cleanupStaleTasks() {
+    try {
+        // Get all tasks from backend
+        const backendTasks = await tasksAPI.getTasks();
+        const backendTaskIds = new Set(backendTasks.map(task => task.id));
+        
+        // Find tasks that exist locally but not on backend
+        const staleTasks = state.tasks.filter(task => !backendTaskIds.has(task.id));
+        
+        if (staleTasks.length > 0) {
+            console.log(`Cleaning up ${staleTasks.length} stale tasks from local state`);
+            state.tasks = state.tasks.filter(task => backendTaskIds.has(task.id));
+            saveState();
+            renderBoard();
+        }
+    } catch (error) {
+        console.warn('Error during stale task cleanup:', error);
+    }
+}
+
 // --- Task Management ---
 async function fetchTasks() {
     try {
@@ -2161,12 +2182,19 @@ async function performDelete() {
     } catch (error) {
         console.error('Error deleting task:', error);
         
-        // If task not found on backend, it's already been deleted locally
+        // If task not found on backend, it's already been deleted or never existed on server
         if (error.message && error.message.includes('Task not found')) {
-            console.warn('Task not found on backend, but already deleted locally:', taskToDelete);
-            showToast('Task deleted locally', 'warning');
-            // Force board refresh to ensure UI is updated
-            renderBoard();
+            console.warn('Task not found on backend, cleaning up local state:', taskToDelete);
+            
+            // Remove from local state if it still exists (double-check)
+            const remainingTaskIndex = state.tasks.findIndex(t => t.id == taskToDelete);
+            if (remainingTaskIndex !== -1) {
+                state.tasks.splice(remainingTaskIndex, 1);
+                saveState();
+                renderBoard();
+            }
+            
+            showToast('Task removed from local view', 'info');
         } else {
             showToast('Error deleting task: ' + (error.message || 'Unknown error'), 'error');
         }
@@ -2429,6 +2457,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         updateGuestBanner();
+        
+        // Clean up any stale tasks that might exist locally but not on backend
+        if (user) {
+            setTimeout(() => {
+                cleanupStaleTasks();
+            }, 2000); // Run after 2 seconds to allow initial sync
+        }
     } catch (error) {
         console.error('Error initializing app:', error);
         showToast('Error initializing app: ' + (error.message || 'Unknown error'), 'error');
