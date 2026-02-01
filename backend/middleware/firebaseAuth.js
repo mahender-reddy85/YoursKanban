@@ -35,7 +35,7 @@ const firebaseAuth = catchAsync(async (req, res, next) => {
       }
 
       // Look up user in database to get integer ID
-      const pool = require("../config/database");
+      const pool = req.db;
       let userResult;
       
       try {
