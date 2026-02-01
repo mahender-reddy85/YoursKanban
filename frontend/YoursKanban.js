@@ -503,17 +503,32 @@ function createTaskCard(task) {
     
     // Check if task is overdue (today or before)
     const dueDate = task.due_date || task.dueDate;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDueDateObj = new Date(dueDate);
-    taskDueDateObj.setHours(0, 0, 0, 0);
+    let isOverdue = false;
     
-    // Debug logging for card creation
-    console.log('CARD - Task Due Date:', dueDate, '-> Parsed:', taskDueDateObj.toISOString());
-    console.log('CARD - Today:', today.toISOString());
-    console.log('CARD - Comparison:', taskDueDateObj <= today, 'Status:', task.status);
-    
-    const isOverdue = dueDate && task.status !== 'done' && taskDueDateObj <= today;
+    if (dueDate) {
+        try {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Handle different date formats
+            let taskDueDate;
+            if (typeof dueDate === 'string' && dueDate.includes('-')) {
+                // If it's already a date string like "2026-02-02"
+                taskDueDate = new Date(dueDate + 'T00:00:00');
+            } else {
+                // If it's a timestamp or other format
+                taskDueDate = new Date(dueDate);
+            }
+            
+            taskDueDate.setHours(0, 0, 0, 0);
+            
+            // Only mark as overdue if task is not done and due date is today or before
+            isOverdue = task.status !== 'done' && taskDueDate <= today;
+        } catch (error) {
+            console.warn('Error checking overdue status:', error);
+            isOverdue = false;
+        }
+    }
     if (isOverdue) {
         classes.push('overdue');
     }
@@ -673,20 +688,26 @@ function createTaskCard(task) {
         
         if (taskDueDate) {
             try {
-                const dueDate = new Date(taskDueDate);
                 const today = new Date();
-                today.setHours(0, 0, 0, 0); // Set to start of day for comparison
-                dueDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+                today.setHours(0, 0, 0, 0);
                 
-                // Debug logging
-                console.log('Task Due Date:', taskDueDate, '-> Parsed:', dueDate.toISOString());
-                console.log('Today:', today.toISOString());
-                console.log('Comparison:', dueDate <= today, 'Status:', task.status);
+                // Handle different date formats
+                let dueDate;
+                if (typeof taskDueDate === 'string' && taskDueDate.includes('-')) {
+                    // If it's already a date string like "2026-02-02"
+                    dueDate = new Date(taskDueDate + 'T00:00:00');
+                } else {
+                    // If it's a timestamp or other format
+                    dueDate = new Date(taskDueDate);
+                }
+                
+                dueDate.setHours(0, 0, 0, 0);
                 
                 // Mark as overdue if due date is today or before
-                isOverdue = dueDate <= today && task.status !== 'done';
+                isOverdue = task.status !== 'done' && dueDate <= today;
             } catch (error) {
                 console.warn('Error checking overdue status:', error);
+                isOverdue = false;
             }
         }
         
