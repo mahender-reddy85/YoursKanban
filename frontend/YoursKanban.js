@@ -578,9 +578,15 @@ function createTaskCard(task) {
     let progressHTML = '';
     const hasSubtasks = subtasks && subtasks.length > 0;
     
+    // Debug logging
+    console.log('Task ID:', task.id, 'Task Title:', task.title);
+    console.log('Subtasks found:', subtasks.length, subtasks);
+    
     if (hasSubtasks) {
         const completedCount = subtasks.filter(st => st.is_completed || st.completed).length;
         const progressPercent = Math.round((completedCount / subtasks.length) * 100);
+        
+        console.log('Completed count:', completedCount, 'Progress:', progressPercent + '%');
         
         progressHTML = `
             <div class="subtask-progress">
@@ -607,6 +613,8 @@ function createTaskCard(task) {
                 ` : ''}
             </div>
         `;
+    } else {
+        console.log('No subtasks found for task:', task.title);
     }
 
     // Build the task card HTML
