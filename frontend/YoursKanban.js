@@ -583,7 +583,7 @@ function createTaskCard(task) {
     console.log('Subtasks found:', subtasks.length, subtasks);
     
     if (hasSubtasks) {
-        const completedCount = subtasks.filter(st => st.is_completed || st.completed).length;
+        const completedCount = subtasks.filter(st => st.is_done || st.is_completed || st.completed).length;
         const progressPercent = Math.round((completedCount / subtasks.length) * 100);
         
         console.log('Completed count:', completedCount, 'Progress:', progressPercent + '%');
@@ -600,10 +600,10 @@ function createTaskCard(task) {
             <div class="subtask-list">
                 ${subtasks.slice(0, 3).map(subtask => `
                     <div class="subtask-preview">
-                        <span class="subtask-checkbox ${(subtask.is_completed || subtask.completed) ? 'completed' : ''}">
-                            ${(subtask.is_completed || subtask.completed) ? '✓' : ''}
+                        <span class="subtask-checkbox ${(subtask.is_done || subtask.is_completed || subtask.completed) ? 'completed' : ''}">
+                            ${(subtask.is_done || subtask.is_completed || subtask.completed) ? '✓' : ''}
                         </span>
-                        <span class="subtask-text ${(subtask.is_completed || subtask.completed) ? 'completed' : ''}">
+                        <span class="subtask-text ${(subtask.is_done || subtask.is_completed || subtask.completed) ? 'completed' : ''}">
                             ${sanitize(subtask.description || subtask.text || '')}
                         </span>
                     </div>

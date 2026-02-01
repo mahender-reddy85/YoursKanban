@@ -16,14 +16,13 @@ const createTasksRouter = (pool) => {
                   (SELECT json_agg(
                     json_build_object(
                       'id', st.id,
-                      'title', st.description,  -- Using description as title
-                      'is_completed', st.is_completed,
-                      'order_index', st.position,  -- Using position for order_index
-                      'position', st.position,     -- Including position for backward compatibility
+                      'text', st.text,
+                      'completed', st.is_done,
+                      'is_completed', st.is_done,
+                      'order_index', st.order_index,
                       'created_at', st.created_at,
-                      'updated_at', st.updated_at,
-                      'description', st.description  -- Including description for backward compatibility
-                    ) ORDER BY st.position
+                      'updated_at', st.updated_at
+                    ) ORDER BY st.order_index
                   )
                   FROM subtasks st 
                   WHERE st.task_id = t.id),
@@ -91,7 +90,7 @@ const createTasksRouter = (pool) => {
   // Create a new task
   const createTask = catchAsync(async (req, res) => {
     const { id: userId } = req.user;
-    const { title, description, status, priority, dueDate, position } = req.body;
+    const { title, description, status, priority, dueDate, position, subtasks } = req.body;
 
     // Handle dueDate conversion
     let formattedDueDate = null;
@@ -141,9 +140,35 @@ const createTasksRouter = (pool) => {
       ]
     );
 
+    const createdTask = result.rows[0];
+
+    // Create subtasks if provided
+    if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
+      const subtaskValues = subtasks.map((subtask, index) => {
+        const text = subtask.text || subtask.description || '';
+        const isDone = subtask.completed || subtask.is_completed || false;
+        
+        return `(
+          '${createdTask.id}',
+          ${pool.escapeLiteral(text)},
+          ${isDone},
+          ${index}
+        )`;
+      }).join(',');
+
+      const subtaskResult = await pool.query(`
+        INSERT INTO subtasks (task_id, text, is_done, order_index)
+        VALUES ${subtaskValues}
+        RETURNING *
+      `);
+
+      // Add subtasks to the response
+      createdTask.subtasks = subtaskResult.rows;
+    }
+
     res.status(201).json({
       success: true,
-      data: result.rows[0]
+      data: createdTask
     });
   });
 
