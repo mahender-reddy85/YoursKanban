@@ -97,17 +97,17 @@ const createTasksRouter = (pool) => {
     let formattedDueDate = null;
     if (dueDate) {
       try {
-        // Convert the timestamp to a PostgreSQL timestamp if it exists
+        // Convert the timestamp to a PostgreSQL DATE if it exists
         const timestamp = typeof dueDate === 'string' ? parseInt(dueDate, 10) : dueDate;
         
         // If the timestamp is in milliseconds (likely from JavaScript's Date.getTime())
         if (timestamp > 1e12) { // If timestamp is after 2001-09-09 (in milliseconds)
-          formattedDueDate = new Date(timestamp).toISOString();
+          formattedDueDate = new Date(timestamp).toISOString().split('T')[0];
         } else if (timestamp > 1e9) { // If timestamp is in seconds (likely from Unix timestamp)
-          formattedDueDate = new Date(timestamp * 1000).toISOString();
+          formattedDueDate = new Date(timestamp * 1000).toISOString().split('T')[0];
         } else {
           // If it's already in a date string format
-          formattedDueDate = new Date(timestamp).toISOString();
+          formattedDueDate = new Date(timestamp).toISOString().split('T')[0];
         }
       } catch (error) {
         console.error('Error parsing due date:', error);
@@ -162,6 +162,26 @@ const createTasksRouter = (pool) => {
     const allowedFields = ['title', 'description', 'status', 'priority', 'due_date'];
     Object.entries(updates).forEach(([key, value]) => {
       if (allowedFields.includes(key)) {
+        // Handle due_date conversion for updates
+        if (key === 'due_date' && value) {
+          try {
+            const timestamp = typeof value === 'string' ? parseInt(value, 10) : value;
+            
+            // If the timestamp is in milliseconds (likely from JavaScript's Date.getTime())
+            if (timestamp > 1e12) { // If timestamp is after 2001-09-09 (in milliseconds)
+              value = new Date(timestamp).toISOString().split('T')[0];
+            } else if (timestamp > 1e9) { // If timestamp is in seconds (likely from Unix timestamp)
+              value = new Date(timestamp * 1000).toISOString().split('T')[0];
+            } else {
+              // If it's already in a date string format
+              value = new Date(timestamp).toISOString().split('T')[0];
+            }
+          } catch (error) {
+            console.error('Error parsing due date in update:', error);
+            value = null;
+          }
+        }
+        
         setClause.push(`${key} = $${paramCount++}`);
         values.push(value);
       }

@@ -1213,23 +1213,19 @@ async function duplicateTask(id) {
         
         // Always restore the original date if backend doesn't return a valid one
         if (!createdTask.dueDate && originalDueDate) {
-            console.warn('API returned no dueDate in duplicate, restoring original:', originalDueDate);
             createdTask.dueDate = originalDueDate;
         } else if (createdTask.dueDate) {
             const date = new Date(createdTask.dueDate);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.warn('API returned invalid dueDate in duplicate, restoring original:', createdTask.dueDate, '->', originalDueDate);
                 createdTask.dueDate = originalDueDate;
             }
         }
         
         if (!createdTask.due_date && originalDueDate) {
-            console.warn('API returned no due_date in duplicate, restoring original:', originalDueDate);
             createdTask.due_date = originalDueDate;
         } else if (createdTask.due_date) {
             const date = new Date(createdTask.due_date);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.warn('API returned invalid due_date in duplicate, restoring original:', createdTask.due_date, '->', originalDueDate);
                 createdTask.due_date = originalDueDate;
             }
         }
@@ -1761,18 +1757,16 @@ async function createTask(taskData) {
         // Preserve the original valid date if API returns invalid date
         const originalDueDate = validatedTask.dueDate;
         
-        // Immediately clean up any invalid dates returned by the API
+        // Clean up any invalid dates returned by the API (backup check)
         if (createdTask.dueDate) {
             const date = new Date(createdTask.dueDate);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.warn('API returned invalid dueDate, restoring original:', createdTask.dueDate, '->', originalDueDate);
                 createdTask.dueDate = originalDueDate; // Restore the original valid date
             }
         }
         if (createdTask.due_date) {
             const date = new Date(createdTask.due_date);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.warn('API returned invalid due_date, restoring original:', createdTask.due_date, '->', originalDueDate);
                 createdTask.due_date = originalDueDate; // Restore the original valid date
             }
         }
