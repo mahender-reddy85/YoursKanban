@@ -692,7 +692,10 @@ function attachDragEvents() {
 
     // Add drag events to cards
     document.querySelectorAll('.task-card').forEach(card => {
+        console.log('Setting up drag events for card:', card.dataset.id);
+        
         card.addEventListener('dragstart', (e) => {
+            console.log('Drag start on card:', card.dataset.id);
             e.stopPropagation();
             e.dataTransfer.setData('text/plain', card.dataset.id);
             setTimeout(() => {
@@ -701,6 +704,7 @@ function attachDragEvents() {
         });
 
         card.addEventListener('dragend', (e) => {
+            console.log('Drag end on card:', card.dataset.id);
             e.stopPropagation();
             card.classList.remove('dragging');
             // Ensure board is re-rendered to maintain consistency
@@ -712,6 +716,8 @@ function attachDragEvents() {
 
     // Add drop events to zones
     dropzones.forEach(zone => {
+        console.log('Setting up drop zone for status:', zone.dataset.status);
+        
         zone.addEventListener('dragover', (e) => {
             e.preventDefault();
             const afterElement = getDragAfterElement(zone, e.clientY);
@@ -727,17 +733,24 @@ function attachDragEvents() {
         });
 
         zone.addEventListener('drop', async (e) => {
+            console.log('Drop event triggered on zone:', zone.dataset.status);
             e.preventDefault();
             e.stopPropagation();
             
             const taskId = e.dataTransfer.getData('text/plain');
             const newStatus = zone.dataset.status;
             
+            console.log('Dropped task ID:', taskId, 'New status:', newStatus);
+            
             // Find the task in the state
             const task = state.tasks.find(t => t.id === taskId);
-            if (!task) return;
+            if (!task) {
+                console.error('Task not found in state:', taskId);
+                return;
+            }
             
             const oldStatus = task.status;
+            console.log('Task found, old status:', oldStatus);
             
             // Only update if status changed
             if (oldStatus !== newStatus) {
@@ -749,6 +762,7 @@ function attachDragEvents() {
                     await tasksAPI.updateTask(taskId, { status: newStatus });
                     saveState();
                     renderBoard(); // Re-render to ensure consistency
+                    console.log('Task status updated successfully');
                 } catch (error) {
                     console.error('Error updating task status:', error);
                     // Revert on error
@@ -759,6 +773,7 @@ function attachDragEvents() {
             } else {
                 // Even if status didn't change, re-render to ensure proper placement
                 renderBoard();
+                console.log('Status unchanged, re-rendering anyway');
             }
         });
     });
