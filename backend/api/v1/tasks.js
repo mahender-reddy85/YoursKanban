@@ -150,26 +150,17 @@ const createTasksRouter = (pool) => {
 
     // Create subtasks if provided
     if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
-      // Insert subtasks one by one to avoid complex parameterized queries
-      const subtaskResults = [];
-      
       for (let i = 0; i < subtasks.length; i++) {
-        const subtask = subtasks[i];
-        const description = subtask.text || subtask.description || '';
-        const isCompleted = subtask.completed || subtask.is_completed || false;
-        
-        const subtaskResult = await pool.query(
+        const st = subtasks[i];
+        const description = st.text || st.description || '';
+        const isCompleted = st.completed || st.is_completed || false;
+
+        await pool.query(
           `INSERT INTO subtasks (task_id, description, is_completed, position)
-           VALUES ($1, $2, $3, $4)
-           RETURNING *`,
+           VALUES ($1, $2, $3, $4)`,
           [createdTask.id, description, isCompleted, i]
         );
-        
-        subtaskResults.push(subtaskResult.rows[0]);
       }
-
-      // Add subtasks to the response
-      createdTask.subtasks = subtaskResults;
     }
 
     res.status(201).json({
