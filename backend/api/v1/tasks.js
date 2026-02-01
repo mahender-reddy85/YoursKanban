@@ -95,6 +95,7 @@ const createTasksRouter = (pool) => {
   // Create a new task
   const createTask = catchAsync(async (req, res) => {
     const { id: userId } = req.user;
+    console.log('Creating task for user ID:', userId);
     const { title, description, status, priority, dueDate, position, subtasks, pinned } = req.body;
 
     // Handle dueDate conversion
