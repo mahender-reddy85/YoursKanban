@@ -60,7 +60,13 @@ onAuthStateChanged(auth, (user) => {
  */
 function isLoggedIn() {
     const user = auth.currentUser;
-    return user !== null && user !== undefined && user.uid !== undefined;
+    // More thorough check - user must exist, have uid, and have email
+    return user !== null && 
+           user !== undefined && 
+           user.uid !== undefined && 
+           user.uid !== null && 
+           user.email !== undefined && 
+           user.email !== null;
 }
 
 /**
