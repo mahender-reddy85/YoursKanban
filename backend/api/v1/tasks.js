@@ -14,19 +14,20 @@ const createTasksRouter = (pool) => {
       : `SELECT t.*, 
                 COALESCE(
                   (
-                    SELECT json_agg(
-                      json_build_object(
-                        'id', st.id,
-                        'title', st.title,
-                        'description', st.description,
-                        'is_completed', st.is_completed,
-                        'position', st.position,
-                        'created_at', st.created_at,
-                        'updated_at', st.updated_at
-                      ) ORDER BY st.position ASC
-                    )
-                    FROM subtasks st
-                    WHERE st.task_id = t.id
+                    SELECT json_agg(row_to_json(st.*))
+                    FROM (
+                      SELECT 
+                        st.id,
+                        st.title,
+                        st.description,
+                        st.is_completed,
+                        st.position,
+                        st.created_at,
+                        st.updated_at
+                      FROM subtasks st
+                      WHERE st.task_id = t.id
+                      ORDER BY st.position ASC
+                    ) st
                   ),
                   '[]'::json
                 ) AS subtasks
@@ -58,19 +59,22 @@ const createTasksRouter = (pool) => {
     const result = await pool.query(
       `SELECT t.*, 
               COALESCE(
-                (SELECT json_agg(
-                  json_build_object(
-                    'id', st.id,
-                    'title', st.title,
-                    'description', st.description,
-                    'is_completed', st.is_completed,
-                    'position', st.position,
-                    'created_at', st.created_at,
-                    'updated_at', st.updated_at
-                  ) ORDER BY st.position ASC
-                )
-                FROM subtasks st 
-                WHERE st.task_id = t.id),
+                (
+                  SELECT json_agg(row_to_json(st.*))
+                  FROM (
+                    SELECT 
+                      st.id,
+                      st.title,
+                      st.description,
+                      st.is_completed,
+                      st.position,
+                      st.created_at,
+                      st.updated_at
+                    FROM subtasks st
+                    WHERE st.task_id = t.id
+                    ORDER BY st.position ASC
+                  ) st
+                ),
                 '[]'::json
               ) as subtasks
        FROM tasks t
