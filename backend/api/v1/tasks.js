@@ -23,11 +23,10 @@ const createTasksRouter = (pool) => {
                         'position', st.position,
                         'created_at', st.created_at,
                         'updated_at', st.updated_at
-                      )
+                      ) ORDER BY st.position ASC
                     )
                     FROM subtasks st
                     WHERE st.task_id = t.id
-                    ORDER BY st.position ASC
                   ),
                   '[]'::json
                 ) AS subtasks
@@ -68,11 +67,10 @@ const createTasksRouter = (pool) => {
                     'position', st.position,
                     'created_at', st.created_at,
                     'updated_at', st.updated_at
-                  )
+                  ) ORDER BY st.position ASC
                 )
                 FROM subtasks st 
-                WHERE st.task_id = t.id
-                ORDER BY st.position ASC),
+                WHERE st.task_id = t.id),
                 '[]'::json
               ) as subtasks
        FROM tasks t
