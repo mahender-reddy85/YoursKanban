@@ -1186,9 +1186,21 @@ function renderBoard() {
     // Apply sorting
     if (state.sortOrder !== 'none') {
         tasksToRender.sort((a, b) => {
+            // First, sort by pinned status (pinned tasks come first)
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            
+            // If both have same pinned status, sort by date
             const dateA = new Date(a.createdAt || 0);
             const dateB = new Date(b.createdAt || 0);
             return state.sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+    } else {
+        // Even when no sort order is selected, pinned tasks should be at the top
+        tasksToRender.sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            return 0; // Keep original order for non-pinned tasks
         });
     }
     
