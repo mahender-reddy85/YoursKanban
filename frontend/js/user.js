@@ -230,7 +230,6 @@ export function initUserMenu() {
     const userAvatar = document.querySelector('#userAvatar') || document.querySelector('.avatar-container');
     const dropdownMenu = document.getElementById('userDropdown');
     const logoutBtn = document.getElementById('logoutBtn');
-    const myTasksBtn = document.getElementById('myTasksBtn');
     
 
     
@@ -298,43 +297,6 @@ export function initUserMenu() {
     
     // Logout is now handled in user-menu.js to show a custom confirmation dialog
     // and handle the logout process consistently across the app
-    
-    // Handle My Tasks click
-    if (myTasksBtn) {
-        const handleMyTasks = async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            closeDropdown(dropdownMenu, dropdownBackdrop);
-            
-            // Fetch and display all user tasks
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    console.error('No auth token found');
-                    return;
-                }
-                
-                const API_BASE = 'https://yourskanban.onrender.com/api';
-                const response = await fetch(`${API_BASE}/v1/tasks`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                const result = await response.json();
-                if (result && result.data && window.fetchTasks) {
-                    // Trigger a re-fetch to display all user tasks
-                    window.fetchTasks();
-                }
-            } catch (error) {
-                console.error('Error fetching tasks:', error);
-            }
-        };
-        
-        // Add both touch and click events for better mobile support
-        myTasksBtn.addEventListener('click', handleMyTasks);
-        myTasksBtn.addEventListener('touchend', handleMyTasks);
-    }
     
     // Handle window resize
     let resizeTimer;

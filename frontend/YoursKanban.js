@@ -216,6 +216,7 @@ const ThemeManager = (() => {
      */
     function init() {
         themeToggle = document.getElementById('themeToggle');
+        const exportBtn = document.getElementById('exportBoard');
 
         // Set initial theme
         const savedTheme = getSavedThemePreference();
@@ -224,6 +225,10 @@ const ThemeManager = (() => {
         // Add event listeners
         if (themeToggle) {
             themeToggle.addEventListener('click', toggleTheme);
+        }
+        
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportBoard);
         }
 
         // Listen for system theme changes
@@ -1275,7 +1280,7 @@ function exportBoard() {
     linkElement.setAttribute('download', exportName);
     linkElement.click();
 
-    showNotification('Board exported successfully!', 'success');
+    showToast('Board exported successfully!', 'success');
 }
 
 function showNotification(message, type = 'info') {
