@@ -1106,31 +1106,6 @@ async function duplicateTask(id) {
         let taskToCreate = { ...newTask };
         delete taskToCreate.id;
         
-        // Apply the same field length validation as createTask
-        const MAX_LENGTH = 255;
-        const validatedTask = {};
-        
-        Object.entries(taskToCreate).forEach(([key, value]) => {
-            if (value === null || value === undefined) {
-                validatedTask[key] = value;
-            } else if (key === 'subtasks' && Array.isArray(value)) {
-                // Keep subtasks as array, but validate individual items
-                validatedTask[key] = value.map(subtask => ({
-                    ...subtask,
-                    text: subtask.text ? subtask.text.substring(0, MAX_LENGTH) : ''
-                }));
-            } else if (typeof value === 'string') {
-                if (value.length > MAX_LENGTH) {
-                    console.warn(`Duplicate task field ${key} truncated from ${value.length} to ${MAX_LENGTH} characters`);
-                    validatedTask[key] = value.substring(0, MAX_LENGTH);
-                } else {
-                    validatedTask[key] = value;
-                }
-            } else {
-                validatedTask[key] = value;
-            }
-        });
-        
         const validatedTask = this.validateTaskData(taskToCreate);
 
         // Optimistic UI update
@@ -1139,7 +1114,7 @@ async function duplicateTask(id) {
         renderBoard();
         
         // Create task in the backend
-        const response = await tasksAPI.createTask(taskToCreate);
+        const response = await tasksAPI.createTask(validatedTask);
         
         // Handle different response structures
         let createdTask;
