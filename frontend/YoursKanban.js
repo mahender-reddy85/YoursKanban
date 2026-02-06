@@ -773,6 +773,35 @@ function setupEventListeners() {
     // Sort button
     document.getElementById('sortByDate')?.addEventListener('click', toggleSortOrder);
     
+    // Clear board button
+    if (DOM.clearBtn) {
+        DOM.clearBtn.addEventListener('click', () => {
+            const clearBoardModal = document.getElementById('clearBoardModal');
+            if (clearBoardModal) {
+                clearBoardModal.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Clear board confirmation
+    const confirmClearBoardBtn = document.getElementById('confirmClearBoard');
+    if (confirmClearBoardBtn) {
+        confirmClearBoardBtn.addEventListener('click', () => {
+            clearAllTasks();
+        });
+    }
+    
+    // Cancel clear board
+    const cancelClearBoardBtn = document.getElementById('cancelClearBoard');
+    if (cancelClearBoardBtn) {
+        cancelClearBoardBtn.addEventListener('click', () => {
+            const clearBoardModal = document.getElementById('clearBoardModal');
+            if (clearBoardModal) {
+                clearBoardModal.style.display = 'none';
+            }
+        });
+    }
+    
     // Task form submission
     if (DOM.form) {
         DOM.form.addEventListener('submit', async (e) => {
@@ -2272,7 +2301,6 @@ async function init() {
         
         // Clear any existing demo tasks for clean start
         if (!state.isAuthenticated) {
-            console.log('Clearing all tasks for clean start...');
             localStorage.removeItem('kanbanflow_state');
             localStorage.removeItem('guest_tasks');
             state.tasks = [];
@@ -2283,6 +2311,26 @@ async function init() {
     } catch (error) {
         console.error('Initialization error:', error);
         showToast('Error initializing application', 'error');
+    }
+}
+
+// Clear all tasks function
+function clearAllTasks() {
+    try {
+        state.tasks = [];
+        saveState();
+        renderBoard();
+        
+        // Close the modal
+        const clearBoardModal = document.getElementById('clearBoardModal');
+        if (clearBoardModal) {
+            clearBoardModal.style.display = 'none';
+        }
+        
+        showToast('Board cleared successfully', 'success');
+    } catch (error) {
+        console.error('Error clearing board:', error);
+        showToast('Failed to clear board', 'error');
     }
 }
 
