@@ -271,11 +271,11 @@ const ThemeManager = (() => {
      * Toggle between light and dark themes
      */
     function toggleTheme() {
-        console.log('toggleTheme called');
+
         const currentTheme = document.documentElement.getAttribute(THEME_ATTR);
-        console.log('Current theme:', currentTheme);
+
         const newTheme = currentTheme === THEMES.LIGHT ? THEMES.DARK : THEMES.LIGHT;
-        console.log('New theme:', newTheme);
+
         setTheme(newTheme, true);
     }
 
@@ -285,7 +285,7 @@ const ThemeManager = (() => {
      * @param {boolean} savePreference - Whether to save the preference
      */
     function setTheme(theme, savePreference = true) {
-        console.log('setTheme called with:', { theme, savePreference });
+
 
         if (!Object.values(THEMES).includes(theme)) {
             console.warn(`Invalid theme: ${theme}. Defaulting to light.`);
@@ -293,21 +293,21 @@ const ThemeManager = (() => {
         }
 
         // Update the DOM
-        console.log('Setting theme attribute to:', theme);
+
         document.documentElement.setAttribute(THEME_ATTR, theme);
 
         // Save preference if requested
         if (savePreference) {
             try {
                 localStorage.setItem(STORAGE_KEY, theme);
-                console.log('Theme preference saved to localStorage:', theme);
+
             } catch (error) {
                 console.error('Failed to save theme preference:', error);
             }
         }
 
         // Update UI
-        console.log('Updating UI for theme:', theme);
+
         updateThemeUI(theme);
     }
 
@@ -399,7 +399,7 @@ function toggleSortOrder() {
 function renderBoard() {
     // Don't re-render if we're in the middle of a drag operation
     if (isDragging) {
-        console.log('Skipping render during drag operation');
+
         return;
     }
     
@@ -914,7 +914,6 @@ function setupEventListeners() {
                         console.warn('Invalid or epoch date provided, removing dueDate:', taskData.dueDate);
                     } else {
                         // Valid date, keep it in YYYY-MM-DD format
-                        console.log('Valid date being saved:', taskData.dueDate);
                     }
                 }
             }
@@ -1021,8 +1020,6 @@ async function togglePin(id) {
         
         // Update backend
         const updateData = { pinned: newPinnedState };
-        console.log('Pin toggle data being sent:', updateData);
-        console.log('Task ID:', task.id);
         
         try {
             const response = await tasksAPI.updateTask(task.id, updateData);
@@ -1134,14 +1131,7 @@ async function duplicateTask(id) {
             }
         });
         
-        console.log('Duplicate task data being sent:', validatedTask);
-        console.log('Duplicate field lengths:', Object.entries(validatedTask).map(([key, value]) => ({
-            field: key,
-            length: value ? value.toString().length : 0,
-            value: value ? value.toString().substring(0, 50) + (value.toString().length > 50 ? '...' : '') : null
-        })));
-        
-        taskToCreate = validatedTask;
+        const validatedTask = this.validateTaskData(taskToCreate);
 
         // Optimistic UI update
         state.tasks.unshift(newTask);
@@ -1150,8 +1140,6 @@ async function duplicateTask(id) {
         
         // Create task in the backend
         const response = await tasksAPI.createTask(taskToCreate);
-        
-        console.log('Duplicate API Response:', response); // Debug log
         
         // Handle different response structures
         let createdTask;
@@ -1165,11 +1153,6 @@ async function duplicateTask(id) {
             console.error('Unexpected API response structure:', response);
             throw new Error('Invalid response from server');
         }
-        
-        console.log('Created duplicate task received from API:', createdTask);
-        console.log('Created duplicate task dueDate:', createdTask.dueDate);
-        console.log('Created duplicate task due_date:', createdTask.due_date);
-        
         // Preserve the original valid date if API returns invalid date
         const originalDueDate = validatedTask.dueDate;
         
@@ -1191,8 +1174,6 @@ async function duplicateTask(id) {
                 createdTask.due_date = originalDueDate;
             }
         }
-        
-        console.log('Final duplicate task data after date restoration:', createdTask);
         
         // Replace the optimistic task with the real one from the server
         const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
@@ -1441,7 +1422,6 @@ async function cleanupStaleTasks() {
         const staleTasks = state.tasks.filter(task => !backendTaskIds.has(task.id));
         
         if (staleTasks.length > 0) {
-            console.log(`Cleaning up ${staleTasks.length} stale tasks from local state`);
             state.tasks = state.tasks.filter(task => backendTaskIds.has(task.id));
             saveState();
             renderBoard();
@@ -1458,16 +1438,16 @@ async function fetchTasks() {
         const user = auth.currentUser;
         
         if (!user) {
-            console.log('No authenticated user, using guest tasks');
+
             state.tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
             renderBoard();
             return state.tasks;
         }
 
         // Force token refresh before making the request
-        console.log('Getting fresh token for task fetch...');
+
         const token = await user.getIdToken(true);
-        console.log('Token refresh successful, fetching tasks...');
+
         
         const tasks = await tasksAPI.getTasks();
         state.tasks = tasks || [];
@@ -1484,7 +1464,7 @@ async function fetchTasks() {
             showToast('Network error. Please check your connection.', 'error');
         } else if (error.code === 'unauthenticated' || error.code === 401) {
             // If we get an auth error, sign out and show login
-            console.log('Authentication error, signing out...');
+            
             await authAPI.logout();
             showToast('Session expired. Please log in again.', 'error');
             state.tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
@@ -1619,11 +1599,11 @@ function cleanupInvalidDates() {
         }
     });
     
-    if (cleanedCount > 0) {
+        if (cleanedCount > 0) {
         saveState();
         renderBoard();
         showToast(`Cleaned up ${cleanedCount} invalid date(s)`, 'success');
-        console.log(`Cleanup complete. Removed ${cleanedCount} invalid dates.`);
+        
     } else {
         showToast('No invalid dates found', 'info');
     }
@@ -1657,12 +1637,12 @@ function fixTaskDate(taskId) {
         }
     }
     
-    if (fixed) {
+        if (fixed) {
         task.updatedAt = new Date().toISOString();
         saveState();
         renderBoard();
         showToast(`Fixed invalid date for task: ${task.title}`, 'success');
-        console.log('Task date fixed successfully');
+        
         return true;
     } else {
 
@@ -1706,19 +1686,11 @@ async function createTask(taskData) {
         });
         
         // Debug: Log the data being sent
-        console.log('Original task data:', taskToCreate);
-        console.log('Validated task data:', validatedTask);
-        console.log('DueDate being sent to API:', validatedTask.dueDate);
-        console.log('Field lengths:', Object.entries(validatedTask).map(([key, value]) => ({
-            field: key,
-            length: value ? value.toString().length : 0,
-            value: value ? value.toString().substring(0, 50) + (value.toString().length > 50 ? '...' : '') : null
-        })));
         
         // Create task in backend
         const response = await tasksAPI.createTask(validatedTask);
         
-        console.log('API Response:', response); // Debug log
+        
         
         // Handle different response structures
         let createdTask;
@@ -1732,10 +1704,6 @@ async function createTask(taskData) {
             console.error('Unexpected API response structure:', response);
             throw new Error('Invalid response from server');
         }
-        
-        console.log('Created task received from API:', createdTask);
-        console.log('Created task dueDate:', createdTask.dueDate);
-        console.log('Created task due_date:', createdTask.due_date);
         
         // Preserve the original valid date if API returns invalid date
         const originalDueDate = validatedTask.dueDate;
@@ -1754,7 +1722,7 @@ async function createTask(taskData) {
             }
         }
         
-        console.log('Final task data after date restoration:', createdTask);
+        
         
         // Add the new task to local state
         state.tasks.unshift(createdTask);
@@ -1803,11 +1771,11 @@ async function updateTask(taskId, taskData) {
             }
         });
         
-        console.log('Update data being sent:', validatedTask);
+        
         
         // Check if this is a temporary task that doesn't exist on backend
         if (taskId.toString().startsWith('temp-')) {
-            console.log('Skipping backend update for temporary task:', taskId);
+            
             // Just update locally
             const taskIndex = state.tasks.findIndex(t => t.id == taskId || t.id.toString() === taskId.toString());
             if (taskIndex !== -1) {
@@ -1856,10 +1824,8 @@ async function updateTask(taskId, taskData) {
                     // Ensure the dueDate is preserved correctly
                     if (validatedTask.dueDate) {
                         updatedTask.dueDate = validatedTask.dueDate;
-                        console.log('Preserving dueDate in local update:', validatedTask.dueDate);
                     }
                     
-                    console.log('Final task data after local update:', updatedTask);
                     
                     state.tasks[taskIndex] = updatedTask;
                     saveState();
@@ -2051,7 +2017,6 @@ async function performDelete() {
         if (!taskToDelete.toString().startsWith('temp-')) {
             try {
                 const response = await tasksAPI.deleteTask(taskToDelete);
-                console.log('Delete API Response:', response); // Debug log
                 
                 // Handle different response structures - some APIs return success: true, others just return status
                 if (response === null || response === undefined || 
@@ -2086,7 +2051,6 @@ async function performDelete() {
             }
         } else {
             // Temporary task - just show undo option without backend deletion
-            console.log('Skipping backend deletion for temporary task:', taskToDelete);
             showToast(
                 'Task deleted',
                 'error',

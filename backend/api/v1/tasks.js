@@ -19,10 +19,9 @@ const createTasksRouter = (pool) => {
                         'id', st.id,
                         'title', st.title,
                         'is_completed', st.is_completed,
-                        'order_index', st.order_index,
                         'created_at', st.created_at,
                         'updated_at', st.updated_at
-                      ) ORDER BY st.order_index
+                      )
                     )
                     FROM subtasks st
                     WHERE st.task_id = t.id
@@ -62,10 +61,9 @@ const createTasksRouter = (pool) => {
                     'id', st.id,
                     'title', st.title,
                     'is_completed', st.is_completed,
-                    'order_index', st.order_index,
                     'created_at', st.created_at,
                     'updated_at', st.updated_at
-                  ) ORDER BY st.order_index
+                  )
                 )
                 FROM subtasks st 
                 WHERE st.task_id = t.id),
@@ -154,9 +152,9 @@ const createTasksRouter = (pool) => {
         const isCompleted = st.is_completed || st.completed || st.is_done || false;
 
         await pool.query(
-          `INSERT INTO subtasks (task_id, title, is_completed, order_index)
-           VALUES ($1, $2, $3, $4)`,
-          [createdTask.id, subtaskTitle, isCompleted, i]
+          `INSERT INTO subtasks (task_id, title, is_completed)
+           VALUES ($1, $2, $3)`,
+          [createdTask.id, subtaskTitle, isCompleted]
         );
       }
     }
