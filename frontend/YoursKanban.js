@@ -1026,7 +1026,6 @@ async function togglePin(id) {
         
         try {
             const response = await tasksAPI.updateTask(task.id, updateData);
-            console.log('Pin toggle API Response:', response); // Debug log
             
             // Handle different response structures
             if (response && (response.data || response.id || typeof response === 'object')) {
@@ -1597,7 +1596,7 @@ function cleanupInvalidDates() {
         if (task.dueDate) {
             const date = new Date(task.dueDate);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.log('Cleaning invalid dueDate for task:', task.id, task.title, 'Original:', task.dueDate);
+
                 delete task.dueDate;
                 needsUpdate = true;
                 cleanedCount++;
@@ -1608,7 +1607,7 @@ function cleanupInvalidDates() {
         if (task.due_date) {
             const date = new Date(task.due_date);
             if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                console.log('Cleaning invalid due_date for task:', task.id, task.title, 'Original:', task.due_date);
+
                 delete task.due_date;
                 needsUpdate = true;
                 cleanedCount++;
@@ -1643,7 +1642,7 @@ function fixTaskDate(taskId) {
     if (task.dueDate) {
         const date = new Date(task.dueDate);
         if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-            console.log('Fixing invalid dueDate for task:', task.id, task.title, 'Original:', task.dueDate);
+
             delete task.dueDate;
             fixed = true;
         }
@@ -1652,7 +1651,7 @@ function fixTaskDate(taskId) {
     if (task.due_date) {
         const date = new Date(task.due_date);
         if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-            console.log('Fixing invalid due_date for task:', task.id, task.title, 'Original:', task.due_date);
+
             delete task.due_date;
             fixed = true;
         }
@@ -1666,7 +1665,7 @@ function fixTaskDate(taskId) {
         console.log('Task date fixed successfully');
         return true;
     } else {
-        console.log('Task', task.title, 'already has valid dates');
+
         return false;
     }
 }
@@ -1823,7 +1822,6 @@ async function updateTask(taskId, taskData) {
         // Update task in backend
         try {
             const response = await tasksAPI.updateTask(taskId, validatedTask);
-            console.log('Update API Response:', response); // Debug log
             
             // Handle different response structures
             let updatedTask;
@@ -1850,8 +1848,7 @@ async function updateTask(taskId, taskData) {
                 console.warn('Task not found on backend, updating locally only:', taskId);
                 const taskIndex = state.tasks.findIndex(t => t.id == taskId || t.id.toString() === taskId.toString());
                 if (taskIndex !== -1) {
-                    console.log('Current task data before local update:', state.tasks[taskIndex]);
-                    console.log('Validated task data for local update:', validatedTask);
+
                     
                     // Merge the updates, preserving the correct date
                     const updatedTask = { ...state.tasks[taskIndex], ...validatedTask };
@@ -2323,7 +2320,7 @@ async function init() {
         await new Promise((resolve) => {
             const unsubscribe = onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    console.log("User is signed in:", user.uid);
+
                     state.currentUser = user;
                     state.isAuthenticated = true;
                     
@@ -2337,7 +2334,7 @@ async function init() {
                         showToast('Error loading your data', 'error');
                     }
                 } else {
-                    console.log("No user is signed in");
+
                     state.currentUser = null;
                     state.isAuthenticated = false;
                     updateGuestBanner();

@@ -115,7 +115,7 @@ const createTasksRouter = (pool) => {
           formattedDueDate = new Date(timestamp).toISOString().split('T')[0];
         }
       } catch (error) {
-        console.error('Error parsing due date:', error);
+
         // If there's an error parsing the date, just set it to null
         formattedDueDate = null;
       }
@@ -200,7 +200,7 @@ const createTasksRouter = (pool) => {
               value = new Date(timestamp).toISOString().split('T')[0];
             }
           } catch (error) {
-            console.error('Error parsing due date in update:', error);
+    
             value = null;
           }
         }

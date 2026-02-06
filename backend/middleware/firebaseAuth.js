@@ -38,34 +38,32 @@ const firebaseAuth = catchAsync(async (req, res, next) => {
       const pool = req.db;
       let userResult;
       
-      console.log('Looking up user with Firebase UID:', decodedToken.uid);
-      
       try {
         // Try to lookup by firebase_uid first (preferred)
         userResult = await pool.query(
           'SELECT id, email FROM users WHERE firebase_uid = $1 LIMIT 1',
           [decodedToken.uid]
         );
-        console.log('Firebase UID lookup result:', userResult.rows);
       } catch (error) {
         // If firebase_uid column doesn't exist, fall back to email lookup
-        console.log('firebase_uid column not found, falling back to email lookup:', error.message);
         userResult = await pool.query(
           'SELECT id, email FROM users WHERE email = $1 LIMIT 1',
           [decodedToken.email]
         );
-        console.log('Email lookup result:', userResult.rows);
       }
 
-      if (userResult.rows.length === 0) {
-        console.log('User not found in database, continuing as guest');
-        // User not found in database, continue as guest
-        req.user = { isGuest: true };
-        return next();
+      let dbUser = userResult.rows[0];
+      
+      // If user not found, create them
+      if (!dbUser) {
+        const createResult = await pool.query(
+          `INSERT INTO users (firebase_uid, email, name, created_at, updated_at)
+           VALUES ($1, $2, $3, NOW(), NOW())
+           RETURNING id, email`,
+          [decodedToken.uid, decodedToken.email, decodedToken.name || decodedToken.email.split('@')[0]]
+        );
+        dbUser = createResult.rows[0];
       }
-
-      const dbUser = userResult.rows[0];
-      console.log('Found user:', dbUser);
 
       // Attach user info to request with database integer ID
       req.user = {
@@ -78,7 +76,7 @@ const firebaseAuth = catchAsync(async (req, res, next) => {
       
       return next();
   } catch (tokenError) {
-    console.error('Token verification failed:', tokenError);
+
     
     if (tokenError.code === 'auth/id-token-expired') {
       throw new AppError('Token expired', 401, errorTypes.TOKEN_EXPIRED);

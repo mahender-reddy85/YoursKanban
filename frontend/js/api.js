@@ -21,33 +21,24 @@ let refreshPromise = null;
 async function getFirebaseToken() {
   const user = auth.currentUser;
   if (!user) {
-    console.log('🔴 No authenticated user');
     return null;
   }
 
   // Check if we're already refreshing the token
   if (isRefreshing) {
-    console.log('🔄 Token refresh in progress, waiting...');
     return refreshPromise;
   }
 
   try {
     isRefreshing = true;
     refreshPromise = (async () => {
-      console.log('🔄 Getting fresh ID token...');
       const token = await user.getIdToken(true); // Force refresh
-      console.log('✅ Got fresh token (first 30 chars):', token.substring(0, 30) + '...');
-      console.log('📏 Token length:', token.length);
       return token;
     })();
 
     return await refreshPromise;
   } catch (error) {
-    console.error('❌ Error refreshing token:', {
-      code: error.code,
-      message: error.message,
-      stack: error.stack
-    });
+    console.error('Error refreshing token:', error.message);
     throw error;
   } finally {
     isRefreshing = false;
@@ -58,11 +49,8 @@ async function getFirebaseToken() {
 // Listen for auth state changes
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    console.log('👤 Auth state changed - User signed in:', user.uid);
     // Force token refresh when auth state changes
-    getFirebaseToken().catch(console.error);
-  } else {
-    console.log('👤 Auth state changed - No user signed in');
+    getFirebaseToken().catch(err => console.error('Token refresh failed:', err.message));
   }
 });
 
@@ -100,25 +88,10 @@ function getCurrentUser() {
  * @returns {Promise<any>} - Response data
  */
 async function request(endpoint, options = {}, retryCount = 0) {
-  const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = Date.now();
   const MAX_RETRIES = 1; // Maximum number of retry attempts
   
-  const log = (message, data) => {
-    console.log(`[${requestId}] ${message}`, data || '');
-  };
-  
-  const logError = (message, error) => {
-    console.error(`[${requestId}] ❌ ${message}`, {
-      error: error?.message || error,
-      code: error?.code,
-      stack: error?.stack
-    });
-  };
-  
   try {
-    log(`📡 Starting ${options.method || 'GET'} request to ${endpoint}`);
-    
     // Get the current user
     const user = auth.currentUser;
     if (!user && !endpoint.includes('/public/')) {
@@ -137,12 +110,6 @@ async function request(endpoint, options = {}, retryCount = 0) {
       ...(options.headers || {})
     };
     
-    log('Request headers:', {
-      'Content-Type': headers['Content-Type'],
-      'Authorization': headers['Authorization'] ? 'Bearer [TOKEN]' : 'None',
-      'Endpoint': endpoint
-    });
-    
     // Make the request
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
@@ -150,18 +117,9 @@ async function request(endpoint, options = {}, retryCount = 0) {
       credentials: 'include' // Include cookies if needed
     });
     
-    const responseTime = Date.now() - startTime;
-    log(`↩️ Response received in ${responseTime}ms`, {
-      status: response.status,
-      statusText: response.statusText,
-      url: response.url
-    });
-    
     // Handle 401 Unauthorized with token refresh and retry
     if (response.status === 401) {
       if (retryCount < MAX_RETRIES) {
-        log(`🔄 Received 401, refreshing token and retrying (${retryCount + 1}/${MAX_RETRIES})...`);
-        
         // Force token refresh
         if (user) {
           await user.getIdToken(true); // Force refresh
@@ -178,10 +136,8 @@ async function request(endpoint, options = {}, retryCount = 0) {
       throw error;
     }
     
-    return await handleResponse(response, requestId);
+    return await handleResponse(response);
   } catch (error) {
-    logError('Request failed', error);
-    
     // Handle specific error cases
     if (error.code === 'AUTH_REQUIRED') {
       throw new Error('Please sign in to continue');
@@ -203,33 +159,20 @@ async function request(endpoint, options = {}, retryCount = 0) {
       throw new Error('Too many requests. Please try again later.');
     }
     
-    // Add more specific error handling as needed
-    
-    // For other errors, include the request ID in the error message
-    const enhancedError = new Error(`${error.message} (Request ID: ${requestId})`);
-    enhancedError.originalError = error;
-    enhancedError.requestId = requestId;
-    throw enhancedError;
+    throw error;
   }
 }
 
 /**
  * Handles API responses with better error handling
  * @param {Response} response - Fetch response
- * @param {string} requestId - Unique ID for the request
  * @returns {Promise<any>} - Parsed response data
  */
-async function handleResponse(response, requestId = '') {
-  const log = (message, data) => {
-    const prefix = requestId ? `[${requestId}] ` : '';
-    console.log(`${prefix}${message}`, data || '');
-  };
-  
+async function handleResponse(response) {
   let data;
   try {
     data = await response.json();
   } catch (error) {
-    log('⚠️ Failed to parse JSON response');
     data = {};
   }
   
@@ -238,18 +181,9 @@ async function handleResponse(response, requestId = '') {
     error.status = response.status;
     error.code = data.code;
     error.data = data;
-    error.requestId = requestId;
-    
-    log('❌ API Error:', {
-      status: response.status,
-      code: data.code,
-      message: data.message
-    });
-    
     throw error;
   }
   
-  log('✅ Request successful');
   return data;
 }
 
@@ -264,7 +198,6 @@ const tasksAPI = {
             console.log('Getting tasks...');
             
             if (!isLoggedIn()) {
-                console.log('User not logged in, returning guest tasks');
                 const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
                 return { success: true, data: guestTasks };
             }
@@ -277,14 +210,9 @@ const tasksAPI = {
                 }
             });
             
-            console.log('Tasks retrieved successfully');
             return response.data || [];
         } catch (error) {
-            console.error('Error in getTasks:', {
-                message: error.message,
-                code: error.code,
-                stack: error.stack
-            });
+            console.error('Error in getTasks:', error.message);
             throw error;
         }
     },
