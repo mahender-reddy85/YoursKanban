@@ -301,15 +301,33 @@ export function initUserMenu() {
     
     // Handle My Tasks click
     if (myTasksBtn) {
-        const handleMyTasks = (e) => {
+        const handleMyTasks = async (e) => {
             e.preventDefault();
             e.stopPropagation();
             closeDropdown(dropdownMenu, dropdownBackdrop);
             
-            // Filter tasks to show only user's tasks
-            // This will depend on your task filtering implementation
-
-            // You can implement task filtering here
+            // Fetch and display all user tasks
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('No auth token found');
+                    return;
+                }
+                
+                const response = await fetch('/api/v1/tasks', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const result = await response.json();
+                if (result && result.data && window.fetchTasks) {
+                    // Trigger a re-fetch to display all user tasks
+                    window.fetchTasks();
+                }
+            } catch (error) {
+                console.error('Error fetching tasks:', error);
+            }
         };
         
         // Add both touch and click events for better mobile support
