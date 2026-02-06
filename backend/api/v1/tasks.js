@@ -151,11 +151,12 @@ const createTasksRouter = (pool) => {
         const subtaskTitle = st.title || st.text || '';
         const subtaskDescription = st.description || st.text || '';
         const isCompleted = st.is_completed || st.completed || st.is_done || false;
+        const position = i; // Use index as position
 
         await pool.query(
-          `INSERT INTO subtasks (task_id, title, description, is_completed)
-           VALUES ($1, $2, $3, $4)`,
-          [createdTask.id, subtaskTitle, subtaskDescription, isCompleted]
+          `INSERT INTO subtasks (task_id, title, description, is_completed, position)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [createdTask.id, subtaskTitle, subtaskDescription, isCompleted, position]
         );
       }
     }

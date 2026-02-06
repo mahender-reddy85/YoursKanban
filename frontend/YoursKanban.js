@@ -1460,11 +1460,14 @@ async function fetchTasks() {
 
 // Inline Editing Functions
 function setupInlineEditing(card, task) {
-    // Make title editable
+    // Make title editable on double-click
     const titleElement = card.querySelector('.task-title');
     if (titleElement) {
         titleElement.contentEditable = false;
-        titleElement.addEventListener('click', () => {
+        
+        // Use dblclick for desktop and touchend for mobile double-tap
+        let lastTap = 0;
+        const enableEdit = () => {
             titleElement.contentEditable = true;
             titleElement.focus();
             
@@ -1474,6 +1477,18 @@ function setupInlineEditing(card, task) {
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
+        };
+        
+        titleElement.addEventListener('dblclick', enableEdit);
+        
+        // Mobile double-tap support
+        titleElement.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                e.preventDefault();
+                enableEdit();
+            }
+            lastTap = now;
         });
         
         titleElement.addEventListener('blur', async () => {
@@ -1502,11 +1517,14 @@ function setupInlineEditing(card, task) {
         });
     }
     
-    // Make description editable
+    // Make description editable on double-click
     const descElement = card.querySelector('.task-description');
     if (descElement) {
         descElement.contentEditable = false;
-        descElement.addEventListener('click', () => {
+        
+        // Use dblclick for desktop and touchend for mobile double-tap
+        let lastTap = 0;
+        const enableEdit = () => {
             descElement.contentEditable = true;
             descElement.focus();
             
@@ -1516,6 +1534,18 @@ function setupInlineEditing(card, task) {
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
+        };
+        
+        descElement.addEventListener('dblclick', enableEdit);
+        
+        // Mobile double-tap support
+        descElement.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                e.preventDefault();
+                enableEdit();
+            }
+            lastTap = now;
         });
         
         descElement.addEventListener('blur', async () => {
