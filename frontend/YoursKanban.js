@@ -371,7 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-}
 
 // Theme management is now handled by the ThemeManager module
 
@@ -2458,3 +2457,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
+}
+}
+}
+}
+}
