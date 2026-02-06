@@ -1399,10 +1399,12 @@ function setupInlineEditing(card, task) {
     if (titleElement) {
         titleElement.contentEditable = false;
         titleElement.style.cursor = 'text';
+        titleElement.title = 'Double-click to edit'; // Add tooltip
         
         // Use dblclick for desktop and touchend for mobile double-tap
         let lastTap = 0;
         const enableEdit = () => {
+            console.log('Enabling title edit for task:', task.title);
             titleElement.contentEditable = true;
             titleElement.focus();
             titleElement.style.outline = '2px solid #3b82f6';
@@ -1416,33 +1418,45 @@ function setupInlineEditing(card, task) {
             selection.addRange(range);
         };
         
-        titleElement.addEventListener('dblclick', enableEdit);
+        titleElement.addEventListener('dblclick', (e) => {
+            console.log('Title double-clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            enableEdit();
+        });
         
         // Mobile double-tap support
         titleElement.addEventListener('touchend', (e) => {
             const now = Date.now();
             if (now - lastTap < 300) {
+                console.log('Title double-tapped');
                 e.preventDefault();
+                e.stopPropagation();
                 enableEdit();
             }
             lastTap = now;
         });
         
         titleElement.addEventListener('blur', async () => {
+            console.log('Title edit blurred');
             titleElement.contentEditable = false;
             titleElement.style.outline = 'none';
             const newTitle = titleElement.textContent.trim();
             
             if (newTitle !== task.title && newTitle.length > 0) {
                 try {
+                    console.log('Updating title from', task.title, 'to', newTitle);
                     await updateTask(task.id, { title: newTitle });
                     task.title = newTitle;
+                    showToast('Task title updated', 'success');
                 } catch (error) {
                     console.error('Error updating title:', error);
                     titleElement.textContent = task.title; // Revert on error
+                    showToast('Failed to update title', 'error');
                 }
             } else if (newTitle.length === 0) {
                 titleElement.textContent = task.title; // Revert empty titles
+                showToast('Task title cannot be empty', 'warning');
             }
         });
         
