@@ -2302,8 +2302,8 @@ async function init() {
         // Clear any existing demo tasks for clean start
         if (!state.isAuthenticated) {
             localStorage.removeItem('kanbanflow_state');
-            localStorage.removeItem('guest_tasks');
-            state.tasks = [];
+            // Don't remove guest_tasks, let them accumulate for guest users
+            state.tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
             saveState();
             renderBoard();
         }

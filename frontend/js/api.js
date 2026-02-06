@@ -223,7 +223,11 @@ const tasksAPI = {
      * @returns {Promise<Object>} - Created task
      */
     async createTask(task) {
+        console.log('createTask called, isLoggedIn():', isLoggedIn());
+        console.log('auth.currentUser:', auth.currentUser);
+        
         if (!isLoggedIn()) {
+            console.log('Creating guest task locally');
             const tasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');
             const newTask = { 
                 ...task, 
@@ -236,6 +240,8 @@ const tasksAPI = {
             localStorage.setItem('guest_tasks', JSON.stringify(tasks));
             return { success: true, data: newTask };
         }
+        
+        console.log('Creating task on server');
         const response = await request('/v1/tasks', {
             method: 'POST',
             headers: {
