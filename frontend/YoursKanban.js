@@ -1421,29 +1421,28 @@ async function fetchTasks() {
             renderBoard();
             return state.tasks;
         }
+        // Render cached tasks immediately for fast first paint
+        try {
+            const cached = JSON.parse(localStorage.getItem('kanbanflow_state') || 'null');
+            if (cached && Array.isArray(cached.tasks) && cached.tasks.length > 0) {
+                state.tasks = cached.tasks;
+                renderBoard();
+            }
+        } catch (err) {
+            // ignore cache parsing errors
+        }
 
-        // Force token refresh before making the request
-
-        const token = await user.getIdToken(true);
-
-        
+        // Do not force a token refresh here (it can block rendering). tasksAPI.request
+        // will refresh tokens when needed. Fetch backend tasks and then update UI.
         const tasks = await tasksAPI.getTasks();
-        
-        // Debug: Log the raw API response
-        console.log('Raw API response:', tasks);
-        
+
         // Normalize field names from snake_case (API) to camelCase (frontend)
-        state.tasks = (tasks || []).map(task => {
-            const normalizedTask = {
-                ...task,
-                dueDate: task.due_date || task.dueDate,
-                subtasks: Array.isArray(task.subtasks) ? task.subtasks : []
-            };
-            console.log('Normalized task:', normalizedTask);
-            return normalizedTask;
-        });
-        
-        console.log('Final state.tasks:', state.tasks);
+        state.tasks = (tasks || []).map(task => ({
+            ...task,
+            dueDate: task.due_date || task.dueDate,
+            subtasks: Array.isArray(task.subtasks) ? task.subtasks : []
+        }));
+
         renderBoard();
         return state.tasks;
     } catch (error) {
