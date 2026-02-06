@@ -2270,16 +2270,14 @@ async function init() {
         // Render the board after auth state is determined
         renderBoard();
         
-        // Add demo tasks if no tasks exist (for first-time users)
-        if (state.tasks.length === 0 && !state.isAuthenticated) {
-            console.log('Adding demo tasks...');
-            addDemoTasks();
-        } else if (!state.isAuthenticated) {
-            // Force reload demo tasks for testing
-            console.log('Force reloading demo tasks for testing...');
+        // Clear any existing demo tasks for clean start
+        if (!state.isAuthenticated) {
+            console.log('Clearing all tasks for clean start...');
             localStorage.removeItem('kanbanflow_state');
             localStorage.removeItem('guest_tasks');
-            addDemoTasks();
+            state.tasks = [];
+            saveState();
+            renderBoard();
         }
         
     } catch (error) {
