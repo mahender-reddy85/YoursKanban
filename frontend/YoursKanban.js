@@ -2322,6 +2322,11 @@ function openAuthModal(type = 'login') {
         };
     }
 }
+}
+}
+}
+}
+}
 
 // Make functions globally available
 window.openAuthModal = openAuthModal;
@@ -2457,8 +2462,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-}
-}
-}
-}
-}
