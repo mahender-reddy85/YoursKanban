@@ -1697,6 +1697,39 @@ async function createTask(taskData) {
     }
 }
 
+async function duplicateTask(taskId) {
+    try {
+        // Find the task to duplicate
+        const taskToDuplicate = state.tasks.find(t => t.id === taskId);
+        if (!taskToDuplicate) {
+            throw new Error('Task not found');
+        }
+        
+        // Create a copy of the task with a new ID and modified title
+        const duplicatedTask = {
+            ...taskToDuplicate,
+            id: 'temp-' + Date.now(), // Temporary ID
+            title: taskToDuplicate.title + ' (Copy)',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            pinned: false // Reset pin status for duplicated task
+        };
+        
+        // Remove any backend-specific fields that might cause issues
+        delete duplicatedTask._id;
+        delete duplicatedTask.__v;
+        
+        // Create the duplicated task
+        await createTask(duplicatedTask);
+        showToast('Task duplicated successfully', 'success');
+        
+    } catch (error) {
+        console.error('Error duplicating task:', error);
+        showToast('Failed to duplicate task', 'error');
+        throw error;
+    }
+}
+
 async function updateTask(taskId, taskData) {
     try {
         // Find existing task
