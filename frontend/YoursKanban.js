@@ -2286,65 +2286,6 @@ async function init() {
     }
 }
 
-// Add demo tasks for first-time users
-function addDemoTasks() {
-    console.log('Creating demo tasks...');
-    const demoTasks = [
-        {
-            id: 'demo-1',
-            title: 'Welcome to YoursKanban!',
-            description: 'This is a sample task to help you get started. You can drag tasks between columns.',
-            status: 'todo',
-            priority: 'medium',
-            createdAt: new Date().toISOString(),
-            dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
-            pinned: false,
-            subtasks: [
-                { id: 'sub-1', description: 'Try dragging this task', is_done: false },
-                { id: 'sub-2', description: 'Click the edit button to modify', is_done: true },
-                { id: 'sub-3', description: 'Pin important tasks', is_done: false },
-                { id: 'sub-4', description: 'Use the search bar', is_done: false }
-            ]
-        },
-        {
-            id: 'demo-2',
-            title: 'Explore Features',
-            description: 'Check out the search, filters, and sorting options in the navbar.',
-            status: 'in-progress',
-            priority: 'high',
-            createdAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-            pinned: true,
-            subtasks: [
-                { id: 'sub-5', description: 'Test search functionality', is_done: true },
-                { id: 'sub-6', description: 'Try priority filters', is_done: false },
-                { id: 'sub-7', description: 'Test sorting options', is_done: false }
-            ]
-        },
-        {
-            id: 'demo-3',
-            title: 'Create Your First Task',
-            description: 'Click the + button in any column to create a new task.',
-            status: 'done',
-            priority: 'low',
-            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-            dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday (overdue)
-            pinned: false,
-            subtasks: [
-                { id: 'sub-8', description: 'Click + button', is_done: true },
-                { id: 'sub-9', description: 'Fill task details', is_done: true },
-                { id: 'sub-10', description: 'Save the task', is_done: true }
-            ]
-        }
-    ];
-    
-    console.log('Demo tasks created:', demoTasks);
-    state.tasks = demoTasks;
-    saveState();
-    renderBoard();
-    showToast('Welcome! Demo tasks have been added to help you get started.', 'success', 5000);
-}
-
 // Show guest mode banner if not logged in
 function updateGuestBanner() {
     const guestBanner = document.getElementById('guest-banner');
