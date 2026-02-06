@@ -455,11 +455,14 @@ function createTaskCard(task) {
     // Calculate progress for subtasks
     const subtasks = task.subtasks || [];
     let progressHTML = '';
-    const hasSubtasks = subtasks && subtasks.length > 0;
-    
+    const hasSubtasks = task.subtasks?.length > 0;
+
     if (hasSubtasks) {
-        const completedCount = subtasks.filter(st => st.is_done || st.is_completed || st.completed).length;
-        const progressPercent = Math.round((completedCount / subtasks.length) * 100);
+        console.log('Rendering subtasks for task:', task.title, task.subtasks);
+        const completedCount = task.subtasks.filter(st => st.is_done || st.is_completed || st.completed).length;
+        const progressPercent = Math.round((completedCount / task.subtasks.length) * 100);
+        
+        console.log('Subtask progress:', completedCount, 'of', task.subtasks.length, '=', progressPercent + '%');
         
         progressHTML = `
             <div class="subtask-progress">
@@ -467,7 +470,7 @@ function createTaskCard(task) {
                     <div class="progress" style="width: ${progressPercent}%"></div>
                 </div>
                 <div class="progress-text">
-                    ${completedCount} of ${subtasks.length} tasks
+                    ${completedCount} of ${task.subtasks.length} tasks
                 </div>
             </div>
             <div class="subtask-list">
@@ -520,21 +523,9 @@ function createTaskCard(task) {
         cardHTML.push(`<div class="card-desc">${sanitize(task.description)}</div>`);
     }
     
-    // Subtask Progress - simplified and cleaner
-    if (task.subtasks?.length > 0) {
-        const completedCount = task.subtasks.filter(st => st.is_done || st.is_completed || st.completed).length;
-        const progressPercent = (completedCount / task.subtasks.length) * 100;
-        
-        cardHTML.push(`
-            <div class="subtask-progress">
-                <div class="progress-bar">
-                    <div class="progress" style="width: ${progressPercent}%"></div>
-                </div>
-                <div class="progress-text">
-                    ${completedCount} of ${task.subtasks.length} tasks
-                </div>
-            </div>
-        `);
+    // Add progress HTML if there are subtasks
+    if (progressHTML) {
+        cardHTML.push(progressHTML);
     }
     
     // File attachments
@@ -560,11 +551,12 @@ function createTaskCard(task) {
     cardHTML.push(`<span class="priority-badge priority-${priority}">${priority.toUpperCase()}</span>`);
     
     // Due date with simple formatting
-    if (task.dueDate) {
+    console.log('Task due date:', task.title, task.dueDate, formattedDueDate);
+    if (formattedDueDate) {
         cardHTML.push(`
             <div class="card-date">
                 <i class="far fa-calendar-alt"></i>
-                ${new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                ${formattedDueDate}
             </div>
         `);
     }
@@ -2285,10 +2277,13 @@ function addDemoTasks() {
             status: 'todo',
             priority: 'medium',
             createdAt: new Date().toISOString(),
+            dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
             pinned: false,
             subtasks: [
                 { id: 'sub-1', description: 'Try dragging this task', is_done: false },
-                { id: 'sub-2', description: 'Click the edit button to modify', is_done: false }
+                { id: 'sub-2', description: 'Click the edit button to modify', is_done: true },
+                { id: 'sub-3', description: 'Pin important tasks', is_done: false },
+                { id: 'sub-4', description: 'Use the search bar', is_done: false }
             ]
         },
         {
@@ -2298,8 +2293,13 @@ function addDemoTasks() {
             status: 'in-progress',
             priority: 'high',
             createdAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
             pinned: true,
-            subtasks: []
+            subtasks: [
+                { id: 'sub-5', description: 'Test search functionality', is_done: true },
+                { id: 'sub-6', description: 'Try priority filters', is_done: false },
+                { id: 'sub-7', description: 'Test sorting options', is_done: false }
+            ]
         },
         {
             id: 'demo-3',
@@ -2307,9 +2307,14 @@ function addDemoTasks() {
             description: 'Click the + button in any column to create a new task.',
             status: 'done',
             priority: 'low',
-            createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+            dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday (overdue)
             pinned: false,
-            subtasks: []
+            subtasks: [
+                { id: 'sub-8', description: 'Click + button', is_done: true },
+                { id: 'sub-9', description: 'Fill task details', is_done: true },
+                { id: 'sub-10', description: 'Save the task', is_done: true }
+            ]
         }
     ];
     
