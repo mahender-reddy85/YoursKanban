@@ -1065,7 +1065,6 @@ async function togglePin(id) {
                 if (originalInner) pinBtn.innerHTML = originalInner;
             }
         }
-    }
     } catch (error) {
         console.error('Error pinning/unpinning task:', error);
     }
