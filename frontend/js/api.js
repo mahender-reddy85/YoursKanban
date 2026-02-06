@@ -59,7 +59,8 @@ onAuthStateChanged(auth, (user) => {
  * @returns {boolean} - True if user is logged in
  */
 function isLoggedIn() {
-    return auth.currentUser !== null && auth.currentUser !== undefined;
+    const user = auth.currentUser;
+    return user !== null && user !== undefined && user.uid !== undefined;
 }
 
 /**
@@ -223,8 +224,11 @@ const tasksAPI = {
      * @returns {Promise<Object>} - Created task
      */
     async createTask(task) {
+        const user = auth.currentUser;
         console.log('createTask called, isLoggedIn():', isLoggedIn());
-        console.log('auth.currentUser:', auth.currentUser);
+        console.log('auth.currentUser:', user);
+        console.log('user.uid:', user?.uid);
+        console.log('user properties:', user ? Object.keys(user) : 'no user');
         
         if (!isLoggedIn()) {
             console.log('Creating guest task locally');
