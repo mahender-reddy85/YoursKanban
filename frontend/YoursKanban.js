@@ -1106,7 +1106,7 @@ async function duplicateTask(id) {
         let taskToCreate = { ...newTask };
         delete taskToCreate.id;
         
-        const validatedTask = this.validateTaskData(taskToCreate);
+        const validatedTask = validateTaskData(taskToCreate);
 
         // Optimistic UI update
         state.tasks.unshift(newTask);
@@ -1584,6 +1584,35 @@ function cleanupInvalidDates() {
     }
 }
 
+// Validate task data for field lengths (VARCHAR 255 limit)
+function validateTaskData(taskToValidate) {
+    const MAX_LENGTH = 255;
+    const validatedTask = {};
+    
+    Object.entries(taskToValidate).forEach(([key, value]) => {
+        if (value === null || value === undefined) {
+            validatedTask[key] = value;
+        } else if (key === 'subtasks' && Array.isArray(value)) {
+            // Keep subtasks as array, but validate individual items
+            validatedTask[key] = value.map(subtask => ({
+                ...subtask,
+                title: subtask.title || subtask.text || '',
+                text: subtask.text ? subtask.text.substring(0, MAX_LENGTH) : ''
+            }));
+        } else if (typeof value === 'string') {
+            if (value.length > MAX_LENGTH) {
+                validatedTask[key] = value.substring(0, MAX_LENGTH);
+            } else {
+                validatedTask[key] = value;
+            }
+        } else {
+            validatedTask[key] = value;
+        }
+    });
+    
+    return validatedTask;
+}
+
 // Function to fix a specific task by ID
 function fixTaskDate(taskId) {
     const task = state.tasks.find(t => t.id == taskId || t.id.toString() === taskId.toString());
@@ -1635,30 +1664,8 @@ async function createTask(taskData) {
         taskToCreate.createdAt = new Date().toISOString();
         taskToCreate.updatedAt = new Date().toISOString();
         
-        // Validate field lengths to prevent VARCHAR(255) errors
-        const MAX_LENGTH = 255;
-        const validatedTask = {};
-        
-        Object.entries(taskToCreate).forEach(([key, value]) => {
-            if (value === null || value === undefined) {
-                validatedTask[key] = value;
-            } else if (key === 'subtasks' && Array.isArray(value)) {
-                // Keep subtasks as array, but validate individual items
-                validatedTask[key] = value.map(subtask => ({
-                    ...subtask,
-                    text: subtask.text ? subtask.text.substring(0, MAX_LENGTH) : ''
-                }));
-            } else if (typeof value === 'string') {
-                if (value.length > MAX_LENGTH) {
-                    console.warn(`Field ${key} truncated from ${value.length} to ${MAX_LENGTH} characters`);
-                    validatedTask[key] = value.substring(0, MAX_LENGTH);
-                } else {
-                    validatedTask[key] = value;
-                }
-            } else {
-                validatedTask[key] = value;
-            }
-        });
+        // Validate field lengths and format data
+        const validatedTask = validateTaskData(taskToCreate);
         
         // Debug: Log the data being sent
         
@@ -1721,30 +1728,8 @@ async function updateTask(taskId, taskData) {
         // Update timestamp
         taskData.updatedAt = new Date().toISOString();
         
-        // Validate field lengths to prevent VARCHAR(255) errors
-        const MAX_LENGTH = 255;
-        const validatedTask = {};
-        
-        Object.entries(taskData).forEach(([key, value]) => {
-            if (value === null || value === undefined) {
-                validatedTask[key] = value;
-            } else if (key === 'subtasks' && Array.isArray(value)) {
-                // Keep subtasks as array, but validate individual items
-                validatedTask[key] = value.map(subtask => ({
-                    ...subtask,
-                    text: subtask.text ? subtask.text.substring(0, MAX_LENGTH) : ''
-                }));
-            } else if (typeof value === 'string') {
-                if (value.length > MAX_LENGTH) {
-                    console.warn(`Field ${key} truncated from ${value.length} to ${MAX_LENGTH} characters`);
-                    validatedTask[key] = value.substring(0, MAX_LENGTH);
-                } else {
-                    validatedTask[key] = value;
-                }
-            } else {
-                validatedTask[key] = value;
-            }
-        });
+        // Validate field lengths and format data
+        const validatedTask = validateTaskData(taskData);
         
         
         
