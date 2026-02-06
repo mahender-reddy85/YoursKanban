@@ -11,27 +11,23 @@ const createTasksRouter = (pool) => {
     
     const query = isGuest 
       ? 'SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC'
-      : `SELECT t.*, 
-                COALESCE(
-                  (
-                    SELECT json_agg(
-                      json_build_object(
-                        'id', st.id,
-                        'title', st.title,
-                        'description', st.description,
-                        'is_completed', st.is_completed,
-                        'position', st.position,
-                        'created_at', st.created_at,
-                        'updated_at', st.updated_at
-                      ) 
-                    ) FILTER (WHERE st.id IS NOT NULL)
-                    FROM subtasks st
-                    WHERE st.task_id = t.id
-                    ORDER BY st.position ASC
-                  ),
-                  '[]'::json
-                ) AS subtasks
+      : `SELECT t.*, COALESCE(subs.subtasks, '[]'::json) AS subtasks
          FROM tasks t
+         LEFT JOIN LATERAL (
+           SELECT json_agg(
+             json_build_object(
+               'id', st.id,
+               'title', st.title,
+               'description', st.description,
+               'is_completed', st.is_completed,
+               'position', st.position,
+               'created_at', st.created_at,
+               'updated_at', st.updated_at
+             ) ORDER BY st.position ASC
+           ) AS subtasks
+           FROM subtasks st
+           WHERE st.task_id = t.id
+         ) subs ON true
          WHERE t.user_id = $1
          ORDER BY t.created_at DESC`;
 
@@ -57,27 +53,23 @@ const createTasksRouter = (pool) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      `SELECT t.*, 
-              COALESCE(
-                (
-                  SELECT json_agg(
-                    json_build_object(
-                      'id', st.id,
-                      'title', st.title,
-                      'description', st.description,
-                      'is_completed', st.is_completed,
-                      'position', st.position,
-                      'created_at', st.created_at,
-                      'updated_at', st.updated_at
-                    )
-                  ) FILTER (WHERE st.id IS NOT NULL)
-                  FROM subtasks st
-                  WHERE st.task_id = t.id
-                  ORDER BY st.position ASC
-                ),
-                '[]'::json
-              ) as subtasks
+      `SELECT t.*, COALESCE(subs.subtasks, '[]'::json) AS subtasks
        FROM tasks t
+       LEFT JOIN LATERAL (
+         SELECT json_agg(
+           json_build_object(
+             'id', st.id,
+             'title', st.title,
+             'description', st.description,
+             'is_completed', st.is_completed,
+             'position', st.position,
+             'created_at', st.created_at,
+             'updated_at', st.updated_at
+           ) ORDER BY st.position ASC
+         ) AS subtasks
+         FROM subtasks st
+         WHERE st.task_id = t.id
+       ) subs ON true
        WHERE t.id = $1 AND t.user_id = $2`,
       [id, userId]
     );
