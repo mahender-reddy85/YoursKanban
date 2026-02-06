@@ -344,58 +344,6 @@ async function handleLogout(e) {
 }
 
 // Show toast message
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    // Add toast styles if not already added
-    if (!document.getElementById('toast-styles')) {
-        const style = document.createElement('style');
-        style.id = 'toast-styles';
-        style.textContent = `
-            .toast {
-                position: fixed;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                padding: 12px 24px;
-                border-radius: 4px;
-                color: white;
-                font-weight: 500;
-                z-index: 2000;
-                animation: slideIn 0.3s ease-out;
-                max-width: 90%;
-                text-align: center;
-            }
-            .toast.error {
-                background-color: #dc3545;
-            }
-            .toast.success {
-                background-color: #28a745;
-            }
-            .toast.info {
-                background-color: #17a2b8;
-            }
-            @keyframes slideIn {
-                from { transform: translate(-50%, 100%); opacity: 0; }
-                to { transform: translate(-50%, 0); opacity: 1; }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    // Remove toast after delay
-    setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.3s ease-out';
-        setTimeout(() => {
-            if (document.body.contains(toast)) {
-                document.body.removeChild(toast);
-            }
-        }, 300);
-    }, 3000);
-}
 
 // Initialize when DOM is loaded
 if (document.readyState === 'loading') {

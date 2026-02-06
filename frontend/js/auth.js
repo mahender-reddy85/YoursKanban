@@ -278,30 +278,6 @@ function getAuthErrorMessage(errorCode) {
 }
 
 // Show toast notification
-function showToast(message, type = 'info') {
-  const toastContainer = document.getElementById('toastContainer');
-  if (!toastContainer) return;
-  
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  
-  toastContainer.appendChild(toast);
-  
-  // Show the toast
-  setTimeout(() => {
-    toast.classList.add('show');
-  }, 10);
-  
-  // Remove the toast after delay
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => {
-      toast.remove();
-    }, 300);
-  }, 3000);
-}
-
 // Close modal when clicking outside
 window.addEventListener('click', (e) => {
   if (e.target === authModal) {
@@ -434,26 +410,3 @@ firebaseAuth.onAuthStateChanged((user) => {
     if (userMenu) userMenu.style.display = 'none';
   }
 });
-
-// Toast notification function
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  
-  const toastContainer = document.getElementById('toastContainer');
-  if (toastContainer) {
-    toastContainer.appendChild(toast);
-    
-    // Remove toast after delay
-    setTimeout(() => {
-      toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-          toast.remove();
-        }, 300);
-      }, 3000);
-    }, 100);
-  }
-}
