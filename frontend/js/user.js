@@ -314,7 +314,8 @@ export function initUserMenu() {
                     return;
                 }
                 
-                const response = await fetch('/api/v1/tasks', {
+                const API_BASE = 'https://yourskanban.onrender.com/api';
+                const response = await fetch(`${API_BASE}/v1/tasks`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
