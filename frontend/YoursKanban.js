@@ -2274,5 +2274,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-} ) ; 
-});
