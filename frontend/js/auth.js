@@ -14,6 +14,37 @@ function waitForFirebase() {
   });
 }
 
+// Simple toast notification (used before YoursKanban.js loads)
+function showToast(message, type = 'info', duration = 3000) {
+  // Try to use the global showToast from YoursKanban.js if available
+  if (window.showToast && typeof window.showToast === 'function') {
+    window.showToast(message, type);
+    return;
+  }
+  
+  // Fallback: create a simple toast
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 500;
+    z-index: 9999;
+    background-color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, duration);
+}
+
 // Make functions globally available
 window.openAuthModal = showAuthModal;
 window.closeAuthModal = closeAuthModal;
