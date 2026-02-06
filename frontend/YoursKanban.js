@@ -2268,7 +2268,7 @@ async function initializeApp() {
         await waitForFirebase();
         
         // Set up auth state change listener
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged(async (user) => {
             console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
             
             if (user) {
@@ -2289,8 +2289,6 @@ async function initializeApp() {
                 state.isAuthenticated = false;
                 updateGuestBanner();
             }
-            resolve();
-            unsubscribe(); // Clean up the listener
         });
         
         // Render the board after auth state is determined
