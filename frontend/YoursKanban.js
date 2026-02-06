@@ -1088,17 +1088,79 @@ function sanitize(html) {
 }
 
 // Board Rendering Functions
+function initializeBoard() {
+    const board = document.getElementById('board');
+    if (!board) return;
+    
+    board.innerHTML = `
+        <div class="column">
+            <div class="column-header">
+                <h2><i class="fas fa-list"></i> To Do</h2>
+                <button class="add-task-btn" data-status="todo">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="task-list" id="todo" data-status="todo">
+                <!-- Tasks will be rendered here -->
+            </div>
+        </div>
+        
+        <div class="column">
+            <div class="column-header">
+                <h2><i class="fas fa-spinner"></i> In Progress</h2>
+                <button class="add-task-btn" data-status="in-progress">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="task-list" id="in-progress" data-status="in-progress">
+                <!-- Tasks will be rendered here -->
+            </div>
+        </div>
+        
+        <div class="column">
+            <div class="column-header">
+                <h2><i class="fas fa-check"></i> Done</h2>
+                <button class="add-task-btn" data-status="done">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="task-list" id="done" data-status="done">
+                <!-- Tasks will be rendered here -->
+            </div>
+        </div>
+    `;
+    
+    // Add event listeners to the add task buttons
+    document.querySelectorAll('.add-task-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const status = btn.dataset.status;
+            openModal();
+            // Set the status in the form
+            const statusSelect = document.getElementById('taskStatus');
+            if (statusSelect) {
+                statusSelect.value = status === 'in-progress' ? 'progress' : status;
+            }
+        });
+    });
+}
+
 function renderBoard() {
     if (isDragging) return; // Don't re-render during drag operations
     
+    // Initialize board structure if it doesn't exist
     const todoList = document.getElementById('todo');
+    if (!todoList) {
+        initializeBoard();
+    }
+    
+    const todoListEl = document.getElementById('todo');
     const inProgressList = document.getElementById('in-progress');
     const doneList = document.getElementById('done');
     
-    if (!todoList || !inProgressList || !doneList) return;
+    if (!todoListEl || !inProgressList || !doneList) return;
     
     // Clear existing tasks
-    todoList.innerHTML = '';
+    todoListEl.innerHTML = '';
     inProgressList.innerHTML = '';
     doneList.innerHTML = '';
     
@@ -1136,7 +1198,7 @@ function renderBoard() {
         
         switch (task.status) {
             case 'todo':
-                todoList.appendChild(taskCard);
+                todoListEl.appendChild(taskCard);
                 break;
             case 'in-progress':
                 inProgressList.appendChild(taskCard);
@@ -2149,10 +2211,59 @@ async function init() {
         // Render the board after auth state is determined
         renderBoard();
         
+        // Add demo tasks if no tasks exist (for first-time users)
+        if (state.tasks.length === 0 && !state.isAuthenticated) {
+            addDemoTasks();
+        }
+        
     } catch (error) {
         console.error('Initialization error:', error);
         showToast('Error initializing application', 'error');
     }
+}
+
+// Add demo tasks for first-time users
+function addDemoTasks() {
+    const demoTasks = [
+        {
+            id: 'demo-1',
+            title: 'Welcome to YoursKanban!',
+            description: 'This is a sample task to help you get started. You can drag tasks between columns.',
+            status: 'todo',
+            priority: 'medium',
+            createdAt: new Date().toISOString(),
+            pinned: false,
+            subtasks: [
+                { id: 'sub-1', description: 'Try dragging this task', is_done: false },
+                { id: 'sub-2', description: 'Click the edit button to modify', is_done: false }
+            ]
+        },
+        {
+            id: 'demo-2',
+            title: 'Explore Features',
+            description: 'Check out the search, filters, and sorting options in the navbar.',
+            status: 'in-progress',
+            priority: 'high',
+            createdAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+            pinned: true,
+            subtasks: []
+        },
+        {
+            id: 'demo-3',
+            title: 'Create Your First Task',
+            description: 'Click the + button in any column to create a new task.',
+            status: 'done',
+            priority: 'low',
+            createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+            pinned: false,
+            subtasks: []
+        }
+    ];
+    
+    state.tasks = demoTasks;
+    saveState();
+    renderBoard();
+    showToast('Welcome! Demo tasks have been added to help you get started.', 'success', 5000);
 }
 
 // Show guest mode banner if not logged in
