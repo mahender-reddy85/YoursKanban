@@ -2346,7 +2346,7 @@ function updateGuestBanner() {
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await init();
+        await initializeApp();
         
         // Check if user is logged in - getCurrentUser is synchronous
         const user = authAPI.getCurrentUser();
