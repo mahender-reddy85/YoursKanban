@@ -16,13 +16,7 @@ function waitForFirebase() {
 
 // Simple toast notification (used before YoursKanban.js loads)
 function showToast(message, type = 'info', duration = 3000) {
-  // Try to use the global showToast from YoursKanban.js if available
-  if (window.showToast && typeof window.showToast === 'function') {
-    window.showToast(message, type);
-    return;
-  }
-  
-  // Fallback: create a simple toast
+  // Create a simple toast notification
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.style.cssText = `
