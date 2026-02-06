@@ -1,4 +1,4 @@
-// Import API services and modules
+﻿// Import API services and modules
 import { authAPI, tasksAPI, isLoggedIn } from './js/api.js';
 import { updateUserAvatar } from './js/user.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -357,11 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             ThemeManager.toggleTheme();
         }
-
     });
 
     attachDragEvents();
-}
+});
 
 function getFileIcon(filename) {
     const ext = filename.split('.').pop().toLowerCase();
