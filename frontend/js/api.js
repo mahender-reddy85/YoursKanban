@@ -59,7 +59,7 @@ onAuthStateChanged(auth, (user) => {
  * @returns {boolean} - True if user is logged in
  */
 function isLoggedIn() {
-    return auth.currentUser !== null;
+    return auth.currentUser !== null && auth.currentUser !== undefined;
 }
 
 /**

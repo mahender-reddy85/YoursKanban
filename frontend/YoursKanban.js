@@ -2262,38 +2262,35 @@ window.cleanupInvalidDates = cleanupInvalidDates; // For debugging
 window.fixTaskDate = fixTaskDate; // For fixing specific tasks
 
 // --- Initialization ---
-async function init() {
+async function initializeApp() {
     try {
-        // Initialize theme and other UI components
-        ThemeManager.init();
-        setupEventListeners();
+        // Wait for Firebase to be ready
+        await waitForFirebase();
         
-        // Wait for Firebase auth state to be determined
-        await new Promise((resolve) => {
-            const unsubscribe = onAuthStateChanged(auth, async (user) => {
-                if (user) {
-
-                    state.currentUser = user;
-                    state.isAuthenticated = true;
-                    
-                    // Load user data and tasks
-                    try {
-                        await authAPI.getCurrentUser();
-                        await fetchTasks();
-                        updateGuestBanner();
-                    } catch (error) {
-                        console.error('Error loading user data:', error);
-                        showToast('Error loading your data', 'error');
-                    }
-                } else {
-
-                    state.currentUser = null;
-                    state.isAuthenticated = false;
+        // Set up auth state change listener
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
+            
+            if (user) {
+                state.currentUser = user;
+                state.isAuthenticated = true;
+                
+                // Load user data and tasks
+                try {
+                    await authAPI.getCurrentUser();
+                    await fetchTasks();
                     updateGuestBanner();
+                } catch (error) {
+                    console.error('Error loading user data:', error);
+                    showToast('Error loading your data', 'error');
                 }
-                resolve();
-                unsubscribe(); // Clean up the listener
-            });
+            } else {
+                state.currentUser = null;
+                state.isAuthenticated = false;
+                updateGuestBanner();
+            }
+            resolve();
+            unsubscribe(); // Clean up the listener
         });
         
         // Render the board after auth state is determined
