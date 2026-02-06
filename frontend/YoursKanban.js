@@ -549,16 +549,16 @@ function createTaskCard(task) {
                     year: 'numeric' 
                 });
             } else {
-                console.warn('Invalid or epoch date detected:', taskDueDate);
-                console.warn('Task ID:', task.id, 'Task Title:', task.title);
-                
-                // Show a placeholder for debugging
-                formattedDueDate = 'Invalid Date';
+                // Clear invalid/epoch dates to avoid repeated detection and hide in UI
+                formattedDueDate = '';
+                try { delete task.dueDate; } catch(_) {}
+                try { delete task.due_date; } catch(_) {}
             }
         } catch (error) {
-            console.warn('Invalid date format:', taskDueDate);
-            console.warn('Task ID:', task.id, 'Task Title:', task.title);
-            formattedDueDate = 'Invalid Date';
+            // On parse error, clear the date to avoid repeated errors
+            formattedDueDate = '';
+            try { delete task.dueDate; } catch(_) {}
+            try { delete task.due_date; } catch(_) {}
         }
     }
 
