@@ -1030,182 +1030,46 @@ async function togglePin(id) {
         }
         
         const newPinnedState = !task.pinned;
-        
+
         // Optimistic update (update UI immediately)
         task.pinned = newPinnedState;
         saveState();
         renderBoard();
-        
-        // Update backend
+
+        // Update backend with a spinner on the pin button
         const updateData = { pinned: newPinnedState };
-        
+        const pinBtn = document.querySelector(`.pin-btn[data-id="${task.id}"]`);
+        const originalInner = pinBtn ? pinBtn.innerHTML : null;
+        if (pinBtn) {
+            pinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            pinBtn.disabled = true;
+        }
+
         try {
             const response = await tasksAPI.updateTask(task.id, updateData);
-            
-            // Handle different response structures
             if (response && (response.data || response.id || typeof response === 'object')) {
                 showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
             } else {
                 throw new Error('Failed to update task');
             }
-        } catch (error) {
-            // If backend rejects the pinned field, update locally only
-            if (error.message && error.message.includes('No valid fields to update')) {
-                console.warn('Backend rejected pinned field, updating locally only:', task.id);
-                // The optimistic update already happened, but ensure UI is refreshed
-                saveState();
-                renderBoard();
-                showToast(newPinnedState ? 'Task pinned locally' : 'Task unpinned locally', 'warning');
-            } else {
-                // Revert the optimistic update on other errors
-                task.pinned = !newPinnedState;
-                saveState();
-                renderBoard();
-            // Show loading indicator on the pin button while network request is in-flight
-            const pinBtn = document.querySelector(`.pin-btn[data-id="${task.id}"]`);
-            const originalInner = pinBtn ? pinBtn.innerHTML : null;
-            if (pinBtn) {
-                pinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                pinBtn.disabled = true;
-            }
-
-            try {
-                const response = await tasksAPI.updateTask(task.id, updateData);
-
-                // Handle different response structures
-                if (response && (response.data || response.id || typeof response === 'object')) {
-                    showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
-                } else {
-                    throw new Error('Failed to update task');
-                }
-            } catch (error) {
-// Duplicate task
-async function duplicateTask(id) {
-    // Find task by ID (check both string and number types)
-    const taskToDuplicate = state.tasks.find(t => t.id == id || t.id.toString() === id.toString());
-    if (!taskToDuplicate) {
-                    renderBoard();
-        showToast('Task not found', 'error');
-        return;
-    }
-    
-    // Show loading state
-    const button = document.querySelector(`.duplicate-btn[data-id="${id}"]`);
-    const originalHTML = button?.innerHTML;
-    if (button) {
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                // Restore button state
-                if (pinBtn) {
-                    pinBtn.disabled = false;
-                    if (originalInner) pinBtn.innerHTML = originalInner;
-                }
-        button.disabled = true;
-            }
-
-    try {
-        // Create a deep copy of the task with a new ID and updated title
-        const newTask = JSON.parse(JSON.stringify(taskToDuplicate));
-        newTask.id = `temp-${Date.now()}`;
-        newTask.title = taskToDuplicate.title.includes(' (Copy)') 
-            ? taskToDuplicate.title 
-            : `${taskToDuplicate.title} (Copy)`;
-        newTask.pinned = false;
-        newTask.createdAt = new Date().toISOString();
-        newTask.updatedAt = new Date().toISOString();
-        
-        // Clean up invalid dates
-        if (newTask.dueDate) {
-            const dueDate = new Date(newTask.dueDate);
-            if (isNaN(dueDate.getTime()) || 
-                dueDate.getFullYear() === 1970 || 
-                dueDate.getTime() <= 0) {
-                delete newTask.dueDate;
-                console.warn('Invalid or epoch date in duplicate task, removing dueDate:', newTask.dueDate);
-            }
-        }
-        if (newTask.due_date) {
-            const dueDate = new Date(newTask.due_date);
-            if (isNaN(dueDate.getTime()) || 
-                dueDate.getFullYear() === 1970 || 
-                dueDate.getTime() <= 0) {
-                delete newTask.due_date;
-                console.warn('Invalid or epoch date in duplicate task, removing due_date:', newTask.due_date);
-            }
-        }
-        
-        // Create task data for the server (without the temporary ID)
-        let taskToCreate = { ...newTask };
-        delete taskToCreate.id;
-        
-        const validatedTask = validateTaskData(taskToCreate);
-
-        // Optimistic UI update
-        state.tasks.unshift(newTask);
-        saveState();
-        renderBoard();
-        
-        // Create task in the backend
-        const response = await tasksAPI.createTask(validatedTask);
-        
-        // Handle different response structures
-        let createdTask;
-        if (response && response.data) {
-            createdTask = response.data;
-        } else if (response && response.id) {
-            createdTask = response;
-        } else if (response && typeof response === 'object') {
-            createdTask = response;
-        } else {
-            console.error('Unexpected API response structure:', response);
-            throw new Error('Invalid response from server');
-        }
-        // Preserve the original valid date if API returns invalid date
-        const originalDueDate = validatedTask.dueDate;
-        
-        // Always restore the original date if backend doesn't return a valid one
-        if (!createdTask.dueDate && originalDueDate) {
-            createdTask.dueDate = originalDueDate;
-        } else if (createdTask.dueDate) {
-            const date = new Date(createdTask.dueDate);
-            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                createdTask.dueDate = originalDueDate;
-            }
-        }
-        
-        if (!createdTask.due_date && originalDueDate) {
-            createdTask.due_date = originalDueDate;
-        } else if (createdTask.due_date) {
-            const date = new Date(createdTask.due_date);
-            if (isNaN(date.getTime()) || date.getFullYear() === 1970 || date.getTime() <= 0) {
-                createdTask.due_date = originalDueDate;
-            }
-        }
-        
-        // Replace the optimistic task with the real one from the server
-        const taskIndex = state.tasks.findIndex(t => t.id === newTask.id);
-        if (taskIndex !== -1) {
-            state.tasks[taskIndex] = createdTask;
+        } catch (err) {
+            // Revert the optimistic update on error
+            console.error('Error updating pinned state:', err);
+            task.pinned = !newPinnedState;
             saveState();
-            showToast('Task duplicated', 'success');
-        }
-        
-        // Force a complete board refresh to ensure UI updates
-        setTimeout(() => {
             renderBoard();
-        }, 100);
-    } catch (error) {
-        console.error('Error duplicating task:', error);
-        showToast('Failed to duplicate task', 'error');
-    } finally {
-        // Restore button state
-        if (button) {
-            button.innerHTML = originalHTML || '<i class="fas fa-copy"></i>';
-            button.disabled = false;
+            showToast('Failed to update pin state', 'error');
+        } finally {
+            if (pinBtn) {
+                pinBtn.disabled = false;
+                if (originalInner) pinBtn.innerHTML = originalInner;
+            }
         }
-        renderBoard();
     }
-}
-
+    } catch (error) {
+        console.error('Error pinning/unpinning task:', error);
+    }
+ }
 async function deleteTask(id) {
     try {
         // Find task by ID (check both string and number types)
