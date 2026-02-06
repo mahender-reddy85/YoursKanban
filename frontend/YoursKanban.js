@@ -1699,11 +1699,17 @@ async function createTask(taskData) {
 
 async function duplicateTask(taskId) {
     try {
+        console.log('Attempting to duplicate task with ID:', taskId);
+        console.log('Current tasks in state:', state.tasks.map(t => ({ id: t.id, title: t.title })));
+        
         // Find the task to duplicate
         const taskToDuplicate = state.tasks.find(t => t.id === taskId);
         if (!taskToDuplicate) {
-            throw new Error('Task not found');
+            console.error('Task not found. Available IDs:', state.tasks.map(t => t.id));
+            throw new Error(`Task not found with ID: ${taskId}`);
         }
+        
+        console.log('Found task to duplicate:', taskToDuplicate);
         
         // Create a copy of the task with a new ID and modified title
         const duplicatedTask = {
@@ -1718,6 +1724,8 @@ async function duplicateTask(taskId) {
         // Remove any backend-specific fields that might cause issues
         delete duplicatedTask._id;
         delete duplicatedTask.__v;
+        
+        console.log('Creating duplicated task:', duplicatedTask);
         
         // Create the duplicated task
         await createTask(duplicatedTask);
