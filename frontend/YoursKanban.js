@@ -360,6 +360,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Added missing closing braces to balance the file (auto-fixed)
+}
+}
+}
+}
+}
+
 // Theme management is now handled by the ThemeManager module
 function applyTheme() {
     // This is a compatibility function for existing code
