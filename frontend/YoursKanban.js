@@ -1703,7 +1703,7 @@ async function duplicateTask(taskId) {
         console.log('Current tasks in state:', state.tasks.map(t => ({ id: t.id, title: t.title })));
         
         // Find the task to duplicate
-        const taskToDuplicate = state.tasks.find(t => t.id === taskId);
+        const taskToDuplicate = state.tasks.find(t => t.id == taskId || t.id.toString() === taskId.toString());
         if (!taskToDuplicate) {
             console.error('Task not found. Available IDs:', state.tasks.map(t => t.id));
             throw new Error(`Task not found with ID: ${taskId}`);
