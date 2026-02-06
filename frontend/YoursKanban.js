@@ -532,11 +532,6 @@ function createTaskCard(task) {
     card.dataset.id = task.id;
     card.dataset.status = task.status;
 
-    // Set up inline editing after card is created
-    setTimeout(() => {
-        setupInlineEditing(card, task);
-    }, 0);
-
     // Format due date for task card
     const taskDueDate = task.dueDate || task.due_date;
     let formattedDueDate = null;
@@ -689,6 +684,9 @@ function createTaskCard(task) {
     
     // Set the card HTML
     card.innerHTML = cardHTML.join('');
+    
+    // Set up inline editing after HTML is rendered
+    setupInlineEditing(card, task);
 
     return card;
 }
@@ -1430,9 +1428,16 @@ async function fetchTasks() {
 
         
         const tasks = await tasksAPI.getTasks();
-        state.tasks = tasks || [];
+        
+        // Normalize field names from snake_case (API) to camelCase (frontend)
+        state.tasks = (tasks || []).map(task => ({
+            ...task,
+            dueDate: task.due_date || task.dueDate,
+            subtasks: task.subtasks || []
+        }));
+        
         renderBoard();
-        return tasks;
+        return state.tasks;
     } catch (error) {
         console.error('Error in fetchTasks:', {
             message: error.message,
@@ -1749,10 +1754,15 @@ async function createTask(taskData) {
             }
         }
         
-        
+        // Normalize field names from snake_case (API) to camelCase (frontend)
+        const normalizedTask = {
+            ...createdTask,
+            dueDate: createdTask.due_date || createdTask.dueDate,
+            subtasks: createdTask.subtasks || []
+        };
         
         // Add the new task to local state
-        state.tasks.unshift(createdTask);
+        state.tasks.unshift(normalizedTask);
         saveState();
         renderBoard();
         showToast('Task created successfully', 'success');
@@ -1809,8 +1819,15 @@ async function updateTask(taskId, taskData) {
                 throw new Error('Invalid response from server');
             }
             
+            // Normalize field names from snake_case (API) to camelCase (frontend)
+            const normalizedTask = {
+                ...updatedTask,
+                dueDate: updatedTask.due_date || updatedTask.dueDate,
+                subtasks: updatedTask.subtasks || []
+            };
+            
             // Update task in local state
-            state.tasks[taskIndex] = updatedTask;
+            state.tasks[taskIndex] = normalizedTask;
             saveState();
             renderBoard();
             showToast('Task updated successfully', 'success');
