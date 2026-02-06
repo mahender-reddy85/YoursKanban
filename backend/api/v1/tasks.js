@@ -17,8 +17,8 @@ const createTasksRouter = (pool) => {
                     SELECT json_agg(
                       json_build_object(
                         'id', st.id,
-                        'text', st.text,
-                        'is_done', st.is_done,
+                        'title', st.title,
+                        'is_completed', st.is_completed,
                         'order_index', st.order_index,
                         'created_at', st.created_at,
                         'updated_at', st.updated_at
@@ -60,8 +60,8 @@ const createTasksRouter = (pool) => {
                 (SELECT json_agg(
                   json_build_object(
                     'id', st.id,
-                    'text', st.text,
-                    'is_done', st.is_done,
+                    'title', st.title,
+                    'is_completed', st.is_completed,
                     'order_index', st.order_index,
                     'created_at', st.created_at,
                     'updated_at', st.updated_at
@@ -95,24 +95,22 @@ const createTasksRouter = (pool) => {
       throw new Error("User ID missing in createTask");
     }
     
-    console.log('Creating task for user ID:', userId, 'isGuest:', isGuest);
-    const { title, description, status, priority, dueDate, order_index, subtasks, pinned } = req.body;
+    const { title, description, status, priority, dueDate, position, subtasks, pinned } = req.body;
 
     // Handle dueDate conversion
     let formattedDueDate = null;
     if (dueDate) {
       try {
-        // Convert the timestamp to a PostgreSQL DATE if it exists
+        // Convert the timestamp to a PostgreSQL TIMESTAMP if it exists
         const timestamp = typeof dueDate === 'string' ? parseInt(dueDate, 10) : dueDate;
         
         // If the timestamp is in milliseconds (likely from JavaScript's Date.getTime())
-        if (timestamp > 1e12) { // If timestamp is after 2001-09-09 (in milliseconds)
-          formattedDueDate = new Date(timestamp).toISOString().split('T')[0];
-        } else if (timestamp > 1e9) { // If timestamp is in seconds (likely from Unix timestamp)
-          formattedDueDate = new Date(timestamp * 1000).toISOString().split('T')[0];
+        if (timestamp > 1e12) {
+          formattedDueDate = new Date(timestamp).toISOString();
+        } else if (timestamp > 1e9) {
+          formattedDueDate = new Date(timestamp * 1000).toISOString();
         } else {
-          // If it's already in a date string format
-          formattedDueDate = new Date(timestamp).toISOString().split('T')[0];
+          formattedDueDate = new Date(timestamp).toISOString();
         }
       } catch (error) {
 
@@ -121,19 +119,19 @@ const createTasksRouter = (pool) => {
       }
     }
 
-    // Get the next order_index for the task if not provided
-    let taskOrderIndex = order_index;
-    if (taskOrderIndex === undefined) {
-      const orderIndexResult = await pool.query(
-        'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order_index FROM tasks WHERE user_id = $1',
+    // Get the next position for the task if not provided
+    let taskPosition = position;
+    if (taskPosition === undefined) {
+      const positionResult = await pool.query(
+        'SELECT COALESCE(MAX(position), 0) + 1 as next_position FROM tasks WHERE user_id = $1',
         [userId]
       );
-      taskOrderIndex = orderIndexResult.rows[0].next_order_index;
+      taskPosition = positionResult.rows[0].next_position;
     }
 
     const result = await pool.query(
-      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, order_index, is_pinned)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [
         userId, 
@@ -142,8 +140,7 @@ const createTasksRouter = (pool) => {
         status || 'todo', 
         priority || 'medium', 
         formattedDueDate,
-        taskOrderIndex,
-        pinned || false
+        taskPosition
       ]
     );
 
@@ -153,13 +150,13 @@ const createTasksRouter = (pool) => {
     if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
       for (let i = 0; i < subtasks.length; i++) {
         const st = subtasks[i];
-        const text = st.text || st.description || '';
-        const isDone = st.is_done || st.completed || st.is_completed || false;
+        const subtaskTitle = st.title || st.text || st.description || '';
+        const isCompleted = st.is_completed || st.completed || st.is_done || false;
 
         await pool.query(
-          `INSERT INTO subtasks (task_id, text, is_done, order_index)
+          `INSERT INTO subtasks (task_id, title, is_completed, order_index)
            VALUES ($1, $2, $3, $4)`,
-          [createdTask.id, text, isDone, i]
+          [createdTask.id, subtaskTitle, isCompleted, i]
         );
       }
     }
@@ -182,7 +179,7 @@ const createTasksRouter = (pool) => {
     let paramCount = 1;
 
     // Add updatable fields
-    const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'order_index', 'is_pinned'];
+    const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'position'];
     Object.entries(updates).forEach(([key, value]) => {
       if (allowedFields.includes(key)) {
         // Handle due_date conversion for updates
@@ -190,14 +187,12 @@ const createTasksRouter = (pool) => {
           try {
             const timestamp = typeof value === 'string' ? parseInt(value, 10) : value;
             
-            // If the timestamp is in milliseconds (likely from JavaScript's Date.getTime())
-            if (timestamp > 1e12) { // If timestamp is after 2001-09-09 (in milliseconds)
-              value = new Date(timestamp).toISOString().split('T')[0];
-            } else if (timestamp > 1e9) { // If timestamp is in seconds (likely from Unix timestamp)
-              value = new Date(timestamp * 1000).toISOString().split('T')[0];
+            if (timestamp > 1e12) {
+              value = new Date(timestamp).toISOString();
+            } else if (timestamp > 1e9) {
+              value = new Date(timestamp * 1000).toISOString();
             } else {
-              // If it's already in a date string format
-              value = new Date(timestamp).toISOString().split('T')[0];
+              value = new Date(timestamp).toISOString();
             }
           } catch (error) {
     

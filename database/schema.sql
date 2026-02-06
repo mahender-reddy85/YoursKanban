@@ -20,9 +20,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     description TEXT,
     status VARCHAR(20) NOT NULL CHECK (status IN ('todo', 'progress', 'done')),
     priority VARCHAR(20) NOT NULL CHECK (priority IN ('low', 'medium', 'high')),
-    due_date DATE,
-    order_index INTEGER NOT NULL,
-    is_pinned BOOLEAN DEFAULT false,
+    due_date TIMESTAMP WITH TIME ZONE,
+    position INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -31,8 +30,8 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS subtasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    is_done BOOLEAN DEFAULT false,
+    title VARCHAR(255) NOT NULL,
+    is_completed BOOLEAN DEFAULT false,
     order_index INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
