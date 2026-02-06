@@ -2258,6 +2258,13 @@ async function init() {
         
         // Add demo tasks if no tasks exist (for first-time users)
         if (state.tasks.length === 0 && !state.isAuthenticated) {
+            console.log('Adding demo tasks...');
+            addDemoTasks();
+        } else if (!state.isAuthenticated) {
+            // Force reload demo tasks for testing
+            console.log('Force reloading demo tasks for testing...');
+            localStorage.removeItem('kanbanflow_state');
+            localStorage.removeItem('guest_tasks');
             addDemoTasks();
         }
         
@@ -2269,6 +2276,7 @@ async function init() {
 
 // Add demo tasks for first-time users
 function addDemoTasks() {
+    console.log('Creating demo tasks...');
     const demoTasks = [
         {
             id: 'demo-1',
@@ -2318,6 +2326,7 @@ function addDemoTasks() {
         }
     ];
     
+    console.log('Demo tasks created:', demoTasks);
     state.tasks = demoTasks;
     saveState();
     renderBoard();
