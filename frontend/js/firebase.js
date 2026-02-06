@@ -41,7 +41,7 @@ const initFirebase = () => {
     window.firebaseSignOut = firebaseSignOut;
     window.firebaseAnalytics = analytics;
     
-    console.log('Firebase initialized successfully');
+
     
     // Set up auth state change listener
     onAuthStateChanged(auth, async (user) => {
@@ -60,12 +60,12 @@ const initFirebase = () => {
           };
           localStorage.setItem('user', JSON.stringify(userData));
           
-          console.log('User logged in:', userData);
+
         } else {
           // User is signed out
           localStorage.removeItem('user');
           localStorage.removeItem('token');
-          console.log('User logged out');
+
         }
       } catch (error) {
         console.error('Error in auth state change:', error);

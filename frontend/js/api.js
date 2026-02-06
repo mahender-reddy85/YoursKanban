@@ -195,7 +195,7 @@ const tasksAPI = {
      */
     async getTasks() {
         try {
-            console.log('Getting tasks...');
+
             
             if (!isLoggedIn()) {
                 const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]');

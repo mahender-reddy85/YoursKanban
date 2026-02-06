@@ -224,7 +224,7 @@ function positionDropdown(dropdown) {
  * Initializes user menu functionality
  */
 export function initUserMenu() {
-    console.log('Initializing user menu...');
+
     
     const userMenu = document.getElementById('userMenu');
     const userAvatar = document.querySelector('#userAvatar') || document.querySelector('.avatar-container');
@@ -232,7 +232,7 @@ export function initUserMenu() {
     const logoutBtn = document.getElementById('logoutBtn');
     const myTasksBtn = document.getElementById('myTasksBtn');
     
-    console.log('Elements:', { userMenu, userAvatar, dropdownMenu, logoutBtn, myTasksBtn });
+
     
     if (!userMenu || !userAvatar || !dropdownMenu) {
         console.error('Required elements not found for user menu');
@@ -244,7 +244,7 @@ export function initUserMenu() {
     
     // Toggle dropdown menu on avatar click/tap
     const toggleMenu = (e) => {
-        console.log('Avatar clicked/tapped');
+
         e.preventDefault();
         e.stopPropagation();
         
@@ -274,7 +274,7 @@ export function initUserMenu() {
     userAvatar.addEventListener('click', toggleMenu, { passive: false });
     userAvatar.addEventListener('touchend', toggleMenu, { passive: false });
     
-    console.log('Event listeners added to user avatar');
+
     
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
@@ -308,7 +308,7 @@ export function initUserMenu() {
             
             // Filter tasks to show only user's tasks
             // This will depend on your task filtering implementation
-            console.log('Show my tasks');
+
             // You can implement task filtering here
         };
         

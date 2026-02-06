@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeFormSubmissions();
     initializeModalSwitchers();
     
-    console.log('Auth module initialized');
+
   } catch (error) {
     console.error('Error initializing auth module:', error);
     showToast('Error initializing authentication. Please refresh the page.', 'error');
