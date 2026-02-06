@@ -1017,9 +1017,10 @@ async function togglePin(id) {
         
         const newPinnedState = !task.pinned;
         
-        // Optimistic update
+        // Optimistic update (update UI immediately)
         task.pinned = newPinnedState;
         saveState();
+        renderBoard();
         
         // Update backend
         const updateData = { pinned: newPinnedState };
@@ -1046,22 +1047,30 @@ async function togglePin(id) {
                 task.pinned = !newPinnedState;
                 saveState();
                 renderBoard();
-                throw error;
+            // Show loading indicator on the pin button while network request is in-flight
+            const pinBtn = document.querySelector(`.pin-btn[data-id="${task.id}"]`);
+            const originalInner = pinBtn ? pinBtn.innerHTML : null;
+            if (pinBtn) {
+                pinBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                pinBtn.disabled = true;
             }
-        }
-    } catch (error) {
-        console.error('Error toggling pin:', error);
-        showToast('Failed to update task', 'error');
-        renderBoard();
-    }
-}
 
+            try {
+                const response = await tasksAPI.updateTask(task.id, updateData);
+
+                // Handle different response structures
+                if (response && (response.data || response.id || typeof response === 'object')) {
+                    showToast(newPinnedState ? 'Task pinned' : 'Task unpinned', 'success');
+                } else {
+                    throw new Error('Failed to update task');
+                }
+            } catch (error) {
 // Duplicate task
 async function duplicateTask(id) {
     // Find task by ID (check both string and number types)
     const taskToDuplicate = state.tasks.find(t => t.id == id || t.id.toString() === id.toString());
     if (!taskToDuplicate) {
-        console.error('Task not found for duplication. ID:', id, 'Available IDs:', state.tasks.map(t => t.id));
+                    renderBoard();
         showToast('Task not found', 'error');
         return;
     }
@@ -1071,8 +1080,13 @@ async function duplicateTask(id) {
     const originalHTML = button?.innerHTML;
     if (button) {
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                // Restore button state
+                if (pinBtn) {
+                    pinBtn.disabled = false;
+                    if (originalInner) pinBtn.innerHTML = originalInner;
+                }
         button.disabled = true;
-    }
+            }
 
     try {
         // Create a deep copy of the task with a new ID and updated title
