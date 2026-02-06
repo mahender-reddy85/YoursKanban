@@ -2274,58 +2274,6 @@ function openAuthModal(type = 'login') {
     // Focus on first input
     const firstInput = modal.querySelector('input');
     if (firstInput) firstInput.focus();
-    
-    // Handle form submission
-    const form = modal.querySelector('form');
-    if (form) {
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-            
-            try {
-                if (type === 'login') {
-                    await authAPI.login(data.email, data.password);
-                    showToast('Logged in successfully', 'success');
-                    closeAuthModal('authModal');
-                    location.reload(); // Refresh to update UI
-                } else {
-                    // Registration flow
-                    try {
-                        await authAPI.register(data);
-                        showToast('Account created successfully! Please log in.', 'success');
-                        // Switch to login form after successful registration
-                        closeAuthModal('authModal');
-                        setTimeout(() => openAuthModal('login'), 500);
-                    } catch (regError) {
-                        // Check if this is an email already in use error
-                        if (regError.message.includes('Email already in use') || 
-                            (regError.response && regError.response.status === 400)) {
-                            showToast('This email is already registered. Please use a different email or log in.', 'error');
-                        } else {
-                            throw regError; // Re-throw other errors
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Auth error:', error);
-                const errorMessage = error.message || 'Authentication failed. Please try again.';
-                showToast(errorMessage, 'error');
-                
-                // Highlight the email field in red if it's an email-related error
-                const emailInput = document.querySelector('#authModal input[type="email"]');
-                if (emailInput && (errorMessage.includes('email') || errorMessage.includes('Email'))) {
-                    emailInput.style.borderColor = '#ff4444';
-                    emailInput.focus();
-                }
-            }
-        };
-    }
-}
-}
-}
-}
-}
 }
 
 // Make functions globally available
