@@ -1,8 +1,8 @@
-import postcssImport from 'postcss-import';
-import autoprefixer from 'autoprefixer';
-import cssnano from 'cssnano';
+const postcssImport = require('postcss-import');
+const autoprefixer = require('autoprefixer');
+const cssnano = require('cssnano');
 
-export default {
+module.exports = {
   plugins: [
     postcssImport,
     autoprefixer,

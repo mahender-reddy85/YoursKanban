@@ -1,12 +1,10 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import pg from 'pg';
-import 'dotenv/config';
+const fs = require('fs').promises;
+const path = require('path');
+const pg = require('pg');
+require('dotenv').config();
 
 const { Pool } = pg;
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.join(__dirname, '../../database/migrations');
 
 const pool = new Pool({

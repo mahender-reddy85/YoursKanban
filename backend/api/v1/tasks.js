@@ -17,16 +17,12 @@ const createTasksRouter = (pool) => {
                     SELECT json_agg(
                       json_build_object(
                         'id', st.id,
-                        'title', st.description,
-                        'text', st.description,
-                        'description', st.description,
-                        'completed', st.is_completed,
-                        'is_completed', st.is_completed,
-                        'order_index', st.position,
-                        'position', st.position,
+                        'text', st.text,
+                        'is_done', st.is_done,
+                        'order_index', st.order_index,
                         'created_at', st.created_at,
                         'updated_at', st.updated_at
-                      ) ORDER BY st.position
+                      ) ORDER BY st.order_index
                     )
                     FROM subtasks st
                     WHERE st.task_id = t.id
@@ -64,14 +60,12 @@ const createTasksRouter = (pool) => {
                 (SELECT json_agg(
                   json_build_object(
                     'id', st.id,
-                    'title', st.description,  -- Using description as title
-                    'is_completed', st.is_completed,
-                    'order_index', st.position,  -- Using position for order_index
-                    'position', st.position,     -- Including position for backward compatibility
+                    'text', st.text,
+                    'is_done', st.is_done,
+                    'order_index', st.order_index,
                     'created_at', st.created_at,
-                    'updated_at', st.updated_at,
-                    'description', st.description  -- Including description for backward compatibility
-                  ) ORDER BY st.position
+                    'updated_at', st.updated_at
+                  ) ORDER BY st.order_index
                 )
                 FROM subtasks st 
                 WHERE st.task_id = t.id),
@@ -102,7 +96,7 @@ const createTasksRouter = (pool) => {
     }
     
     console.log('Creating task for user ID:', userId, 'isGuest:', isGuest);
-    const { title, description, status, priority, dueDate, position, subtasks, pinned } = req.body;
+    const { title, description, status, priority, dueDate, order_index, subtasks, pinned } = req.body;
 
     // Handle dueDate conversion
     let formattedDueDate = null;
@@ -127,18 +121,18 @@ const createTasksRouter = (pool) => {
       }
     }
 
-    // Get the next position for the task if not provided
-    let taskPosition = position;
-    if (taskPosition === undefined) {
-      const positionResult = await pool.query(
-        'SELECT COALESCE(MAX(position), 0) + 1 as next_position FROM tasks WHERE user_id = $1',
+    // Get the next order_index for the task if not provided
+    let taskOrderIndex = order_index;
+    if (taskOrderIndex === undefined) {
+      const orderIndexResult = await pool.query(
+        'SELECT COALESCE(MAX(order_index), 0) + 1 as next_order_index FROM tasks WHERE user_id = $1',
         [userId]
       );
-      taskPosition = positionResult.rows[0].next_position;
+      taskOrderIndex = orderIndexResult.rows[0].next_order_index;
     }
 
     const result = await pool.query(
-      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, position, is_pinned)
+      `INSERT INTO tasks (user_id, title, description, status, priority, due_date, order_index, is_pinned)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
@@ -148,7 +142,7 @@ const createTasksRouter = (pool) => {
         status || 'todo', 
         priority || 'medium', 
         formattedDueDate,
-        taskPosition,
+        taskOrderIndex,
         pinned || false
       ]
     );
@@ -159,13 +153,13 @@ const createTasksRouter = (pool) => {
     if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
       for (let i = 0; i < subtasks.length; i++) {
         const st = subtasks[i];
-        const description = st.text || st.description || '';
-        const isCompleted = st.completed || st.is_completed || false;
+        const text = st.text || st.description || '';
+        const isDone = st.is_done || st.completed || st.is_completed || false;
 
         await pool.query(
-          `INSERT INTO subtasks (task_id, description, is_completed, position)
+          `INSERT INTO subtasks (task_id, text, is_done, order_index)
            VALUES ($1, $2, $3, $4)`,
-          [createdTask.id, description, isCompleted, i]
+          [createdTask.id, text, isDone, i]
         );
       }
     }
@@ -188,7 +182,7 @@ const createTasksRouter = (pool) => {
     let paramCount = 1;
 
     // Add updatable fields
-    const allowedFields = ['title', 'description', 'status', 'priority', 'due_date'];
+    const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'order_index', 'is_pinned'];
     Object.entries(updates).forEach(([key, value]) => {
       if (allowedFields.includes(key)) {
         // Handle due_date conversion for updates

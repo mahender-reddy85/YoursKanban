@@ -2,7 +2,6 @@
   "name": "yours-kanban",
   "version": "1.0.0",
   "description": "A Trello-style Kanban board application",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,7 +10,7 @@
     "vercel-build": "npm install && npm run build",
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate": "node --experimental-json-modules backend/scripts/runMigrations.js"
+    "migrate": "node backend/scripts/runMigrations.js"
   },
   "keywords": ["kanban", "trello", "task-management", "productivity"],
   "author": "",

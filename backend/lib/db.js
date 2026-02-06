@@ -1,5 +1,5 @@
-import pg from 'pg';
-import 'dotenv/config';
+const pg = require('pg');
+require('dotenv').config();
 
 const { Pool } = pg;
 
@@ -19,7 +19,7 @@ pool.query('SELECT NOW()', (err) => {
   }
 });
 
-export default {
+module.exports = {
   query: (text, params) => pool.query(text, params),
   pool
 };
