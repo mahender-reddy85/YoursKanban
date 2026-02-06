@@ -1087,6 +1087,95 @@ function sanitize(html) {
     return div.innerHTML;
 }
 
+// Board Rendering Functions
+function renderBoard() {
+    if (isDragging) return; // Don't re-render during drag operations
+    
+    const todoList = document.getElementById('todo');
+    const inProgressList = document.getElementById('in-progress');
+    const doneList = document.getElementById('done');
+    
+    if (!todoList || !inProgressList || !doneList) return;
+    
+    // Clear existing tasks
+    todoList.innerHTML = '';
+    inProgressList.innerHTML = '';
+    doneList.innerHTML = '';
+    
+    // Get filtered and sorted tasks
+    let tasksToRender = [...state.tasks];
+    
+    // Apply search filter
+    if (state.filterQuery) {
+        const query = state.filterQuery.toLowerCase();
+        tasksToRender = tasksToRender.filter(task => 
+            task.title.toLowerCase().includes(query) ||
+            (task.description && task.description.toLowerCase().includes(query))
+        );
+    }
+    
+    // Apply priority filter
+    if (state.priorityFilter !== 'all') {
+        tasksToRender = tasksToRender.filter(task => 
+            task.priority === state.priorityFilter
+        );
+    }
+    
+    // Apply sorting
+    if (state.sortOrder !== 'none') {
+        tasksToRender.sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return state.sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+    }
+    
+    // Render tasks in appropriate columns
+    tasksToRender.forEach(task => {
+        const taskCard = createTaskCard(task);
+        
+        switch (task.status) {
+            case 'todo':
+                todoList.appendChild(taskCard);
+                break;
+            case 'in-progress':
+                inProgressList.appendChild(taskCard);
+                break;
+            case 'done':
+                doneList.appendChild(taskCard);
+                break;
+        }
+    });
+    
+    // Re-attach drag events after rendering
+    attachDragEvents();
+}
+
+// Sort Functions
+function toggleSortOrder() {
+    const orders = ['none', 'asc', 'desc'];
+    const currentIndex = orders.indexOf(state.sortOrder);
+    const nextIndex = (currentIndex + 1) % orders.length;
+    state.sortOrder = orders[nextIndex];
+    
+    // Update button text to show current sort order
+    const sortBtn = document.getElementById('sortByDate');
+    if (sortBtn) {
+        const sortLabels = {
+            'none': 'Sort: None',
+            'asc': 'Sort: ↑ Date',
+            'desc': 'Sort: ↓ Date'
+        };
+        sortBtn.textContent = sortLabels[state.sortOrder];
+    }
+    
+    // Re-render tasks with new sort order
+    renderBoard();
+    saveState();
+    
+    showToast(`Sort order: ${state.sortOrder.toUpperCase()}`, 'info', 2000);
+}
+
 // Keyboard Shortcuts
 function handleKeyboardShortcuts(e) {
     // Don't trigger if typing in an input or textarea
