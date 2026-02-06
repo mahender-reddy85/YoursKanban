@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS subtasks (
     description TEXT,
     is_completed BOOLEAN DEFAULT false,
     order_index INTEGER DEFAULT 0,
+    position INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

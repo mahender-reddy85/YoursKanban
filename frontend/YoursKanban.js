@@ -1461,15 +1461,18 @@ async function fetchTasks() {
 // Inline Editing Functions
 function setupInlineEditing(card, task) {
     // Make title editable on double-click
-    const titleElement = card.querySelector('.task-title');
+    const titleElement = card.querySelector('.card-title-text');
     if (titleElement) {
         titleElement.contentEditable = false;
+        titleElement.style.cursor = 'text';
         
         // Use dblclick for desktop and touchend for mobile double-tap
         let lastTap = 0;
         const enableEdit = () => {
             titleElement.contentEditable = true;
             titleElement.focus();
+            titleElement.style.outline = '2px solid #3b82f6';
+            titleElement.style.outlineOffset = '2px';
             
             // Select all text
             const range = document.createRange();
@@ -1493,16 +1496,19 @@ function setupInlineEditing(card, task) {
         
         titleElement.addEventListener('blur', async () => {
             titleElement.contentEditable = false;
+            titleElement.style.outline = 'none';
             const newTitle = titleElement.textContent.trim();
             
-            if (newTitle !== task.title) {
+            if (newTitle !== task.title && newTitle.length > 0) {
                 try {
-                    await updateTask(task.id, { ...task, title: newTitle });
+                    await updateTask(task.id, { title: newTitle });
                     task.title = newTitle;
                 } catch (error) {
                     console.error('Error updating title:', error);
                     titleElement.textContent = task.title; // Revert on error
                 }
+            } else if (newTitle.length === 0) {
+                titleElement.textContent = task.title; // Revert empty titles
             }
         });
         
@@ -1518,15 +1524,18 @@ function setupInlineEditing(card, task) {
     }
     
     // Make description editable on double-click
-    const descElement = card.querySelector('.task-description');
+    const descElement = card.querySelector('.card-desc');
     if (descElement) {
         descElement.contentEditable = false;
+        descElement.style.cursor = 'text';
         
         // Use dblclick for desktop and touchend for mobile double-tap
         let lastTap = 0;
         const enableEdit = () => {
             descElement.contentEditable = true;
             descElement.focus();
+            descElement.style.outline = '2px solid #3b82f6';
+            descElement.style.outlineOffset = '2px';
             
             // Select all text
             const range = document.createRange();
@@ -1550,11 +1559,12 @@ function setupInlineEditing(card, task) {
         
         descElement.addEventListener('blur', async () => {
             descElement.contentEditable = false;
+            descElement.style.outline = 'none';
             const newDesc = descElement.textContent.trim();
             
             if (newDesc !== (task.description || '')) {
                 try {
-                    await updateTask(task.id, { ...task, description: newDesc });
+                    await updateTask(task.id, { description: newDesc });
                     task.description = newDesc;
                 } catch (error) {
                     console.error('Error updating description:', error);

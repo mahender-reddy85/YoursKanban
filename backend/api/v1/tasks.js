@@ -18,13 +18,16 @@ const createTasksRouter = (pool) => {
                       json_build_object(
                         'id', st.id,
                         'title', st.title,
+                        'description', st.description,
                         'is_completed', st.is_completed,
+                        'position', st.position,
                         'created_at', st.created_at,
                         'updated_at', st.updated_at
                       )
                     )
                     FROM subtasks st
                     WHERE st.task_id = t.id
+                    ORDER BY st.position ASC
                   ),
                   '[]'::json
                 ) AS subtasks
@@ -60,13 +63,16 @@ const createTasksRouter = (pool) => {
                   json_build_object(
                     'id', st.id,
                     'title', st.title,
+                    'description', st.description,
                     'is_completed', st.is_completed,
+                    'position', st.position,
                     'created_at', st.created_at,
                     'updated_at', st.updated_at
                   )
                 )
                 FROM subtasks st 
-                WHERE st.task_id = t.id),
+                WHERE st.task_id = t.id
+                ORDER BY st.position ASC),
                 '[]'::json
               ) as subtasks
        FROM tasks t
