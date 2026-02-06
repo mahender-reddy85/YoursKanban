@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     priority VARCHAR(20) NOT NULL CHECK (priority IN ('low', 'medium', 'high')),
     due_date TIMESTAMP WITH TIME ZONE,
     position INTEGER NOT NULL,
+    pinned BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -31,8 +32,9 @@ CREATE TABLE IF NOT EXISTS subtasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
+    description TEXT,
     is_completed BOOLEAN DEFAULT false,
-    order_index INTEGER NOT NULL,
+    order_index INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

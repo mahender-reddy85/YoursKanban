@@ -178,7 +178,7 @@ const createTasksRouter = (pool) => {
     let paramCount = 1;
 
     // Add updatable fields
-    const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'position'];
+    const allowedFields = ['title', 'description', 'status', 'priority', 'due_date', 'position', 'pinned'];
     Object.entries(updates).forEach(([key, value]) => {
       if (allowedFields.includes(key)) {
         // Handle due_date conversion for updates
