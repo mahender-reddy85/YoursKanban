@@ -148,13 +148,14 @@ const createTasksRouter = (pool) => {
     if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
       for (let i = 0; i < subtasks.length; i++) {
         const st = subtasks[i];
-        const subtaskTitle = st.title || st.text || st.description || '';
+        const subtaskTitle = st.title || st.text || '';
+        const subtaskDescription = st.description || st.text || '';
         const isCompleted = st.is_completed || st.completed || st.is_done || false;
 
         await pool.query(
-          `INSERT INTO subtasks (task_id, title, is_completed)
-           VALUES ($1, $2, $3)`,
-          [createdTask.id, subtaskTitle, isCompleted]
+          `INSERT INTO subtasks (task_id, title, description, is_completed)
+           VALUES ($1, $2, $3, $4)`,
+          [createdTask.id, subtaskTitle, subtaskDescription, isCompleted]
         );
       }
     }
